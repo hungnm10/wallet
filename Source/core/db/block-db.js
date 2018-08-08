@@ -6,7 +6,6 @@
 const fs = require('fs');
 const DBLib=require("./db");
 
-const MAX_ARR_PERIOD=MAX_STAT_PERIOD*2+10;
 
 global.BlockDB=new DBLib();
 global.BLOCK_HEADER_SIZE=150;//144;
@@ -877,6 +876,8 @@ module.exports = class CDB extends require("../code")
     }
     ClearStat()
     {
+        var MAX_ARR_PERIOD=MAX_STAT_PERIOD*2+10;
+
         this.StatMap=
             {
                 StartPos:0,
@@ -892,6 +893,7 @@ module.exports = class CDB extends require("../code")
         if(!MinLength)
             return [];
 
+        var MAX_ARR_PERIOD=MAX_STAT_PERIOD*2+10;
 
         if(!this.StatMap)//init
         {
@@ -996,6 +998,7 @@ module.exports = class CDB extends require("../code")
         if(!Count || Count<0)
             Count=1000;
 
+        var Map={};
         var arr=new Array(Count);
         //var arrmy=new Array(Count);
         var i=0;

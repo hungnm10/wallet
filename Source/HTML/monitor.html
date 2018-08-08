@@ -245,7 +245,7 @@
                 if(VX1===VX2)
                     VX1-=2;
 
-                var x=StartX+(i+1)*KX;
+                var x=StartX+ctx.lineWidth/2+(i)*KX;
 
 
 
@@ -412,7 +412,7 @@
             {name:"MAX:MEMORY_USAGE",text:"Mem usage, Mbyte",value:300},
             {name:"MAX:CPU",text:"CPU ALL WORK, ms",value:0,red:"#06A"},
             {name:"HASHRATE",text:"Hash Rate",value:0,red:"#95d6b9"},
-            {name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#95d6b9"},
+            //{name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#95d6b9"},
             {name:"POWER_MY_WIN",text:"POWER MY WIN",value:0,red:"#088a4a"},
             {name:"POWER_BLOCKCHAIN",text:"POWER Blockchain",value:0,red:"#2b6311"},
 
@@ -429,6 +429,7 @@
             {name:"MAX:LOADEDCHAINLIST",text:"Loaded chains, count",value:0,red:"#95d6b9"},
 
             {isLine:true,text:"NODES"},
+            {name:"MAX:BUSY_LEVEL",text:"BUSY_LEVEL",value:0,red:"#ff353b"},
             {name:"STOP_METHOD",text:"STOP_METHOD",value:0,red:"#8a3d74"},
             {name:"AddToBan",text:"AddToBan",value:0,red:"#8a3d74"},
             {name:"NETCONFIGURATION",text:"NETCONFIGURATION",value:0,red:"#8a5663"},
@@ -437,11 +438,11 @@
             {name:"MAX:ACTUAL_NODES",text:"Nodes count",value:0,red:"#83a3d6"},
             {name:"MAX:HASH_OK",text:"Block chain Hash = OK",value:0,red:"#2b6311"},
 
+            {name:"MAX:HOT_NODES",text:"TRANSFER nodes, count",value:0,red:"#063c8a"},
             {name:"TRANSFER_TIME_OUT",text:"TRANSFER TIME OUT, count",value:0,red:"#ff353b"},
 
 
 
-//            {name:"MAX:HOT_NODES",text:"TRANSFER nodes, count",value:0,red:"#063c8a"},
 //            {name:"MAX:HOT_OK",text:"TRANSFER Accounts Hash - OK",value:0,red:"#2b6311"},
 //            {name:"MAX:HOT_COUNT_LEVELS",text:"TRANSFER Avg Levels count",value:0,red:"#39638a"},
 
@@ -456,8 +457,12 @@
     var DiagramArrD=
         [
 
+            {name:"MAX:TIME_DELTA",text:"TIME_DELTA",value:0,red:"#729b67"},
+            {name:"MAX:NO_AUTO_CORRECT_TIME",text:"NO_AUTO_CORRECT_TIME",value:0,red:"#39519b"},
 
-            {name:"STOP_METHOD",text:"STOP_METHOD",value:0,red:"#8a3d74"},
+            {name:"MAX:BUSY_LEVEL",text:"BUSY_LEVEL",value:0,red:"#ff353b"},
+            {name:"STOP_METHOD",text:"STOP_METHOD",value:0,red:"#8a3c40"},
+
             {name:"AddToBan",text:"AddToBan",value:0,red:"#8a3d74"},
             {name:"NETCONFIGURATION",text:"NETCONFIGURATION",value:0,red:"#8a5663"},
 
@@ -489,8 +494,10 @@
 
 
 
+            //{name:"MAX:COUNT_EQ_ADDR",text:"COUNT_EQ_ADDR",value:0,red:"#8a5663"},
+
             {name:"MAX:ACTUAL_NODES",text:"Nodes count",value:0,red:"#83a3d6"},
-            {name:"MIN_VERSION",text:"MIN_VERSION",value:0,red:"#99eeff"},
+            {name:"MAX:MIN_VERSION",text:"MAX:MIN_VERSION",value:0,red:"#99eeff"},
             {name:"MAX:HASH_OK",text:"Block chain Hash = OK",value:0,red:"#2b6311"},
             {name:"MAX:CHECK_POINT_OK",text:"Check point = OK",value:0,red:"#356361"},
 
@@ -525,7 +532,7 @@
 
             {name:"HASHRATE",text:"Hash Rate",value:0,red:"#95d6b9"},
 //            {name:"MINING-COUNT",text:"MINING-COUNT",value:0,red:"#95d6b9"},
-            {name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#95d6b9"},
+//            {name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#95d6b9"},
             {name:"POWER_MY_WIN",text:"POWER MY WIN",value:0,red:"#088a4a"},
             {name:"POWER_BLOCKCHAIN",text:"POWER Blockchain",value:0,red:"#2b6311"},
 

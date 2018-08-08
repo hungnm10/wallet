@@ -1064,6 +1064,7 @@ module.exports = class CConsensus extends require("./block-loader")
 
     STARTBLOCK(Info,CurTime)
     {
+
         var Data=this.DataFromF(Info);
         var BlockNum=Data.BlockNum;
         var Arr=Data.AddrArr;

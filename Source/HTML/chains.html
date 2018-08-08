@@ -21,14 +21,25 @@
 
 <script type="text/javascript">
     var sessionid;
+    var SaveIdArr=["idUseSound"];
     function SetNewSession(cursessionid)
     {
         sessionid=cursessionid;
     }
 
+    function LoadValues()
+    {
+        LoadValuesByArr(SaveIdArr);
+    }
+    function SaveValues()
+    {
+        SaveValuesByArr(SaveIdArr);
+    }
+
 
     window.onload=function()
     {
+        LoadValues();
         InitStartData();
 
 
@@ -299,12 +310,22 @@
 
         BlockNew.SumPow=BlockNew.SumPow;
     }
+
+    var WasStartLoadBlockTime;
     function SetResult(Data,MaxBlockNum,NodeNum)
     {
         if(!Data)
             return;
         if(!Data.BlockChain)
             return;
+
+        if($("idUseSound").checked && WasStartLoadBlockTime!==Data.StartLoadBlockTime)
+        {
+            WasStartLoadBlockTime=Data.StartLoadBlockTime;
+            //SetStatus("Data.LoadedChainCount="+Data.LoadedChainCount)
+            $("sound_click").play();
+        }
+
 
         if(IsDevelopAccount!==Data.IsDevelopAccount)
             if(Data.IsDevelopAccount)
@@ -568,11 +589,14 @@
 
         ctx.strokeStyle="#000";
         if(Block.bSave)
-            ctx.strokeStyle="rgb(10,200,10)";
+            ctx.strokeStyle="#1C1";
         else
         {
+            if(Block.Mining)
+                ctx.strokeStyle="#9b712a";
+            else
             if(Block.Prepared)
-                ctx.strokeStyle="rgb(100,100,250)";
+                ctx.strokeStyle="#66F";
             else
             if(Block.Type==="H" && !Block.Active)
                 ctx.strokeStyle="#e6bd40";
@@ -1316,13 +1340,27 @@
 
 <BR>
 <BR>
-<DIV id="diargams">
-</DIV>
 
 
 
+<INPUT type="checkbox" onchange = "SaveValues()" id="idUseSound">Use sound alert<BR>
+<BR>
 
 <canvas  width='1800' height='500' id='BlockChainGraph'></canvas>
+
+
+<!--<input type="button" onclick='$("sound_click").play();' value="sndMsg"/>-->
+
+
+<audio style="visibility: hidden;" controls="controls" id="sound_bt">
+    <source src="soundbt.wav" type="audio/wav"/>
+</audio>
+
+<audio style="visibility: hidden;" controls="controls" id="sound_click">
+    <source src="click.mp3" type="audio/mpeg"/>
+</audio>
+
+
 </body>
 </html>
 

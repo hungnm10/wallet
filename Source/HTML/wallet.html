@@ -34,7 +34,6 @@
 
 <script>
     var CONFIG_DATA={}; CONFIG_DATA.CONSTANTS={};
-
     var ServerBlockNumDB=0;
     var ServerVersionNum=0;
     var ServerCurBlockNum=0;
@@ -60,7 +59,8 @@
     var TabArr=[{name:"TabAccounts",log:1},{name:"TabSend",log:1},{name:"TabHistory"},{name:"TabExplorer"}];
     var SaveIdArr=["idAccount","idTo","idSumTER","idDescription","idSelStyle",
         "idViewAccountNum","idViewBlockNum","idViewHistoryNum","idViewActNum","idViewHashNum","idWalletPow",
-        "idRunText","idViewBlockFilter","idViewAccountFilter","idViewHistoryFilter"];
+        "idRunText","idViewAccountFilter","idViewHistoryFilter","idUseSoundHistory",
+        "idBlockNum","idBlockNumEnd"];
     var LoadMapAfter={};
 
 
@@ -861,6 +861,8 @@
 
     function CleanChain()
     {
+        SaveValues();
+
         var BlockNum=ParseNum(document.getElementById("idBlockNum").value);
         if(!BlockNum)
         {
@@ -1240,6 +1242,39 @@
 
         SetViewWN();
     }
+
+    var WasHistoryMaxNum;
+    var WasLastNumSound=0;
+    function CheckNewMoney()
+    {
+        if(!$("idUseSoundHistory").checked)
+            return;
+
+        if(WasHistoryMaxNum===HistoryMaxNum  || !ServerBlockNumDB)
+            return;
+
+        WasHistoryMaxNum=HistoryMaxNum;
+
+        GetData("/GetHistoryAct/"+(HistoryMaxNum-40)+"/40/+",function (Data)
+        {
+            if(Data && Data.result)
+            {
+                var arr=Data.arr;
+                for(var i=0;i<arr.length;i++)
+                {
+                    var Item=arr[i];
+
+                    if(Item.Direct==="+" && Item.BlockNum>ServerBlockNumDB-60 && Item.BlockNum<ServerBlockNumDB-20 && Item.BlockNum>WasLastNumSound)
+                    {
+                        WasLastNumSound=Item.BlockNum;
+                        SetStatus("Sound: "+WasLastNumSound);
+                        $("sound_coin").play();
+                    }
+                }
+            }
+        });
+    }
+
     function SetVisibleBtOpenWallet()
     {
         SetVisibleBlock("idOpenWallet",WalletOpen!==undefined);
@@ -1703,37 +1738,13 @@
 
     function LoadValues()
     {
-        if(localStorage["VerSave"]!=="2")
-            return;
-        CurTabName=localStorage["CurTabName"];
-        for(var i=0;i<SaveIdArr.length;i++)
-        {
-            var name=SaveIdArr[i];
-            var Item=document.getElementById(name);
-
-            if(Item.nodeName==="SELECT")
-            {
-                LoadMapAfter[name]=localStorage.getItem(name);
-            }
-//            else
-//            {
-//                Item.value=localStorage.getItem(name);
-//            }
-            Item.value=localStorage.getItem(name);
-            //Item.checked
-        }
+        if(LoadValuesByArr(SaveIdArr))
+            CurTabName=localStorage["CurTabName"];
     }
     function SaveValues()
     {
-        localStorage["VerSave"]="2";
+        SaveValuesByArr(SaveIdArr);
         localStorage["CurTabName"]=CurTabName;
-        for(var i=0;i<SaveIdArr.length;i++)
-        {
-            var name=SaveIdArr[i];
-            var Item=document.getElementById(name);
-            window.localStorage.setItem(name,Item.value);
-            //Item.checked
-        }
     }
 
     //INIT
@@ -1751,6 +1762,7 @@
     }
     window.onload=function()
     {
+        LoadValues();
         InitPasItems();
 
         UpdatesConfigData();
@@ -1758,8 +1770,8 @@
 
         setInterval(UpdatesData,1000);
         setInterval(UpdatesConfigData,200);
+        setInterval(CheckNewMoney,1000);
 
-        LoadValues();
         SelectStyle();
         SelectTypeKey();
 
@@ -1815,6 +1827,16 @@
     function UseAutoCheckPoint()
     {
         GetData("/SetAutoCheckPoint/",document.getElementById("idUseAutoCheckPoint").checked,function (Data)
+        {
+            if(Data)
+            {
+                SetStatus(Data.text,!Data.result);
+            }
+        });
+    }
+    function UseAutoCorrTime()
+    {
+        GetData("/SetAutoCorrTime",document.getElementById("idUseAutoCorrTime").checked,function (Data)
         {
             if(Data)
             {
@@ -1995,11 +2017,11 @@
     function OpenWallet()
     {
         var Passwd1=itemPassword1.value;
-        itemPassword1.value="";
         GetData("/OpenWallet/",Passwd1, function (Data)
         {
             if(Data && Data.result===1)
             {
+                itemPassword1.value="";
                 SetStatus("Wallet open");
                 SetVisibleBlock("idBlockPassword",false);
                 SetImg(itemBtPassword,'idBlockPassword');
@@ -2203,8 +2225,12 @@
             <INPUT type="button" onclick="SetNewCodeVersion()" class="btdoit  bt" value=">>NEW VERSION">
             <INPUT type="button" onclick="StartTimeCorrect()" class="btdoit  bt" value=">>TIME CORR.">
 
+
             <input type="checkbox" class="checkbox" id="idUseAutoCheckPoint" onchange = "UseAutoCheckPoint()"/>
-            <label for="idUseAutoCheckPoint">Auto CheckPoint</label><BR>
+            <label for="idUseAutoCheckPoint">Auto check point</label>
+            <input type="checkbox" class="checkbox" id="idUseAutoCorrTime" onchange = "UseAutoCorrTime()"/>
+            <label for="idUseAutoCorrTime">Auto corr time</label><BR>
+
 
             <HR>
         </DIV>
@@ -2406,6 +2432,9 @@
         </tr>
     </table>
     <B><DIV id="idTotalSumH"></DIV></B>
+
+    <INPUT type="checkbox" onchange = "SaveValues()" id="idUseSoundHistory">Use sound on receive coins<BR>
+
     <script>
         //ACCOUNT ID
         function GetStrID(num,name)
@@ -2603,7 +2632,7 @@
         <HR>
         <DIV id="view_header" >UTILITES<BR></DIV>
 
-        Operation with Block number:<INPUT type="number" id="idBlockNum" value="0"> - <INPUT type="number" id="idBlockNumEnd" value="0"><BR>
+        Operation with Block number:<INPUT type="number" id="idBlockNum" onchange = "SaveValues()" value="0"> - <INPUT type="number" id="idBlockNumEnd" onchange = "SaveValues()" value="0"><BR>
         <INPUT type="button" onclick="RewriteTransactions()"  class="bt btdoit btlong" value="Rewrite Transactions">
         <INPUT type="button" onclick="CheckBlocks()"  class="bt btdoit btlong" value="Check Blocks">
         <INPUT type="button" onclick="TruncateBlockChain()" class="btdoit btlong bt" value="Truncate chain <!>">
@@ -2660,7 +2689,11 @@
     <!--progr76@gmail.com-->
 </DIV>
 
+
+<audio style="visibility: hidden;" controls="controls" id="sound_coin">
+    <source src="coin.mp3" type="audio/mpeg"/>
+</audio>
+
+
 </body>
-
-
 </html>

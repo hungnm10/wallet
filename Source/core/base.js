@@ -70,28 +70,43 @@ module.exports = class CCommon
 
         var MinVer=global.MIN_VER_STAT;
         if(MinVer===0)
-            MinVer=global.MIN_CODE_VERSION_NUM;
+            MinVer=global.UPDATE_CODE_VERSION_NUM;
 
         var BufMap={},BufMap2={};
         var arr=SERVER.GetActualNodes();
-        var Count=0,CountHot=0,CountHotOK=0,CountActualOK=0,SumDeltaHot=0,SumDeltaActual=0,CountCP=0,CountLH=0,CountLevels=0,CountHash=0,CountVer=0;
+        var Count=0,CountHot=0,CountHotOK=0,CountActualOK=0,SumDeltaHot=0,SumDeltaActual=0,CountCP=0,CountLH=0,CountLevels=0,CountHash=0,CountVer=0,CountStop=0;
+        var CountEqAddr=0,CountCorrTime=0,NoCountCorrTime=0;
         for(var i=0;i<arr.length;i++)
         {
             var Node=arr[i];
             if(!Node || Node.AddrList)
                 continue;
-            if(!Node.INFO)
-                Node.INFO={};
+            var INFO=Node.INFO;
+            if(!INFO)
+                INFO={};
 
-            if(bHasCP && CHECK_POINT.BlockNum && Node.INFO.CheckPointHashDB && CompareArr(CHECK_POINT.Hash,Node.INFO.CheckPointHashDB)===0)
+            if(bHasCP && CHECK_POINT.BlockNum && INFO.CheckPointHashDB && CompareArr(CHECK_POINT.Hash,INFO.CheckPointHashDB)===0)
             {
                 CountCP++;
             }
-            if(Node.INFO.LoadHistoryMode)
+            if(INFO.LoadHistoryMode)
                 CountLH++;
-            if(Node.Hot && Node.INFO.NodesLevelCount)
-                CountLevels+=Node.INFO.NodesLevelCount;
+            if(Node.Hot && INFO.NodesLevelCount)
+                CountLevels+=INFO.NodesLevelCount;
 
+
+            if(Node.StopGetBlock)
+                CountStop++;
+
+            if(Node.Socket && Node.Socket.remoteAddress===Node.ip)
+                CountEqAddr++;
+
+
+            if(INFO.AutoCorrectTime)
+                CountCorrTime++;
+            else
+            if(Node.VersionNum>=271)
+                NoCountCorrTime++;
 
 
             Count++;
@@ -100,14 +115,14 @@ module.exports = class CCommon
             if(Node.VersionNum>=MinVer)
                 CountVer++;
 
-            if(Node.INFO && Node.INFO.BlockNumDB && Node.INFO.BlockNumDB<=SERVER.BlockNumDB)
+            if(INFO && INFO.BlockNumDB && INFO.BlockNumDB<=SERVER.BlockNumDB)
             {
-                var HashDB=ReadHashFromBufDB(BufMap2,Node.INFO.BlockNumDB);
-                if(HashDB && CompareArr(HashDB,Node.INFO.HashDB)===0)
+                var HashDB=ReadHashFromBufDB(BufMap2,INFO.BlockNumDB);
+                if(HashDB && CompareArr(HashDB,INFO.HashDB)===0)
                     CountHash++;
             }
 
-            var StrChk=GetCheckAccHash(BufMap,Node.INFO.AccountBlockNum,Node.INFO.AccountsHash);
+            var StrChk=GetCheckAccHash(BufMap,INFO.AccountBlockNum,INFO.AccountsHash);
             var Chck=0;
             if(StrChk.indexOf("=OK=")>=0)
             {
@@ -135,7 +150,16 @@ module.exports = class CCommon
         ADD_TO_STAT("MAX:CHECK_POINT_OK",CountCP);
         ADD_TO_STAT("MAX:COUNTLH",CountLH);
         ADD_TO_STAT("MAX:HASH_OK",CountHash);
-        ADD_TO_STAT("MIN_VERSION",CountVer);
+        ADD_TO_STAT("MAX:MIN_VERSION",CountVer);
+        ADD_TO_STAT("MAX:STOP_GET",CountStop);
+
+        //ADD_TO_STAT("MAX:COUNT_EQ_ADDR",CountEqAddr);
+        ADD_TO_STAT("MAX:TIME_DELTA",DELTA_CURRENT_TIME);
+        ADD_TO_STAT("MAX:AUTO_CORRECT_TIME",CountCorrTime);
+
+        ADD_TO_STAT("MAX:NO_AUTO_CORRECT_TIME",NoCountCorrTime);
+
+
 
 
 

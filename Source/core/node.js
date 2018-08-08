@@ -20,14 +20,18 @@ module.exports = class CNode
     constructor(addrStr,ip,port)
     {
         this.addrStr=addrStr;
-        this.ip=ip;
+        this.ip=ip.trim();
         this.port=port;
         this.StartFindList=0;
         this.WhiteConnect=0;
         this.GrayConnect=0;
 
         this.POW=0;
+        this.FirstTime=0;
+        this.FirstTimeStr="";
         this.LastTime=0;
+        this.LastTimeError=0;
+
         this.DeltaTime=1000;
         this.SumDeltaTime=0;
         this.CountDeltaTime=0;
@@ -49,6 +53,7 @@ module.exports = class CNode
 
         this.VersionOK=false;
         this.VersionNum=0;
+        this.Delete=0;
 
 
         this.ResetNode();
@@ -58,6 +63,7 @@ module.exports = class CNode
     ResetNode()
     {
         this.StopGetBlock=0;
+        this.LevelCount=0;
 
         this.TimeMap={};
 
@@ -261,7 +267,7 @@ module.exports = class CNode
                 var Buf=SERVER.GetDataFromBuf(data);
                 if(Buf)
                 {
-                    var Res=NODE.SendPOWClient(SOCKET,Buf.Data);
+                    var Res=NODE.SendPOWFromClientToServer(SOCKET,Buf.Data);
                     if(Res)
                     {
                         //NODE.DirectIP=1;
@@ -278,12 +284,24 @@ module.exports = class CNode
                 if(Buf)
                 {
                     var Str=Buf.Data;
-                    if(Str==="WAIT_CONNECT_FROM_SERVER")
+                    if(Str.substr(0,24)==="WAIT_CONNECT_FROM_SERVER")
                     {
                         ToLogNet("2. -------------------- CLIENT OK POW to server: "+NodeInfo(NODE));
-                        //SetSocketStatus(SOCKET,0);
                         CloseSocket(SOCKET,"WAIT_CONNECT_FROM_SERVER");
                         NODE.WaitConnectFromServer=1;
+                        NODE.WaitConnectIP=NODE.ip;
+                        try
+                        {
+                            NODE.SecretForReconnect=GetArrFromHex(Str.substr(25));
+                        }
+                        catch (e)
+                        {
+                            NODE.SecretForReconnect=[];
+                            ToLog(e);
+                        }
+
+                        //ToLog("2.WAIT_CONNECT_FROM_SERVER: "+NodeName(NODE)+" : "+NODE.WaitConnectFromServer);
+
                     }
                     else
                     if(Str==="OK")
@@ -378,7 +396,7 @@ module.exports = class CNode
 
 
 
-    SendPOWClient(Socket,data)
+    SendPOWFromClientToServer(Socket,data)
     {
         var Node=this;
 
@@ -386,10 +404,11 @@ module.exports = class CNode
         {
             Node.ReconnectFromServer=0;
 
-            var Pow=this.GetPOWClientData(0);
-            Pow.Reconnect=1;
+            var Info=this.GetPOWClientData(0);
+            Info.Reconnect=1;
+            Info.SecretForReconnect=Node.SecretForReconnect;
 
-            var BufWrite=BufLib.GetBufferFromObject(Pow,FORMAT_POW_TO_SERVER,1200,{});
+            var BufWrite=BufLib.GetBufferFromObject(Info,FORMAT_POW_TO_SERVER,1200,{});
             var BufAll=SERVER.GetBufFromData("POW_CONNECT7",BufWrite,1);
             Socket.write(BufAll);
             return 1;
@@ -412,7 +431,8 @@ module.exports = class CNode
 
         if(!Node.StartFindList && addrStr!==Node.addrStr)
         {
-            ToLog("END: CHANGED ADDR: "+Node.addrStr.substr(0,16)+" -> "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+            Node.Delete=1;
+            ToLog("END: CHANGED ADDR: "+Node.addrStr.substr(0,16)+"->"+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
             SERVER.SendCloseSocket(Socket,"ADDRESS_HAS_BEEN_CHANGED");
             return;
         }
@@ -421,14 +441,16 @@ module.exports = class CNode
 
         var Result=false;
         var Hash=shaarr(addrStr+"-"+Node.ip+":"+Node.port);
+
+
         if(Buf.PubKeyType===2 || Buf.PubKeyType===3)
             Result=secp256k1.verify(Buffer.from(Hash), Buffer.from(Buf.Sign), Buffer.from([Buf.PubKeyType].concat(Buf.addrArr)));
         if(!Result)
         {
-            //ToLog("END: ERROR_SIGN_HANDSHAKE_FROM_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
-            // SERVER.SendCloseSocket(Socket,"ERROR_SIGN_HANDSHAKE_FROM_SERVER");
-            // this.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_HANDSHAKE_FROM_SERVER");
-            // return;
+            ToLogNet("END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+            SERVER.SendCloseSocket(Socket,"ERROR_SIGN_SERVER");
+            SERVER.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_SERVER");
+            return;
         }
 
 
@@ -465,6 +487,7 @@ module.exports = class CNode
         }
 
         Node.addrArr=Buf.addrArr;
+        Node.addrStr=addrStr;
         if(CompareArr(SERVER.addrArr,Node.addrArr)===0)
         {
             Node.Self=1;
@@ -474,20 +497,13 @@ module.exports = class CNode
         var nonce=CreateNoncePOWExternMinPower(Hash,0,Buf.MIN_POWER_POW_HANDSHAKE);
 
 
-        var Pow=this.GetPOWClientData(nonce);
-        Pow.PubKeyType=SERVER.PubKeyType;
-        Pow.Sign=secp256k1.sign(Buffer.from(Hash), SERVER.KeyPair.getPrivateKey('')).signature;
+        var Info=this.GetPOWClientData(nonce);
+        Info.PubKeyType=SERVER.PubKeyType;
+        Info.Sign=secp256k1.sign(Buffer.from(Hash), SERVER.KeyPair.getPrivateKey('')).signature;
 
 
-        if(0)//TODO
-        if(Socket!==this.Socket)//Reconnect
-        {
-            Pow.Reconnect=1;
-            Pow.SendBytes=this.Socket.SendBytes;
-            SetSocketStatus(this.Socket,200);
-        }
 
-        var BufWrite=BufLib.GetBufferFromObject(Pow,FORMAT_POW_TO_SERVER,1200,{});
+        var BufWrite=BufLib.GetBufferFromObject(Info,FORMAT_POW_TO_SERVER,1200,{});
         var BufAll=SERVER.GetBufFromData("POW_CONNECT6",BufWrite,1);
         Socket.write(BufAll);
         return 1;
@@ -496,21 +512,22 @@ module.exports = class CNode
     GetPOWClientData(nonce)
     {
         var Node=this;
-        var Pow={};
+        var Info={};
 
-        Pow.DEF_NETWORK=GetNetworkName();
-        Pow.DEF_VERSION=DEF_VERSION;
-        Pow.DEF_CLIENT=DEF_CLIENT;
-        Pow.addrArr=SERVER.addrArr;
-        Pow.ToIP=Node.ip;
-        Pow.ToPort=Node.port;
-        Pow.FromIP=SERVER.ip;
-        Pow.FromPort=SERVER.port;
-        Pow.nonce=nonce;
-        Pow.Reconnect=0;
-        Pow.SendBytes=0;
-        Pow.Reserv=[];
-        return Pow;
+        Info.DEF_NETWORK=GetNetworkName();
+        Info.DEF_VERSION=DEF_VERSION;
+        Info.DEF_CLIENT=DEF_CLIENT;
+        Info.addrArr=SERVER.addrArr;
+        Info.ToIP=Node.ip;
+        Info.ToPort=Node.port;
+        Info.FromIP=SERVER.ip;
+        Info.FromPort=SERVER.port;
+        Info.nonce=nonce;
+        Info.Reconnect=0;
+        Info.SendBytes=0;
+        Info.SecretForReconnect=[];
+        Info.Reserv=[];
+        return Info;
     }
 
 
@@ -666,7 +683,9 @@ function NodeName(Node)
     if(LOCAL_RUN)
         return ""+Node.port;
     else
+    {
         return ""+Node.ip+":"+Node.addrStr.substr(0,6);
+    }
 }
 
 
@@ -674,6 +693,21 @@ function ToLogNet(Str)
 {
     if(global.USE_LOG_NETWORK)
         ToLog(Str);
+}
+
+function FindNodeByAddr(Addr,bConnect)
+{
+    var Node=SERVER.NodesMap[Addr.trim()];
+    if(Node && Node.ConnectStatus()===100)
+        return Node;
+
+    if(Node && bConnect)
+    {
+        Node.NextConnectDelta=1000;
+        SERVER.StartConnectTry(Node);
+        return false;
+    }
+    return undefined;
 }
 
 global.SocketStatistic=SocketStatistic;
@@ -684,3 +718,5 @@ global.NodeName=NodeName;
 global.SocketInfo=SocketInfo;
 
 global.ToLogNet=ToLogNet;
+
+global.FindNodeByAddr=FindNodeByAddr;

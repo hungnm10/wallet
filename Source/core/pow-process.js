@@ -71,7 +71,7 @@ PROCESS.on('message', (msg) =>
 function CheckAlive()
 {
     var Delta=(new Date())-LastAlive;
-    if(Math.abs(Delta)>5*1000)
+    if(Math.abs(Delta)>3*1000)
     {
         //ToLog("Stop and exit")
         PROCESS.exit(0);
@@ -106,5 +106,4 @@ function CalcPOWHash()
     }
 
 }
-//setInterval(function () {},1000);
 

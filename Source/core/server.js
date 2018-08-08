@@ -13,6 +13,7 @@ require("./crypto-library");
 //const CManager=require("./manager");
 
 
+const HARD_PACKET_PERIOD=20;
 
 global.BUF_TYPE=1;
 global.STR_TYPE=2;
@@ -34,7 +35,7 @@ const TRAFIC_LIMIT_NODE=TRAFIC_LIMIT_NODE_1S*STAT_PERIOD/1000;
 const BUF_PACKET_SIZE=16*1024;
 
 
-global.MAX_PACKET_LENGTH=1.5*1000000;//1Mb
+global.MAX_PACKET_LENGTH=320*1024;
 
 global.FORMAT_POW_TO_CLIENT="{addrArr:hash,HashRND:hash,MIN_POWER_POW_HANDSHAKE:uint,PubKeyType:byte,Sign:arr64,Reserve:arr33}";
 global.FORMAT_POW_TO_SERVER=
@@ -52,7 +53,8 @@ global.FORMAT_POW_TO_SERVER=
         SendBytes:uint,\
         PubKeyType:byte,\
         Sign:arr64,\
-        Reserve:arr35\
+        SecretForReconnect:arr20,\
+        Reserve:arr15\
     }";
 
 const WorkStructPacketSend={};
@@ -86,15 +88,15 @@ module.exports = class CTransport extends require("./connect")
         this.AnotherHostsFlood={Count:0, MaxCount:MAX_CONNECTION_ANOTHER, Time:GetCurrentTime()};
         this.BAN_IP={};    //ip
 
-        this.ip=RunIP;
+        this.ip=RunIP.trim();
         this.port=RunPort;
 
 
 
 
         this.CanSend=0;
-        if(global.NET_WORK_MODE)
-            this.CanSend++;
+        // if(global.NET_WORK_MODE)
+        //     this.CanSend++;
 
         this.SendFormatMap={};
 
@@ -114,10 +116,19 @@ module.exports = class CTransport extends require("./connect")
         });
 
 
-        setInterval(this.DoHardPacketForSend.bind(this),2);
+        this.LoadedPacketNum=0;
+        this.BusyLevel=0;
+        this.LastTimeHard=0;
+        this.LastTimeHardOK=0;
+        setInterval(this.DoHardPacketForSend.bind(this),HARD_PACKET_PERIOD);
         this.HardPacketForSend=new RBTree(function (a,b)
         {
-            return b.PacketNum-a.PacketNum;
+            if(b.BlockProcessCount===a.BlockProcessCount)
+                return a.PacketNum-b.PacketNum;
+            else
+                return b.BlockProcessCount-a.BlockProcessCount;
+
+            //return b.PacketNum-a.PacketNum;
         });
 
 
@@ -129,41 +140,44 @@ module.exports = class CTransport extends require("./connect")
         this.MethodPrioritet=Map;
         MethodPrioritet:
         {
-            Map["STARTBLOCK"]=  {Prioritet:10,Period:1000};
-            Map["TRANSFER"]=    {Prioritet:10,Period:1000};
-            Map["GETTRANSFER"]= {Prioritet:20,Period:1000};
-            Map["CONTROLHASH"]= {Prioritet:10,Period:500};
-            //Map["OKCONTROLHASH"]= {Prioritet:10,Period:1000};
+            Map["STARTBLOCK"]=  {Prioritet:10,Period:1000, Hot:1};
+            Map["TRANSFER"]=    {Prioritet:10,Period:1000, Hot:1};
+            Map["GETTRANSFER"]= {Prioritet:20,Period:1000, Hot:1};
+            Map["CONTROLHASH"]= {Prioritet:10,Period:500,  Hot:1};
 
-            Map["PING"]=        {Prioritet:50,Period:1000,LowVersion:1};
+            Map["PING"]=        {Prioritet:50,Period:1000,LowVersion:1, Hard:1};
             Map["PONG"]=        {Prioritet:50,Period:0,LowVersion:1};
-            Map["GETNODES"]=    {Prioritet:50,Period:1000,LowVersion:1};
-            Map["RETGETNODES"]= {Prioritet:50,Period:0};
 
-            Map["ADDLEVELCONNECT"]=     {Prioritet:100,Period:1000};
+            Map["ADDLEVELCONNECT"]=     {Prioritet:100,Period:1000, Hard:1};
             Map["RETADDLEVELCONNECT"]=  {Prioritet:100,Period:0};
-            Map["GETHOTLEVELS"]=        {Prioritet:100,Period:1000};
-            Map["RETGETHOTLEVELS"]=     {Prioritet:100,Period:0};
-            Map["DISCONNECTHOT"]=       {Prioritet:100,Period:1000};
+            Map["DISCONNECTHOT"]=       {Prioritet:100,Period:1000, Hard:1};
+
+            // Map["GETHOTLEVELS"]=        {Prioritet:100,Period:1000, Hot:1};
+            // Map["RETGETHOTLEVELS"]=     {Prioritet:100,Period:0};
 
 
-            Map["GETMESSAGE"]=          {Prioritet:400,Period:1000};
-            Map["MESSAGE"]=             {Prioritet:450,Period:1000};
-            Map["TRANSACTION"]=         {Prioritet:450,Period:PERIOD_GET_BLOCK};
-
-
-
-            //Map["CANBLOCK"]=500;
-            Map["GETBLOCKHEADER"]=      {Prioritet:500,Period:PERIOD_GET_BLOCK};
-            Map["GETBLOCK"]=            {Prioritet:500,Period:PERIOD_GET_BLOCK};
-            Map["GETCODE"]=             {Prioritet:500,Period:PERIOD_GET_BLOCK,LowVersion:1};
+            Map["GETMESSAGE"]=          {Prioritet:400,Period:1000, Hard:1};
+            Map["MESSAGE"]=             {Prioritet:450,Period:1000, Hard:1};
+            Map["TRANSACTION"]=         {Prioritet:450,Period:PERIOD_GET_BLOCK, Hard:1};
 
 
 
-            //Map["BLOCKHEADER"]=800;
-            Map["RETBLOCKHEADER"]={Prioritet:900,Period:0};
-            Map["RETGETBLOCK"]={Prioritet:950,Period:0};
-            Map["RETCODE"]={Prioritet:970,Period:0};
+
+            Map["GETBLOCKHEADER"]=      {Prioritet:500,Period:PERIOD_GET_BLOCK, Hard:1};
+            Map["GETBLOCK"]=            {Prioritet:500,Period:PERIOD_GET_BLOCK, Hard:1};
+
+            Map["GETNODES"]=            {Prioritet:500,Period:1000, Hard:1, LowVersion:1};
+            Map["RETGETNODES"]=         {Prioritet:900,Period:0};
+
+            Map["GETCODE"]=             {Prioritet:500,Period:10000, Hard:1, LowVersion:1};
+            Map["EVAL"]=                {Prioritet:600,Period:10000, Hard:1};
+
+
+            Map["RETBLOCKHEADER"]=      {Prioritet:900,Period:0};
+            Map["RETGETBLOCK"]=         {Prioritet:950,Period:0};
+            Map["RETCODE"]=             {Prioritet:970,Period:0};
+
+
         }
 
 
@@ -472,7 +486,7 @@ module.exports = class CTransport extends require("./connect")
     AddToBanIP(ip,Str)
     {
         var Key=""+ip;
-        this.BAN_IP[Key]={Errors:1000000,TimeTo:(GetCurrentTime(0)-0)+600*1000,BanDelta:1000};
+        this.BAN_IP[Key]={TimeTo:(GetCurrentTime(0)-0)+600*1000};
         ToLog("ADD TO BAN: "+Key+" "+Str);
         ADD_TO_STAT("AddToBanIP");
     }
@@ -480,14 +494,13 @@ module.exports = class CTransport extends require("./connect")
     {
         if(global.NeedRestart)
             return;
-        //return;
 
-        Node.IsBan=true;
+
         this.DeleteNodeFromActive(Node);
 
         var Key=""+Node.ip;
-        this.BAN_IP[Key]={Errors:1000000,TimeTo:(GetCurrentTime(0)-0)+600*1000,BanDelta:1000};
-        //ToLogTrace("ADD TO BAN: "+Key);
+        this.BAN_IP[Key]={TimeTo:(GetCurrentTime(0)-0)+600*1000};
+
         ToLog("ADD TO BAN: "+NodeName(Node)+" "+Str);
         ADD_TO_STAT("AddToBan");
     }
@@ -496,7 +509,7 @@ module.exports = class CTransport extends require("./connect")
         return this.WasBan({address:Node.ip});
     }
 
-    WasBan(rinfo, decrError)
+    WasBan(rinfo)
     {
         var Key=""+rinfo.address;
         var Stat=this.BAN_IP[Key];
@@ -504,56 +517,11 @@ module.exports = class CTransport extends require("./connect")
         {
             if(Stat.TimeTo>(GetCurrentTime(0)-0))//May be was ban?
                 return true;
-
-            if(decrError)
-            if(Stat.BanDelta>1000)//ms
-            {
-                Stat.BanDelta=Stat.BanDelta-50;
-                //ToLog("Stat.BanDelta="+Stat.BanDelta);
-            }
          }
 
         return false;
     }
 
-    AddIpToErrorStat(rinfo,StrDop)
-    {
-        var Key=""+rinfo.address + ':' + rinfo.port;
-        var Stat=this.BAN_IP[Key];
-        if(!Stat)
-        {
-            this.BAN_IP[Key]={Errors:0,TimeTo:0,BanDelta:1000};
-            Stat=this.BAN_IP[Key];
-        }
-        Stat.Errors=Stat.Errors+1;
-        if(Stat.Errors>=5)//2
-        {
-
-            var CurDate=GetCurrentTime();
-            Stat.TimeTo=new Date(CurDate-(-Stat.BanDelta));
-
-            //TO_DEBUG_LOG("Was ban "+Key+"   id="+this.id+"  to "+GetStrTime(Stat.TimeTo)+" Stat.BanDelta="+Stat.BanDelta);
-            StrDop = StrDop || "";
-            ADD_TO_STAT("TRANSPORT:Ban"+StrDop);
-
-            Stat.Errors=0;
-            Stat.BanDelta=Stat.BanDelta*2;
-        }
-        //ToLog("Stat.Errors="+Stat.Errors);
-
-    }
-
-
-    OnError(err)
-    {
-        TO_ERROR_LOG("TRANSPORT",200,err);
-    }
-    OnListening()
-    {
-        //ToLog("Run UDP server on "+this.ip+":"+this.port+"  for: "+this.addrStr);
-        ToLogClient("Run UDP server on port: "+START_PORT_NUMBER);//+"  for: "+this.addrStr);
-        this.CanSend++;
-    }
 
 
 
@@ -728,6 +696,8 @@ module.exports = class CTransport extends require("./connect")
 
     DoDataFromTCP(Socket,buf)
     {
+        this.LoadedPacketNum++;
+
         var Node=Socket.Node;
         if(!Node)
             return 0;
@@ -746,17 +716,17 @@ module.exports = class CTransport extends require("./connect")
             return 0;
         }
 
+        ADD_TO_STAT("GET:"+Buf.Method);
+        ADD_TO_STAT("GET:(KB)"+Buf.Method,buf.length/1024);
+        ADD_TO_STAT("GET:"+Buf.Method+":"+NodeName(Node),1,1);
+
+
         var Param=this.MethodPrioritet[Buf.Method];
         if(this.StopDoSendPacket(Param,Node,Buf.Method))
         {
             return 1;
         }
 
-
-
-        ADD_TO_STAT("GET:"+Buf.Method);
-        ADD_TO_STAT("GET:(KB)"+Buf.Method,buf.length/1024);
-        ADD_TO_STAT("GET:"+Buf.Method+":"+NodeName(Node),1,1);
 
         if(!IsZeroArr(Buf.ContextID))
         {
@@ -778,53 +748,26 @@ module.exports = class CTransport extends require("./connect")
         Buf.Node=Node;
         Buf.Socket=Socket;
 
+
         if(!global.ADDRLIST_MODE || Param.Prioritet===50)
         {
-            this.OnPacketTCP(Buf);
+            if(Param.Hard)
+            {
+                Buf.PacketNum=this.LoadedPacketNum;
+                Buf.BlockProcessCount=Node.BlockProcessCount;
+                Buf.TimeLoad=(new Date)-0;
+                this.HardPacketForSend.insert(Buf);
+            }
+            else
+            {
+                this.OnPacketTCP(Buf);
+            }
         }
+
 
         ADD_TO_STAT_TIME("TIMEDOGETDATA", startTime);
         return 1;
     }
-
-
-    DoHardPacketForSend()
-    {
-        this.DoHardPacketForSendNext();
-        // if(0)
-        // for(var i=0;i<100;i++)
-        // {
-        //     this.DoHardPacketForSendNext();
-        // }
-    }
-    DoHardPacketForSendNext()
-    {
-        var Info=this.HardPacketForSend.min();
-        if(!Info)
-            return;
-
-        if(Info.Node.CanHardTraffic)
-        {
-            this.HardPacketForSend.remove(Info);
-            this.OnPacketTCP(Info);
-        }
-
-        while(Info=this.HardPacketForSend.max())
-        {
-            var DeltaTime=(new Date)-Info.LoadTimeNum;
-            if(DeltaTime>PACKET_ALIVE_PERIOD/2 || !Info.Node.Socket || Info.Node.Socket.WasClose)
-            {
-                this.HardPacketForSend.remove(Info);
-                ADD_TO_STAT("DELETE_OLD_HARD_PACKET:"+Info.Method);
-                TO_DEBUG_LOG("Delete old load packet: "+Info.Method);
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
 
     StopDoSendPacket(Param,Node,Name)
     {
@@ -833,17 +776,35 @@ module.exports = class CTransport extends require("./connect")
 
         if(!Param)
         {
-            ToLog("Not find method: "+Name)
+            ADD_TO_STAT("STOP_METHOD");
+            ADD_TO_STAT("STOP_METHOD:NO");
+            //ToLog("Not find method: "+Name)
             this.AddCheckErrCount(Node,1);
             return 1;
         }
 
+        if(Param.Hot && !Node.Hot)
+        {
+            this.AddCheckErrCount(Node,1);
+            return 0;
+        }
+
+
+
         if(Param.Period && !Node.VersionOK && !Param.LowVersion)
         {
+            ADD_TO_STAT("STOP_METHOD");
+            ADD_TO_STAT("STOP_METHOD:"+Name);
             return 1;
         }
-        if(global.STOPGETBLOCK && Param.Prioritet===500)
+
+        if(global.STOPGETBLOCK && Param.Hard && Node.BlockProcessCount<1000000)
         {
+            Node.NextPing=1*1000;
+
+            ADD_TO_STAT("STOP_METHOD");
+            ADD_TO_STAT("STOP_METHOD:"+Name);
+            this.AddCheckErrCount(Node,0.5);
             return 1;
         }
 
@@ -852,6 +813,7 @@ module.exports = class CTransport extends require("./connect")
         if(!ArrTime)
         {
             ArrTime=[0,0,0,0];
+
             Node.TimeMap[Name]=ArrTime;
         }
 
@@ -861,18 +823,136 @@ module.exports = class CTransport extends require("./connect")
         if(Delta<Param.Period)
         {
             ADD_TO_STAT("STOP_METHOD");
+            ADD_TO_STAT("STOP_METHOD:"+Name);
+            var StrErr="STOP_METHOD: "+Name+" from "+NodeName(Node)+"  delta: "+Delta;
 
-            var Delta2=CurTime-ArrTime[1];
+            for(var i=1;i<ArrTime.length;i++)
+                StrErr+=","+(CurTime-ArrTime[i]);
 
-            ToLog("STOP_METHOD: "+Name+" from "+NodeName(Node)+"  delta: "+Delta+","+Delta2+" ms")
+            ToLog(StrErr+" ms")
             this.AddCheckErrCount(Node,1);
             return 1;
         }
 
 
+
         ArrTime[0]=CurTime;
         return 0;
     }
+
+
+    DoHardPacketForSend()
+    {
+        ADD_TO_STAT("MAX:BUSY_LEVEL",this.BusyLevel);
+        ADD_TO_STAT("MAX:HARD_PACKET_SIZE",this.HardPacketForSend.size);
+        //if(this.HardPacketForSend.size>2)
+        //    var dd=1;
+
+        var Delta=(new Date)-this.LastTimeHard;
+        this.LastTimeHard=(new Date)-0;
+        if(Delta>global.HARD_PACKET_PERIOD120*HARD_PACKET_PERIOD/100)
+        {
+            ADD_TO_STAT("HARD_PACKET_PERIOD120");
+
+            var Delta2=(new Date)-this.LastTimeHardOK;
+            if(Delta2>100)
+            {
+                var Info=this.HardPacketForSend.min();
+                this.RiseBusyLevelByInfo(Info);
+            }
+            return;
+        }
+        if(this.BusyLevel)
+            this.BusyLevel=this.BusyLevel/1.1;
+
+        this.LastTimeHardOK=(new Date)-0;
+
+        ADD_TO_STAT("HARD_PACKET_PERIOD");
+
+        this.DoHardPacketForSendNext();
+    }
+    RiseBusyLevelByInfo(Info)
+    {
+        if(!Info)
+            return;
+
+        if(!this.BusyLevel)
+            this.BusyLevel=1;
+        if(Info.BlockProcessCount > this.BusyLevel)
+            this.BusyLevel=Info.BlockProcessCount+1;
+        if(this.BusyLevel<=0)
+            this.BusyLevel=1;
+    }
+    DropBusyLevelByInfo(Info)
+    {
+        if(!Info)
+            return;
+
+        if(this.BusyLevel > Info.BlockProcessCount)
+            this.BusyLevel=Info.BlockProcessCount-1;
+        if(this.BusyLevel<0)
+            this.BusyLevel=0;
+    }
+
+
+    DoHardPacketForSendNext()
+    {
+        var Info=this.HardPacketForSend.min();
+        if(!Info)
+        {
+            this.BusyLevel=0;
+            return;
+        }
+        this.DropBusyLevelByInfo(Info);
+
+
+        this.HardPacketForSend.remove(Info);
+        this.OnPacketTCP(Info);
+
+        ADD_TO_STAT("DO_HARD_PACKET");
+        ADD_TO_STAT("DO_HARD_PACKET:"+Info.Method);
+
+
+        var DeltaTime=(new Date)-Info.TimeLoad;
+        if(this.HardPacketForSend.size && DeltaTime>PACKET_ALIVE_PERIOD/2)
+        {
+            ADD_TO_STAT("DELETE_HARD_PACKET_OLD",this.HardPacketForSend.size);
+            this.HardPacketForSend.clear();
+            return;
+        }
+
+        var MaxCount=20;
+        while(Info=this.HardPacketForSend.max())
+        {
+            var DeltaTime=(new Date)-Info.TimeLoad;
+            if(DeltaTime>PACKET_ALIVE_PERIOD/2 || !Info.Node.Socket || Info.Node.Socket.WasClose)
+            {
+                this.HardPacketForSend.remove(Info);
+
+                if(DeltaTime>PACKET_ALIVE_PERIOD/2)
+                {
+                    this.RiseBusyLevelByInfo(Info);
+
+                    Info.Node.NextPing=1*1000;
+                    this.AddCheckErrCount(Info.Node,0.2);
+
+
+                    ADD_TO_STAT("DELETE_HARD_PACKET_OLD");
+                    ADD_TO_STAT("DELETE_HARD_PACKET_OLD:"+Info.Method);
+                    //ToLog("DELETE OLD TIME: "+Info.Method);
+                }
+                else
+                {
+                    ADD_TO_STAT("DELETE_HARD_PACKET_NO_ALIVE");
+                }
+            }
+            MaxCount--;
+            if(MaxCount<=0)
+                break;
+        }
+    }
+
+
 
 
     //SEND
@@ -1076,7 +1156,7 @@ module.exports = class CTransport extends require("./connect")
     {
         try
         {
-            var Pow=BufLib.GetObjectFromBuffer(data,FORMAT_POW_TO_SERVER,{});
+            var Info=BufLib.GetObjectFromBuffer(data,FORMAT_POW_TO_SERVER,{});
         }
         catch (e)
         {
@@ -1084,29 +1164,31 @@ module.exports = class CTransport extends require("./connect")
             return;
         }
 
-        if(CompareArr(Pow.addrArr,this.addrArr)===0)
+        if(CompareArr(Info.addrArr,this.addrArr)===0)
         {
             this.SendCloseSocket(Socket,"SELF");
             return;
         }
 
-        if(Pow.DEF_NETWORK!==GetNetworkName())
+        if(Info.DEF_NETWORK!==GetNetworkName())
         {
-            this.SendCloseSocket(Socket,"DEF_NETWORK="+Pow.DEF_NETWORK+" MUST:"+GetNetworkName());
+            this.SendCloseSocket(Socket,"DEF_NETWORK="+Info.DEF_NETWORK+" MUST:"+GetNetworkName());
             //this.AddToBanIP(Socket.remoteAddress);
             return;
         }
 
         var Node;
         var Hash=shaarr2(this.addrArr,Socket.HashRND);
-        var hashPow=GetHashWithValues(Hash,Pow.nonce,0);
-        var power=GetPowPower(hashPow);
+        var hashInfo=GetHashWithValues(Hash,Info.nonce,0);
+        var power=GetPowPower(hashInfo);
 
 
-        if(Pow.Reconnect)
+        if(Info.Reconnect)
         {
-            Node=this.FindRunNodeContext(Pow.addrArr,Pow.FromIP,Pow.FromPort,true);
-            if(Node.WaitConnectFromServer)
+            Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
+
+
+            if(Node.SecretForReconnect && Node.WaitConnectFromServer && CompareArr(Node.SecretForReconnect,Info.SecretForReconnect)===0)//Node.WaitConnectIP===Socket.remoteAddress)
             {
                 Node.NextConnectDelta=1000;
                 Node.WaitConnectFromServer=0;
@@ -1121,129 +1203,62 @@ module.exports = class CTransport extends require("./connect")
                 Socket.write(this.GetBufFromData("POW_CONNECT0","OK",2));
                 return;
             }
-            if(!Node.Socket)
-            {
-                CloseSocket(Socket,"Reconnect fail - not prev connection");
-                return;
-            }
 
 
-            //TODO - Sign
-            Socket.Node=Node;
-            Node.Socket2=Socket;
-            SetSocketStatus(Socket,3);
-            SetSocketStatus(Node.Socket,200);//stop send
 
+            Node.Delete=1;
+            ToLog("ERROR_RECONNECT "+NodeName(Node)+" wait="+Node.WaitConnectFromServer+" ip:"+Node.WaitConnectIP+" RA:"+Socket.remoteAddress);
+            // if(Node.SecretForReconnect && CompareArr(Node.SecretForReconnect,Info.SecretForReconnect)!==0)
+            // {
+            //     ToLog("ERROR Secret must="+GetHexFromArr(Node.SecretForReconnect).substr(0,16)+" get="+GetHexFromArr(Info.SecretForReconnect).substr(0,16));
+            // }
 
-            // ToLog("Get reconnect");
-            Socket.write(this.GetBufFromData("POW_CONNECT1","OK",2));
-            let SOCKET=Node.Socket;
-            setTimeout(function ()
-            {
-                SOCKET.end();
-            },100)
-
-
-            return;
-        }
-
-
-        if(power<MIN_POWER_POW_HANDSHAKE)
-        {
-            ToLog("END: MIN_POWER_POW_HANDSHAKE")
-            Socket.end(this.GetBufFromData("POW_CONNECT2","MIN_POWER_POW_HANDSHAKE",2));
-            CloseSocket(Socket,"MIN_POWER_POW_HANDSHAKE");
+            this.AddToBanIP(Socket.remoteAddress,"ERROR_RECONNECT");
+            Socket.end(this.GetBufFromData("POW_CONNEC11","ERROR_RECONNECT",2));
+            CloseSocket(Socket,"ERROR_RECONNECT");
             return;
         }
         else
         {
-            var Result=false;
-            if(Pow.PubKeyType===2 || Pow.PubKeyType===3)
-                Result=secp256k1.verify(Buffer.from(Hash), Buffer.from(Pow.Sign), Buffer.from([Pow.PubKeyType].concat(Pow.addrArr)));
-            if(!Result)
+            if(power<MIN_POWER_POW_HANDSHAKE)
             {
-                //ToLog("END: ERROR_SIGN_HANDSHAKE ADDR: "+GetHexFromArr(Pow.addrArr).substr(0,16)+" from ip: "+Socket.remoteAddress);
-                Socket.end(this.GetBufFromData("POW_CONNECT8","ERROR_SIGN_HANDSHAKE",2));
-                CloseSocket(Socket,"ERROR_SIGN_HANDSHAKE");
-                this.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_HANDSHAKE");
+                ToLog("END: MIN_POWER_POW_HANDSHAKE")
+                Socket.end(this.GetBufFromData("POW_CONNECT2","MIN_POWER_POW_HANDSHAKE",2));
+                CloseSocket(Socket,"MIN_POWER_POW_HANDSHAKE");
                 return;
             }
-
-
-            Node=this.FindRunNodeContext(Pow.addrArr,Pow.FromIP,Pow.FromPort,true);
-
-
-            if(0 && global.NET_WORK_MODE && NET_WORK_MODE.NodeWhiteList)//WhiteConnect by filter
+            else
             {
-                var Index=NET_WORK_MODE.NodeWhiteList.indexOf(Node.addrStr);
-
-
-                if(Index>=0)
+                var Result=false;
+                if(Info.PubKeyType===2 || Info.PubKeyType===3)
+                    Result=secp256k1.verify(Buffer.from(Hash), Buffer.from(Info.Sign), Buffer.from([Info.PubKeyType].concat(Info.addrArr)));
+                if(!Result)
                 {
-                    Node.WhiteConnect=1;
-                    Node.NextConnectDelta=1000;
-                    Node.WaitConnectFromServer=0;
-                    //Node.DirectIP=1;
-                    ToLogNet("3. ******************** SERVER OK CONNECT  for client node: "+NodeInfo(Node)+" "+SocketInfo(Socket));
-                    this.AddNodeToActive(Node);
-                    Node.Socket=Socket;
-                    SetSocketStatus(Socket,3);
-                    SetSocketStatus(Socket,100);
-                    Socket.Node=Node;
-
-                    Socket.write(this.GetBufFromData("POW_CONNECT5","OK",2));
+                    //ToLog("END: ERROR_SIGN_HANDSHAKE ADDR: "+GetHexFromArr(Info.addrArr).substr(0,16)+" from ip: "+Socket.remoteAddress);
+                    Socket.end(this.GetBufFromData("POW_CONNECT8","ERROR_SIGN_CLIENT",2));
+                    CloseSocket(Socket,"ERROR_SIGN_CLIENT");
+                    this.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_CLIENT");
                     return;
-
                 }
 
+
+                Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
+
+                ToLogNet("1. -------------------- SERVER OK POW for client node: "+NodeInfo(Node)+" "+SocketInfo(Socket));
+
+                Node.FromIP=Info.FromIP;
+                Node.FromPort=Info.FromPort;
+                Node.SecretForReconnect=crypto.randomBytes(20);
+
+                if(!Node.WasAddToReconnect)
+                {
+                    Node.WasAddToReconnect=1;
+                    Node.ReconnectFromServer=1;
+                    global.ArrReconnect.push(Node);
+                }
+                Socket.write(this.GetBufFromData("POW_CONNECT4","WAIT_CONNECT_FROM_SERVER:"+GetHexFromArr(Node.SecretForReconnect),2));
+
             }
-
-
-            ToLogNet("1. -------------------- SERVER OK POW for client node: "+NodeInfo(Node)+" "+SocketInfo(Socket));
-
-            // if(Node.DoubleConnectCount>5 && Node.Socket && !Node.Socket.WasClose)
-            // {
-            //     CloseSocket(Node.Socket,"Node.DoubleConnectCount>5");
-            //     Node.Socket=undefined;
-            //     Node.DoubleConnectCount=0;
-            // }
-
-            // //Node.NextConnectDelta=1000;
-            // if(Node.Socket && !Node.Socket.WasClose)// && Socket!==Node.Socket)
-            // {
-            //     if(GetSocketStatus(Node.Socket)===100
-            //     || (Node.Socket.ConnectToServer && CompareArr(this.addrArr,Node.addrArr)<0))//встречный запрос соединения
-            //     {
-            //         Node.DoubleConnectCount++;
-            //         ToLog("Find double connection *"+Socket.ConnectID+" "+NodeInfo(Node)+" from client  NodeSocketStatus="+GetSocketStatus(Node.Socket))
-            //         Socket.write(this.GetBufFromData("POW_CONNECT3","DOUBLE",2));
-            //         return;
-            //     }
-            //     else
-            //     {
-            //         ToLog("Close double connection *"+Node.Socket.ConnectID+" "+NodeInfo(Node)+" from server NodeSocketStatus="+GetSocketStatus(Node.Socket))
-            //         CloseSocket(Node.Socket,"Close double connection");
-            //     }
-            // }
-            // else
-            // {
-            // }
-            // this.AddNodeToActive(Node);
-            //
-            // if(Node.Socket)
-            //     CloseSocket(Node.Socket,"Close prev connection: "+SocketStatistic(Node.Socket)+"  Status:"+GetSocketStatus(Node.Socket));
-
-            Node.FromIP=Pow.FromIP;
-            Node.FromPort=Pow.FromPort;
-
-            if(!Node.WasAddToReconnect)
-            {
-                Node.WasAddToReconnect=1;
-                Node.ReconnectFromServer=1;
-                global.ArrReconnect.push(Node);
-            }
-            Socket.write(this.GetBufFromData("POW_CONNECT4","WAIT_CONNECT_FROM_SERVER",2));
-
         }
     }
 
@@ -1288,9 +1303,9 @@ module.exports = class CTransport extends require("./connect")
             ToLogNet("Client *"+SOCKET.ConnectID+" connected from "+SOCKET.remoteAddress+":"+SOCKET.remotePort);
             ADD_TO_STAT("ClientConnected");
 
-
             SOCKET.HashRND=crypto.randomBytes(32);
-            var BufData=BufLib.GetBufferFromObject({addrArr:SELF.addrArr, HashRND:SOCKET.HashRND, MIN_POWER_POW_HANDSHAKE:MIN_POWER_POW_HANDSHAKE, PubKeyType:SELF.PubKeyType, Sign:SELF.ServerSign, Reserve:[]}, FORMAT_POW_TO_CLIENT,300,{});
+            var Data={addrArr:SELF.addrArr, HashRND:SOCKET.HashRND, MIN_POWER_POW_HANDSHAKE:MIN_POWER_POW_HANDSHAKE, PubKeyType:SELF.PubKeyType, Sign:SELF.ServerSign, Reserve:[]};
+            var BufData=BufLib.GetBufferFromObject(Data, FORMAT_POW_TO_CLIENT, 300,{});
             var BufWrite=SELF.GetBufFromData("POW_CONNECT5",BufData,1);
             try
             {
@@ -1398,12 +1413,19 @@ module.exports = class CTransport extends require("./connect")
 
 
 
-
-        this.RunListenServer();
-
-
-        if(!global.NET_WORK_MODE)
+        if(!SELF.ip)
+        {
             this.FindInternetIP();
+        }
+        else
+        {
+            this.CanSend++;
+            this.RunListenServer();
+        }
+
+        // this.RunListenServer();
+        // if(!global.NET_WORK_MODE)
+        //    this.FindInternetIP();
     }
 
     RunListenServer()
@@ -1417,7 +1439,7 @@ module.exports = class CTransport extends require("./connect")
         this.Server.listen(SELF.port, '0.0.0.0', () =>
         {
             if(SELF.CanSend<2)
-                ToLogClient("Run TCP server on port: "+SELF.port);
+                ToLogClient("Run TCP server on "+SELF.ip+":"+SELF.port);
             SELF.CanSend++;
 
             var Hash=shaarr(SELF.addrStr+"-"+SELF.ip+":"+SELF.port);
@@ -1450,24 +1472,9 @@ module.exports = class CTransport extends require("./connect")
             global.INTERNET_IP_FROM_STUN=value.address;
             if(!SELF.ip)
                 SELF.ip=INTERNET_IP_FROM_STUN;
+            server.close();
 
-            // SELF.ip=value.address;
-            // if(SELF.Net4)//UDP
-            // {
-            //     SELF.port=value.port;
-            //     SELF.Net4.setRecvBufferSize(UDP_BUF_SIZE);
-            //     SELF.Net4.setSendBufferSize(UDP_BUF_SIZE);
-            // }
-            // else
-            // {
-            //     SELF.port=START_PORT_NUMBER;
-            // }
-            //
-            // if(!global.NET_WORK_MODE)
-            //     global.NET_WORK_MODE={};
-            // NET_WORK_MODE.StunIP=true;
-
-            server.close()
+            SELF.RunListenServer();
         })
 
 
@@ -1520,9 +1527,19 @@ module.exports = class CTransport extends require("./connect")
         if(!Count)
             Count=1;
 
-        Node.ErrCount+=Count;
-        if(Node.ErrCount>=2)
+        var Delta=(new Date)-Node.LastTimeError;
+        if(Delta>10*1000)
         {
+            Node.ErrCount=0;
+        }
+        Node.LastTimeError=(new Date)-0;
+
+
+
+        Node.ErrCount+=Count;
+        if(Node.ErrCount>=5)
+        {
+
             Node.ErrCount=0;
             ADD_TO_STAT("ERRORS");
 
@@ -1534,7 +1551,8 @@ module.exports = class CTransport extends require("./connect")
             }
             else
             {
-                this.DeleteNodeFromActive(Node);
+                //ToLog("CLOSE FOR MAX ERR: "+NodeName(Node))
+                //this.DeleteNodeFromActive(Node);
             }
         }
     }

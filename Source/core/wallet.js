@@ -364,7 +364,6 @@ class CApp
     }
     GetHistoryAct(start,count,Direct,Filter)
     {
-
         var arr=[];
         //for(var num=this.GetHistoryMaxNum();num>=0;num--)
         for(var num=start;true;num++)

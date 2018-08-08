@@ -203,22 +203,22 @@ global.random=function (max)
 
 
 //степень похожести адресов
-global.AddrLevel=function (Addr1,Addr2)
-{
-    var Level=0;
-    //for(var i=0;i<Addr1.length;i++)
-    for(var i=0;i<MAX_LEVEL_SPECIALIZATION;i++)
-    {
-        if(Addr1[i]!==Addr2[i])
-            break;
+// global.AddrLevel=function (Addr1,Addr2)
+// {
+//     var Level=0;
+//     //for(var i=0;i<Addr1.length;i++)
+//     for(var i=0;i<MAX_LEVEL_SPECIALIZATION;i++)
+//     {
+//         if(Addr1[i]!==Addr2[i])
+//             break;
+//
+//         Level++;
+//     }
+//
+//     return Level;
+// }
 
-        Level++;
-    }
-
-    return Level;
-}
-
-global.AddrLevelArrFromStart=function (arr1,arr2)
+global.AddrLevelArrFromBegin=function (arr1,arr2)
 {
     var Level=0;
     for(var i=0;i<arr1.length;i++)
@@ -269,35 +269,6 @@ global.SaveToFile=function (name,buf)
     var file_handle=fs.openSync(name, "w");
     fs.writeSync(file_handle, buf,0,buf.length);
     fs.closeSync(file_handle);
-}
-
-//Date time
-global.GetUTCStrTime=function (now)
-{
-    if(!now)
-        now = GetCurrentTime();
-    var Str=""+now.getUTCDate();
-    Str=Str+"."+(1+now.getUTCMonth());
-    Str=Str+"."+now.getUTCFullYear();
-    Str=Str+" "+now.getUTCHours();
-    Str=Str+":"+now.getUTCMinutes();
-    Str=Str+":"+now.getUTCSeconds();
-    Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
-    return Str;
-}
-
-global.GetTimeStr=global.GetUTCStrTime;
-
-global.GetTimeOnlyStr=function (now)
-{
-    if(!now)
-        now = GetCurrentTime();
-    var Str;
-    Str=""+now.getUTCHours();
-    Str=Str+":"+now.getUTCMinutes();
-    Str=Str+":"+now.getUTCSeconds();
-    Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
-    return Str;
 }
 
 
@@ -551,6 +522,50 @@ global.GetDeltaCurrentTime=function ()
     return global.DELTA_CURRENT_TIME;
 }
 
+
+//Date time
+global.GetUTCStrTime=function (now)
+{
+    if(!now)
+        now = GetCurrentTime();
+    var Str=""+now.getUTCDate();
+    Str=Str+"."+(1+now.getUTCMonth());
+    Str=Str+"."+now.getUTCFullYear();
+    Str=Str+" "+now.getUTCHours();
+    Str=Str+":"+now.getUTCMinutes();
+    Str=Str+":"+now.getUTCSeconds();
+    Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
+    return Str;
+}
+
+global.GetTimeStr=global.GetUTCStrTime;
+
+global.GetTimeOnlyStr=function (now)
+{
+    if(!now)
+        now = GetCurrentTime();
+    var Str;
+    Str=""+now.getUTCHours();
+    Str=Str+":"+now.getUTCMinutes();
+    Str=Str+":"+now.getUTCSeconds();
+    Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
+    return Str;
+}
+
+function GetSecFromStrTime(Str)
+{
+    var arr=Str.split(":");
+    var Mult=3600;
+    var Sum=0;
+    for(var i=0;i<arr.length;i++)
+    {
+        Sum+=Mult*parseInt(arr[i]);
+        Mult=Mult/60;
+    }
+    return Sum;
+}
+global.GetSecFromStrTime=GetSecFromStrTime;
+
 global.GetCurrentTime=function(Delta_Time)
 {
     if(Delta_Time===undefined)
@@ -602,9 +617,7 @@ if(!LOAD_CONST() && !global.NWMODE)
     CheckTime();
 }
 
-if(global.UPDATE_CODE_VERSION_NUM<205)
-    if(global.AUTO_COORECT_TIME)
-        global.DELTA_CURRENT_TIME=0;
+global.AUTO_COORECT_TIME=1;
 
 
 

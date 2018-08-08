@@ -5,7 +5,7 @@
 
 require("../dapp/dapp");
 require("../dapp/accounts");
-require("../dapp/codes");
+//require("../dapp/codes");
 require("../dapp/messager");
 require("../dapp/names");
 
@@ -255,7 +255,7 @@ module.exports = class CSmartContract extends require("./block-exchange")
 
         var BlockNumHash=BlockNum-DELTA_BLOCK_ACCOUNT_HASH;
         if(BlockNumHash<0)
-            BlockNumHash=0;
+            return;
 
         //if(Arr.length)
         {

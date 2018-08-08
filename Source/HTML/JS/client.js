@@ -1,5 +1,10 @@
 //Copyright: Yuriy Ivanov, 2017-2018 e-mail: progr76@gmail.com
 
+function $(id)
+{
+    return document.getElementById(id);
+}
+
 
 
 if(window.nw)
@@ -562,6 +567,7 @@ function ViewCurrent(Def,flag,This)
         Def.Param3="";
 
     ViewGrid("/"+Def.APIName+"/"+ParseNum(item.value)+"/"+CountViewRows+"/"+Def.Param3+"/"+Filter,Def.TabName,1,Def.TotalSum);
+    SaveValues();
 
     if(This)
         SetImg(This,Def.BlockName);
@@ -698,13 +704,15 @@ function SetGridData(arr,id_name,TotalSum,bclear,revert)
             var formula=cell0.id;
             if(formula.substr(0,1)==="(")
             {
-                var text=eval(formula);
+                var text=""+eval(formula);
+                text.trim();
                 if(cell.innerHTML!==text)
                     cell.innerHTML=text;
             }
             else
             {
-                var text=eval(formula);
+                var text=""+eval(formula);
+                text.trim();
                 if(cell.innerText!==text)
                     cell.innerText=text;
             }
@@ -820,4 +828,40 @@ function AddDiagramToArr(Arr,Item)
         Arr.push(Item);
     }
 
+}
+
+
+function LoadValuesByArr(Arr)
+{
+    if(localStorage["VerSave"]!=="3")
+        return 0;
+    for(var i=0;i<Arr.length;i++)
+    {
+        var name=Arr[i];
+        var Item=document.getElementById(name);
+
+        if(Item.nodeName==="SELECT")
+        {
+            LoadMapAfter[name]=localStorage.getItem(name);
+        }
+
+        if(Item.type==="checkbox")
+            Item.checked=parseInt(localStorage.getItem(name));
+        else
+            Item.value=localStorage.getItem(name);
+    }
+    return 1;
+}
+function SaveValuesByArr(Arr)
+{
+    localStorage["VerSave"]="3";
+    for(var i=0;i<Arr.length;i++)
+    {
+        var name=Arr[i];
+        var Item=$(name);
+        if(Item.type==="checkbox")
+            window.localStorage.setItem(name,0+Item.checked);
+        else
+            window.localStorage.setItem(name,Item.value);
+    }
 }

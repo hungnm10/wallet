@@ -26,12 +26,12 @@
 <script>
     function SetStatus(Str)
     {
-        var id = document.getElementById("status");
+        var id = $("status");
         id.innerHTML=Str;
     }
     function SetStatus2(Str)
     {
-        var id = document.getElementById("status2");
+        var id = $("status2");
         id.innerHTML=Str;
     }
 
@@ -48,16 +48,95 @@
     }
 
 
+    ///////////////////
+    var CodeList={};
+    var CurRowName;
+
+    function SetConsoleText(bRun)
+    {
+        //SaveToList();
+
+
+        var Name = $("idConsoleIndex").value;
+        $("idName").value=Name;
+        CurRowName=Name;
+        var Code=CodeList[Name];
+        $("idConsoleText").value=Code;
+        if(bRun)
+            SendToServer();
+    }
+    function SetAndRun()
+    {
+        SetConsoleText(1);
+    }
+    function NewRow()
+    {
+        CurRowName=undefined;
+        $("idName").value="";
+    }
+    function SaveToList(bUpdate)
+    {
+        var Name = $("idName").value;
+
+        if(CurRowName)
+        {
+            SetNameInSelect(Name);
+            delete CodeList[CurRowName];
+        }
+
+        if(Name)
+            CodeList[Name]=$("idConsoleText").value;
+
+        if(bUpdate)
+        {
+            SaveArrToSelect(Name);
+        }
+
+        CurRowName=Name;
+        SaveValues();
+    }
+
+    function SetNameInSelect(Name)
+    {
+        var Select=document.getElementById("idConsoleIndex");
+        for(var i=0;i<Select.options.length;i++)
+            if(Select.options[i]===CurRowName)
+            {
+                if(Name)
+                {
+                    Select.options[i].value=Name;
+                    Select.options[i].text=Name;
+                }
+                else
+                {
+                    Select.options[i] = null;
+                }
+            }
+    }
+
+
+    function SaveArrToSelect(CurrName)
+    {
+        var Select=document.getElementById("idConsoleIndex");
+        Select.options.length=0;
+        for(var Name in CodeList)
+        {
+            Select.options[Select.options.length]=new Option(Name,Name,false,(Name===CurrName));
+        }
+
+    }
+    ///////////////////
+
 
     function SendToServer()
     {
         SaveValues();
 
-        var Value = document.getElementById("idConsoleText").value;
-        var Type = document.getElementById("idConsoleSend").value;
-        if(Type==="TRCode")
+        var Value = $("idConsoleText").value;
+        var Type = $("idConsoleSend").value;
+        if(Type==="ECode")
         {
-            SendTRCode(Value);
+            SendECode(Value);
         }
         else
         if(Type==="HEX")
@@ -93,46 +172,49 @@
         SendTransaction(Body);
     }
 
-    function SendTRCode(Value)
+    var AllSend=0;
+    var AllNoSend=0;
+    var MustSend=0;
+    function SendECode(Code)
     {
-        var MaxBlockNum=GetCurrentBlockNumByTime();
+        var DeltaBlockNum = parseInt($("idConsoleDeltaBlockNum").value);
 
-        var DeltaBlockNum = parseInt(document.getElementById("idConsoleDeltaBlockNum").value);
+        var Addr = $("idNode").value;
 
-        var Body=[];
-        WriteByte(Body,5)
-        WriteUint(Body,DeltaBlockNum+MaxBlockNum);
-        WriteStr(Body,Value);
-        ToResult(DeltaBlockNum+MaxBlockNum);
-
-//        for(var i=0;i<arrValue.length;i++)
-//            Body[Body.length]=arrValue[i];
-
-
-        var StrHex=GetHexFromArr(Body);
-        GetData("/GetSignFromHEX/",StrHex, function (Data)
+        AllSend=0;
+        AllNoSend=0;
+        MustSend=0;
+        var arr=Addr.split("\n");
+        for(var i=0;i<arr.length;i++)
         {
-            if(Data && Data.result===1)
+            var CurAddr=arr[i].trim();
+            if(CurAddr.length!==64)
+                continue;
+
+            MustSend++;
+            var Data={DeltaBlockNum:DeltaBlockNum,Code:Code,Addr:CurAddr};
+            GetData("/SendECode/",Data, function (Data)
             {
-                var SignArr=GetArrFromHex(Data.Sign);
-                for(var i=0;i<SignArr.length;i++)
+                if(Data && Data.result===1)
                 {
-                    Body[Body.length]=SignArr[i];
+                    AllSend++;
                 }
+                else
+                {
+                    AllNoSend++;
+                }
+                ToResult("OK:"+AllSend+" NO:"+AllNoSend+" OF :"+MustSend+" Last text:"+Data.text)
+            });
+        }
 
+        SetStatus("Must send="+MustSend);
+        ToResult("Must send="+MustSend);
 
-                var StrHex=GetStrFromAddr(Body);
-                ToResult(StrHex);
-
-                Body.length+=12;
-                SendTransaction(Body);
-            }
-        });
     }
 
     function ToResult(Str)
     {
-        document.getElementById("result").value=Str;
+        $("result").value=Str;
     }
 
     //***********************************************
@@ -141,7 +223,7 @@
     var glTrSendNum=0;
     function SendTransaction(Body)
     {
-        var SumPow = document.getElementById("idPow").value;
+        var SumPow = $("idPow").value;
 
         glTrSendNum++;
         SetStatus("Prepare to sending...");
@@ -214,11 +296,11 @@
             {
                 if(!Data.IsDevelopAccount)
                 {
-                    var Select = document.getElementById("idConsoleSend");
+                    var Select = $("idConsoleSend");
                     for(var i=0;i<Select.options.length;i++)
                     {
                         var item=Select.options[i];
-                        if(item.value==="TRCode")
+                        if(item.value==="ECode")
                         {
                             item.disabled=1;
                             Select.options[i] = null;
@@ -238,9 +320,12 @@
         window.onkeydown = CheckCtrlEnter;
 
         LoadValues();
+        SaveArrToSelect();
 
         document.body.className=localStorage["idSelStyle"];
 
+
+        SetStatus("");
 
     }
 
@@ -248,47 +333,32 @@
     {
         if(!localStorage["WasSaveConsole"])
             return;
-        document.getElementById("idConsoleText").value=localStorage["idConsoleText"];
-        document.getElementById("idConsoleSend").value=localStorage["idConsoleSend"];
-        document.getElementById("idConsoleDeltaBlockNum").value=localStorage["idConsoleDeltaBlockNum"];
+        //$("idConsoleText").value=localStorage["idConsoleText"];
+        $("idConsoleSend").value=localStorage["idConsoleSend"];
+        $("idConsoleDeltaBlockNum").value=localStorage["idConsoleDeltaBlockNum"];
+        $("idNode").value=localStorage["idConsoleNode"];
+        if(localStorage["ConsoleCodeList2"])
+            CodeList=JSON.parse(localStorage["ConsoleCodeList2"]);
     }
     function SaveValues()
     {
         localStorage["WasSaveConsole"]=1;
-        localStorage["idConsoleText"]=document.getElementById("idConsoleText").value;
-        localStorage["idConsoleSend"]=document.getElementById("idConsoleSend").value;
-        localStorage["idConsoleDeltaBlockNum"]=document.getElementById("idConsoleDeltaBlockNum").value;
-
+        //localStorage["idConsoleText"]=$("idConsoleText").value;
+        localStorage["idConsoleSend"]=$("idConsoleSend").value;
+        localStorage["idConsoleDeltaBlockNum"]=$("idConsoleDeltaBlockNum").value;
+        localStorage["idConsoleNode"]=$("idNode").value;
+        localStorage["ConsoleCodeList2"]=JSON.stringify(CodeList);
     }
+
 
 
 
 </script>
 
-
-<script>
-    //Utilites
-    //Utilites
-    //Utilites
-    function RewriteTransactions()
-    {
-        SetStatus("Start rewrite transactions")
-        GetData("/RewriteTransactions",0, function (Data)
-        {
-            if(Data && Data.result)
-            {
-                SetStatus("Rewriting completed OK");
-            }
-        });
-    }
-</script>
 
 
 <style type="text/css">
-    #idRewriteTransactions
-    {
-        width: 200px;
-    }
+
 </style>
 
 
@@ -303,30 +373,46 @@
     Mode:
     <select size="1" id="idConsoleSend" onkeyup="SaveValues()" onchange="SaveValues()">
         <option value="DirectCode">Direct code</option>
-        <option value="TRCode">Transaction code</option>
+        <option value="ECode" style="color:red;">Eval code !!</option>
         <option value="HEX">HEX Transaction</option>
     </select>
 
-    POW:<INPUT type="number" id="idPow" value="16"> Delta BlockNum:<INPUT type="number" id="idConsoleDeltaBlockNum" value="100">
+    POW:<INPUT type="number" id="idPow" style="width: 50px;" value="16"> Delta BlockNum:<INPUT type="number" id="idConsoleDeltaBlockNum" style="width: 50px;" value="10">
 
     <BR>
-    <DIV>
-        <textarea id="idConsoleText" rows="8" cols="98" autofocus> </textarea>
-        <BR>
-        <INPUT type="button" onclick="SendToServer()" class="bt btdoit" value="Send">
-        <BR>
-        RESULT:
-        <BR>
-        </textarea>
-        <textarea rows="30" cols="98"  name="result" id="result">
-        </textarea>
+
+    <DIV align='left' style="border: 1px solid #39519b;width:802px;height:800px;">
+        <DIV style="width: 150px;height:100%; float:left;">
+            <select size="45" id="idConsoleIndex" style="width:100%;height:100%;" onchange="SetConsoleText()" ondblclick="SetAndRun()">
+            </select>
+        </DIV>
+
+        <DIV style="width: 650px;height:100%; float: left;">
+            <DIV>
+                <DIV>
+                    <INPUT type="button" onclick="NewRow()" class="bt" value="*New">
+                    Name:<INPUT type="string" id="idName" style="width: 72%;" value="">
+                    <INPUT type="button" onclick="SaveToList(1)" class="bt" value="Save">
+                </DIV>
+                <textarea id="idConsoleText"  style="width: 99%;height: 95%;" rows="22" cols="98" autofocus>
+                </textarea>
+            </DIV>
+
+            <textarea rows="5" cols="98"  name="result" id="idNode" style="width: 99%;">
+            </textarea>
+
+            <INPUT type="button" onclick="SendToServer()" class="bt btdoit" value="Send">
+            <BR>
+
+
+
+            <BR>
+
+            <textarea rows="18" cols="98"  name="result" id="result" style="width: 99%;">
+            </textarea>
+        </DIV>
     </DIV>
 
-    <!--<HR>-->
-    <!--UTILITES:-->
-    <!--<DIV align='left'>-->
-    <!--<INPUT type="button" onclick="RewriteTransactions()" id="idRewriteTransactions" class="bt btdoit" value="RewriteTransactions">-->
-    <!--</DIV>-->
 
 </DIV>
 </body>

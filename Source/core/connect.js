@@ -11,7 +11,7 @@ const crypto = require('crypto');
 const CNode=require("./node");
 
 global.PERIOD_FOR_RECONNECT=3600*1000;//ms
-//const PERIOD_FOR_RECONNECT=10*1000;//ms
+
 
 global.CHECK_DELTA_TIME={Num:0,bUse:0,StartBlockNum:0,EndBlockNum:0,bAddTime:0,DeltaTime:0,Sign:[]};
 global.CHECK_POINT={BlockNum:0,Hash:[],Sign:[]};
@@ -33,7 +33,7 @@ var MAX_TIME_CORRECT=3*3600*1000;//ms
 global.MAX_WAIT_PERIOD_FOR_HOT=2*CONSENSUS_PERIOD_TIME;
 global.MAX_WAIT_PERIOD_FOR_ACTIVE=10*CONSENSUS_PERIOD_TIME;
 
-const PERIOD_FOR_CTAR_CHECK_TIME=300;//sec
+const PERIOD_FOR_START_CHECK_TIME=300;//sec
 
 
 
@@ -69,12 +69,10 @@ module.exports = class CConnect extends require("./balanser")
 
             setInterval(this.StartPingPong.bind(this),1000);
             setInterval(this.StartCheckConnect.bind(this),1000);
-            setInterval(this.StartGetLevelsHotConnects.bind(this),5000);
+            setInterval(this.DeleteNodeFromActiveByTimer.bind(this),MAX_WAIT_PERIOD_FOR_ACTIVE);
 
-            setInterval(this.DeleteNodeFromActiveByTimer.bind(this),5000);
 
-            setInterval(this.StartReconnect.bind(this),60*1000);
-            //setInterval(this.StartReconnect.bind(this),1*1000);
+            //setInterval(this.StartReconnect.bind(this),60*1000);
          }
 
         setInterval(this.NodesArrSort.bind(this),TIME_AUTOSORT_GRAY_LIST);
@@ -126,7 +124,7 @@ module.exports = class CConnect extends require("./balanser")
         }
         if(bUpdate)
         {
-            Node.ip=ip;
+            Node.ip=ip.trim();
             Node.port=port;
         }
 
@@ -187,7 +185,7 @@ module.exports = class CConnect extends require("./balanser")
                         {
                             "Method":"PING",
                             "Context":Context,
-                            "Data":this.GetPingData()
+                            "Data":this.GetPingData(Node)
                         }
                     );
                     //Node.DeltaTime=undefined;
@@ -195,7 +193,7 @@ module.exports = class CConnect extends require("./balanser")
             }
         }
     }
-    GetPingData()
+    GetPingData(Node)
     {
         var GrayAddres=0;
         if(global.NET_WORK_MODE && !NET_WORK_MODE.UseDirectIP)
@@ -219,6 +217,23 @@ module.exports = class CConnect extends require("./balanser")
                 HashDB=Block.Hash;
         }
 
+        var Level=this.AddrLevelNode(Node);
+        var arr=this.LevelNodes[Level];
+        var LevelCount=0;
+        if(arr)
+        {
+            LevelCount=arr.length;
+        }
+
+        var StopGetBlock=global.STOPGETBLOCK;
+        if(!StopGetBlock && this.BusyLevel)
+        {
+            if(Node.BlockProcessCount<=this.BusyLevel)
+                StopGetBlock=1;
+
+        }
+
+
         var Ret=
             {
                 VERSIONMAX:DEF_VERSION,
@@ -226,6 +241,8 @@ module.exports = class CConnect extends require("./balanser")
                 PingVersion:2,
                 GrayConnect:GrayAddres,
                 Reserve2:0,
+                AutoCorrectTime:AUTO_COORECT_TIME,
+                LevelCount:LevelCount,
                 Time:(GetCurrentTime()-0),
                 BlockNumDB:this.BlockNumDB,
                 LoadHistoryMode:this.LoadHistoryMode,
@@ -240,9 +257,9 @@ module.exports = class CConnect extends require("./balanser")
                 CodeVersion2:CODE_VERSION,
                 AddrList:global.ADDRLIST_MODE,
                 CheckPointHashDB:CheckPointHashDB,
-                NodesLevelCount:this.GetNodesLevelCount(),
+                NodesLevelCount:0,//this.GetNodesLevelCount(),
                 HashDB:HashDB,
-                StopGetBlock:global.STOPGETBLOCK,
+                StopGetBlock:StopGetBlock,
                 Reserve:[],
             };
 
@@ -255,7 +272,9 @@ module.exports = class CConnect extends require("./balanser")
             VERSIONMAX:str15,\
             PingVersion:byte,\
             GrayConnect:byte,\
-            Reserve2:uint32,\
+            Reserve2:byte,\
+            AutoCorrectTime:byte,\
+            LevelCount:uint16,\
             Time:uint,\
             BlockNumDB:uint,\
             LoadHistoryMode:byte,\
@@ -284,20 +303,48 @@ module.exports = class CConnect extends require("./balanser")
 
     PING(Info,CurTime)
     {
-        var Data=this.DataFromF(Info);
-        //Check point
-        this.CheckCheckPoint(Data,Info.Node);
-        this.CheckCodeVersion(Data,Info.Node);
-        this.CheckDeltaTime(Data,Info.Node);
+        this.DoPingData(Info,1);
 
-        Info.Node.VERSIONMAX=Data.VERSIONMAX;
         this.SendF(Info.Node,
             {
                 "Method":"PONG",
                 "Context":Info.Context,
-                "Data":this.GetPingData()
+                "Data":this.GetPingData(Info.Node)
             }
         );
+    }
+
+    DoPingData(Info,bCheckPoint)
+    {
+        var Node=Info.Node;
+        var Data=this.DataFromF(Info);
+
+        Info.Node.LevelCount=Data.LevelCount;
+        Info.Node.VERSIONMAX=Data.VERSIONMAX;
+
+
+        Node.INFO=Data;
+        Node.INFO.WasPing=1;
+        Node.LevelCount=Data.LevelCount;
+        Node.LoadHistoryMode=Data.LoadHistoryMode;
+        // if((Data.LoadHistoryMode || !Data.CanStart) && Node.Hot)
+        // {
+        //     this.DeleteNodeFromHot(Node);
+        // }
+
+        Node.LastTime=GetCurrentTime()-0;
+        Node.NextConnectDelta=1000;//connection is good
+        Node.GrayConnect=Data.GrayConnect;
+        Node.StopGetBlock=Data.StopGetBlock;
+
+
+        //Check point
+        if(bCheckPoint)
+        {
+            this.CheckCheckPoint(Data,Info.Node);
+            this.CheckCodeVersion(Data,Info.Node);
+            this.CheckDeltaTime(Data,Info.Node);
+        }
     }
 
 
@@ -314,26 +361,13 @@ module.exports = class CConnect extends require("./balanser")
         if(Info.Context.PingNumber!==Node.PingNumber)
             return;
 
+        this.DoPingData(Info,0);
+
 
         var DeltaTime=GetCurrentTime(0)-Info.Context.StartTime;
-
         Node.SumDeltaTime+=DeltaTime;
         Node.CountDeltaTime++;
-
         Node.DeltaTime=Math.trunc(Node.SumDeltaTime/Node.CountDeltaTime);
-        Node.INFO=Data;
-        Node.LoadHistoryMode=Data.LoadHistoryMode;
-        if(Data.LoadHistoryMode || !Data.CanStart)
-        if(Node.Hot)
-        {
-            ADD_TO_STAT("PONG-NotHot");
-            this.DeleteNodeFromHot(Node);
-        }
-
-        Node.LastTime=GetCurrentTime()-0;
-        Node.NextConnectDelta=1000;//connection is good
-        Node.GrayConnect=Data.GrayConnect;
-        Node.StopGetBlock=Data.StopGetBlock;
 
 
 
@@ -512,7 +546,7 @@ module.exports = class CConnect extends require("./balanser")
 
         if(bLoadVer)
         {
-            var Level=AddrLevelArrFromStart(this.addrArr,CodeVersion.addrArr);
+            var Level=AddrLevelArrFromBegin(this.addrArr,CodeVersion.addrArr);
             if(CodeVersion.BlockPeriod)
             {
                 var Delta=GetCurrentBlockNumByTime()-CodeVersion.BlockNum;
@@ -679,8 +713,8 @@ module.exports = class CConnect extends require("./balanser")
     IsCanConnect(Node)
     {
         if(Node.addrStr===this.addrStr
-            || Node.IsBan
-            //|| (!Node.DirectIP && !Node.WhiteConnect)
+            || this.NodeInBan(Node)
+            || Node.Delete
             || Node.Self
             || Node.DoubleConnection)
             return false;
@@ -749,11 +783,10 @@ module.exports = class CConnect extends require("./balanser")
             // if(!global.ADDRLIST_MODE && !Item.LastTime)
             //      continue;
 
-            if(!Item.LastTime)
+            if(Item.BlockProcessCount<0)
                 continue;
 
-            if(Item.LastTime || Item.NextConnectDelta>10*1000)
-            if(Item.LastTime-0<CurTime-3600*1000)
+            if(Item.LastTime-0 < CurTime-3600*1000 && Item.BlockProcessCount<500000)
                 continue;
 
             var Value=
@@ -761,6 +794,8 @@ module.exports = class CConnect extends require("./balanser")
                 addrStr:Item.addrStr,
                 ip:Item.ip,
                 port:Item.port,
+                FirstTime:Item.FirstTime,
+                FirstTimeStr:Item.FirstTimeStr,
                 LastTime:Item.LastTime-0,
                 DeltaTime:Item.DeltaTime,
                 Hot:Item.Hot,
@@ -824,6 +859,12 @@ module.exports = class CConnect extends require("./balanser")
 
         if(Item.BlockProcessCount)
             Node.BlockProcessCount=Item.BlockProcessCount;
+        if(Item.FirstTime)
+        {
+            Node.FirstTime=Item.FirstTime;
+            Node.FirstTimeStr=Item.FirstTimeStr;
+        }
+
 
 
         return Node;
@@ -831,17 +872,7 @@ module.exports = class CConnect extends require("./balanser")
 
     NodesArrSort()
     {
-        this.NodesArr.sort(function (a,b)
-        {
-            return b.BlockProcessCount-a.BlockProcessCount;
-            // if(a.Hot!==b.Hot)
-            //     return b.Hot-a.Hot;
-            //
-            // if(a.Active!==b.Active)
-            //     return b.Active-a.Active;
-            //
-            // return a.DeltaTime-b.DeltaTime;
-        });
+        this.NodesArr.sort(SortNodeBlockProcessCount);
 
         if((new Date())-this.StartTime > 120*1000)
         {
@@ -854,10 +885,7 @@ module.exports = class CConnect extends require("./balanser")
     LoadNodesFromFile()
     {
         var arr=LoadParams(GetDataPath("nodes.lst"),[]);
-        arr.sort(function (a,b)
-        {
-            return b.BlockProcessCount-a.BlockProcessCount;
-        });
+        arr.sort(SortNodeBlockProcessCount);
 
         for(var i=0;i<arr.length;i++)
         {
@@ -922,22 +950,42 @@ module.exports = class CConnect extends require("./balanser")
             return;
 
         var Level=this.AddrLevelNode(Info.Node);
-
         var arr=this.LevelNodes[Level];
         if(!arr)
             Count=0;
         else
             Count=arr.length;
 
-
-        if(!Info.Node.CanHot || Count>=MAX_CONNECT_CHILD)// || (Count>1 && random(Level+5)!==0))
+        var bAdd=0;
+        if(!Info.Node.CanHot || Count>=MAX_CONNECT_CHILD)
         {
-            ret={result:0,Count:Count};
+            if(Count>=MAX_CONNECT_CHILD && Info.Node.CanHot)
+            {
+                arr.sort(SortNodeBlockProcessCount);
+                var NodeLast=arr[arr.length-1];
+                if(NodeLast.BlockProcessCount<Info.Node.BlockProcessCount)
+                {
+                    ADD_TO_STAT("DeleteFromMaxBlockProcessCount");
+                    this.DeleteNodeFromHot(NodeLast);
+                    this.StartDisconnectHot(NodeLast,"DeleteFromMaxBlockProcessCount");
+                    Count--;
+                    bAdd=1;
+                }
+            }
         }
         else
         {
+            bAdd=1;
+        }
+
+        if(bAdd)
+        {
             this.AddLevelConnect(Info.Node);
             ret={result:1,Count:Count};
+        }
+        else
+        {
+            ret={result:0,Count:Count};
         }
 
 
@@ -972,110 +1020,6 @@ module.exports = class CConnect extends require("./balanser")
         Info.Node.CountChildConnect=Data.Count;
     }
 
-
-
-    StartGetLevelsHotConnects()
-    {
-        if(glStopNode)
-            return;
-        if(this.LoadHistoryMode || !global.CAN_START)
-            return;
-
-
-        var CurTime=GetCurrentTime();
-        for(var n=0;n<this.NodesArr.length;n++)
-        {
-            var Node=this.NodesArr[n];
-            if(Node.LoadHistoryMode)
-                return;
-
-            if(!Node.Active || Node.addrStr===this.addrStr)
-                continue;
-
-            this.Send(Node,
-                {
-                    "Method":"GETHOTLEVELS",
-                    "Context":{},
-                    "Data":undefined
-                }
-            );
-        }
-    }
-
-    GETHOTLEVELS(Info,CurTime)
-    {
-        if(this.LoadHistoryMode || !global.CAN_START)
-            return;
-
-        var ArrSend=[];
-        for(var i=0;i<this.LevelNodes.length;i++)
-        {
-            ArrSend[i]=[];
-            var arr=this.LevelNodes[i];
-            for(var n=0;arr && n<arr.length;n++)
-            {
-                var Node=arr[n];
-                if(Node && Node.Hot && Node.ip)
-                {
-                    ArrSend[i].push(
-                        {
-                            addrStr:Node.addrStr,
-                            //addrArr:Node.addrArr,
-                            ip:Node.ip,
-                            port:Node.port,
-                            LastTime:Node.LastTime-0,
-                            DeltaTime:Node.DeltaTime
-                        }
-                    );
-
-                }
-            }
-        }
-
-
-        // ToLog("ArrSend:"+ArrSend.length)
-        // ToLog(JSON.stringify(ArrSend));
-
-         this.SendF(Info.Node,
-            {
-                "Method":"RETGETHOTLEVELS",
-                "Context":Info.Context,
-                "Data":{arr:ArrSend}
-            },ArrSend.length*100*MAX_CONNECT_CHILD+300
-        );
-    }
-    static RETGETHOTLEVELS_F()
-    {
-        return "{arr:[\
-                        [{\
-                            addrStr:str64,\
-                            ip:str30,\
-                            port:uint16,\
-                            Reserve:uint16,\
-                            LastTime:uint,\
-                            DeltaTime:uint\
-                        }]\
-                    ]}";
-
-    }
-    RETGETHOTLEVELS(Info,CurTime)
-    {
-        var Data=this.DataFromF(Info);
-
-        var LevelNodes=Data.arr;
-        Info.Node.LevelNodes=LevelNodes;
-
-
-        for(var i=0;i<LevelNodes.length;i++)
-        {
-            var arr=LevelNodes[i];
-            for(var n=0;arr && n<arr.length;n++)
-            {
-                var Node=arr[n];
-                arr[n]=this.AddToArrNodes(Node,true);
-            }
-        }
-    }
 
 
 
@@ -1224,10 +1168,7 @@ module.exports = class CConnect extends require("./balanser")
             var Stat=Levels[n];
             if(Stat)
             {
-                Stat.arr.sort(function (a,b)
-                {
-                    return b.BlockProcessCount-a.BlockProcessCount;
-                });
+                Stat.arr.sort(SortNodeBlockProcessCount);
                 Stat.Node=Stat.arr[0];
             }
         }
@@ -1285,10 +1226,11 @@ module.exports = class CConnect extends require("./balanser")
             for(var n=0;n<arr.length;n++)
             {
                 var Node=arr[n];
-                if(ChildCount>MIN_CONNECT_CHILD && Node.LevelNodes)
+                //if(ChildCount>MIN_CONNECT_CHILD && Node.LevelNodes)
+                if(ChildCount>MIN_CONNECT_CHILD && Node.LevelCount>MIN_CONNECT_CHILD)
                 {
-                    var arr2=Node.LevelNodes[Level];
-                    if(arr2 && arr2.length>MIN_CONNECT_CHILD)
+                    // var arr2=Node.LevelNodes[Level];
+                    // if(arr2 && arr2.length>MIN_CONNECT_CHILD)
                     {
                         ChildCount--;
                         Node.Hot=false;
@@ -1322,14 +1264,17 @@ module.exports = class CConnect extends require("./balanser")
             if(Level!==L)
                 continue;
 
-            if(!Node.LevelNodes)
+            // if(!Node.LevelNodes)
+            //     continue;
+            // var arr=Node.LevelNodes[Level];
+            // if(arr && arr.length>=MAX_CONNECT_CHILD)
+            //     continue;
+            if(Node.LevelCount>=MIN_CONNECT_CHILD)
                 continue;
 
-            var arr=Node.LevelNodes[Level];
-            if(arr && arr.length>=MAX_CONNECT_CHILD)
-                continue;
 
-            var arr_len;
+
+                var arr_len;
             if(!arr)
                 arr_len=0;
             else
@@ -1400,7 +1345,7 @@ module.exports = class CConnect extends require("./balanser")
             return;
         if(DeltaArr.length<CountNodes/2)
             return;
-        if(this.PerioadAfterCanStart>=PERIOD_FOR_CTAR_CHECK_TIME)
+        if(this.PerioadAfterCanStart>=PERIOD_FOR_START_CHECK_TIME)
         {
             if(DeltaArr.length<3*CountNodes/4)
                 return;
@@ -1434,15 +1379,15 @@ module.exports = class CConnect extends require("./balanser")
         var AvgDelta=Math.floor(Sum/Count+0.5);
 
 
-        if(this.PerioadAfterCanStart<PERIOD_FOR_CTAR_CHECK_TIME)
+        if(this.PerioadAfterCanStart<PERIOD_FOR_START_CHECK_TIME)
         {
-            var KT=(PERIOD_FOR_CTAR_CHECK_TIME-this.PerioadAfterCanStart)/PERIOD_FOR_CTAR_CHECK_TIME;
+            var KT=(PERIOD_FOR_START_CHECK_TIME-this.PerioadAfterCanStart)/PERIOD_FOR_START_CHECK_TIME;
             //ToLog("AvgDelta="+AvgDelta+ " KT="+KT);
             AvgDelta=AvgDelta*KT;
         }
         else
         {
-            MAX_TIME_CORRECT=50;
+            MAX_TIME_CORRECT=25;
         }
 
         if(AvgDelta < (-MAX_TIME_CORRECT))
@@ -1453,7 +1398,7 @@ module.exports = class CConnect extends require("./balanser")
 
 
 
-        if(Math.abs(AvgDelta)<25)//CONSENSUS_CHECK_TIME
+        if(Math.abs(AvgDelta)<15)
         {
             return;
         }
@@ -1486,7 +1431,7 @@ module.exports = class CConnect extends require("./balanser")
         if(CHECK_DELTA_TIME.bUse)
         {
             var BlockNum=GetCurrentBlockNumByTime();
-            if(CHECK_DELTA_TIME.StartBlockNum<=BlockNum && CHECK_DELTA_TIME.EndBlockNum>=BlockNum)
+            if(CHECK_DELTA_TIME.StartBlockNum<=BlockNum && CHECK_DELTA_TIME.EndBlockNum>BlockNum)
             {
                 if(!global.DELTA_CURRENT_TIME)
                     global.DELTA_CURRENT_TIME=0;
@@ -1496,7 +1441,7 @@ module.exports = class CConnect extends require("./balanser")
                 else
                     CorrectTime = -CHECK_DELTA_TIME.DeltaTime;
 
-                ToLog("***USE CORRECT TIME: "+CHECK_DELTA_TIME.Num+" Delta = "+CorrectTime+" ***");
+                //ToLog("***USE CORRECT TIME: "+CHECK_DELTA_TIME.Num+" Delta = "+CorrectTime+" ***");
 
                 global.DELTA_CURRENT_TIME += CorrectTime;
                 //reset times
@@ -1538,8 +1483,6 @@ module.exports = class CConnect extends require("./balanser")
 
     AddNodeToActive(Node)
     {
-        // if(!Node.addrArr)
-        //     throw "AddNodeToActive !Node.addrArr"
 
         if(Node.addrArr)
         {
@@ -1559,6 +1502,11 @@ module.exports = class CConnect extends require("./balanser")
         Node.Stage=0;
         Node.NextConnectDelta=1000;
 
+        if(!Node.FirstTime)
+        {
+            Node.FirstTime=GetCurrentTime()-0;
+            Node.FirstTimeStr=""+GetTimeStr();
+        }
 
         ADD_TO_STAT("AddToActive");
         //ToLog("AddNodeToActive: "+Node.addrStr)
@@ -1713,7 +1661,6 @@ module.exports = class CConnect extends require("./balanser")
                     break;
                 }
         }
-        //this.LevelNodesCount=this.GetNodesLevelCount();
     }
 
     DeleteAllNodesFromHot(Str)
@@ -1735,6 +1682,16 @@ module.exports = class CConnect extends require("./balanser")
     }
 
 }
+
+
+function SortNodeBlockProcessCount(a,b)
+{
+    if(b.BlockProcessCount!==a.BlockProcessCount)
+       return b.BlockProcessCount-a.BlockProcessCount;
+
+    return a.DeltaTime-b.DeltaTime;
+}
+
 
 
 /*

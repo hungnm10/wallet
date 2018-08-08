@@ -126,10 +126,11 @@ global.TO_ERROR_LOG=function (Module,ErrNum,Str,type,data1,data2)
 
 //stats
 
-var DefMaxStatPeriod=MAX_STAT_PERIOD*2+2;
 var CurStatIndex=0;
 function GetCurrentStatIndex()
 {
+    var DefMaxStatPeriod=MAX_STAT_PERIOD*2+2;
+
     return CurStatIndex%DefMaxStatPeriod;;
 }
 
@@ -325,6 +326,8 @@ global.ResizeArrMax=ResizeArrMax;
 
 function GetDiagramData(Context,Key)
 {
+    var DefMaxStatPeriod=MAX_STAT_PERIOD*2+2;
+
     var IsMax;
     if(Key.substr(0,4)==="MAX:")
         IsMax=true;
@@ -378,6 +381,8 @@ function GetDiagramData(Context,Key)
 
 function CalcInterval(Context,index2,delta)
 {
+    var DefMaxStatPeriod=MAX_STAT_PERIOD*2+2;
+
     var Res={};
     var index1=(index2-delta+DefMaxStatPeriod)%DefMaxStatPeriod;
     var Total=Context.Total;

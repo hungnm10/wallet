@@ -117,6 +117,10 @@ function DoCommand(response,Path,params)
                 case "css":
                     path="./HTML/CSS/"+path;
                     break;
+                case "wav":
+                case "mp3":
+                    path="./HTML/SOUND/"+path;
+                    break;
                 case "png":
                 case "gif":
                 case "jpg":
@@ -259,13 +263,13 @@ HTTPCaller.GetWalletInfo=function ()
         Constants[key]=global[key];
     }
 
+    var MaxHistory=WALLET.GetHistoryMaxNum();
+
 
     var Ret=
         {
             result:1,
-
             WalletOpen:WALLET.WalletOpen,
-
             CODE_VERSION:CODE_VERSION,
             VersionNum:Math.max(CODE_VERSION.VersionNum,global.UPDATE_CODE_VERSION_NUM),
             RelayMode:SERVER.RelayMode,
@@ -289,7 +293,7 @@ HTTPCaller.GetWalletInfo=function ()
             NET_WORK_MODE:global.NET_WORK_MODE,
             INTERNET_IP_FROM_STUN:global.INTERNET_IP_FROM_STUN,
 
-            HistoryMaxNum:WALLET.GetHistoryMaxNum(),
+            HistoryMaxNum:MaxHistory,
 
             DELTA_CURRENT_TIME:DELTA_CURRENT_TIME,
             FIRST_TIME_BLOCK:FIRST_TIME_BLOCK,
@@ -355,6 +359,7 @@ HTTPCaller.CloseWallet=function ()
 //     ClientTokenMap[glCurToken]=1;
 //     return {result:1};
 // }
+
 
 
 
@@ -472,6 +477,27 @@ function CheckCorrectDevKey()
     return true;
 }
 
+HTTPCaller.SendECode=function (Param)
+{
+
+    // if(SERVER.BlockNumDB+10<GetCurrentBlockNumByTime())
+    //     return {result:0,text:"Bad BlockNumDB!!!"};
+    var Node=FindNodeByAddr(Param.Addr,1);
+    if(Node===undefined)
+        return {result:0,text:"Node not found"};
+    if(Node===false)
+        return {result:0,text:"Node not active - reconnect"};
+
+
+    var Ret=CheckCorrectDevKey();
+    if(Ret!==true)
+        return Ret;
+
+    SERVER.SendECode(Param,Node);
+    return {result:1,text:"Send"};
+}
+
+
 HTTPCaller.SetCheckPoint=function (BlockNum,Param2,Param3)
 {
     var Ret=CheckCorrectDevKey();
@@ -530,6 +556,9 @@ HTTPCaller.SetAutoCheckPoint=function (bSet)
 
     return {result:1,text:"AutoCheck: "+bSet};
 }
+
+
+
 
 var SumCheckPow=0;
 var CountCheckPow=0;
@@ -608,6 +637,62 @@ HTTPCaller.SetCheckDeltaTime=function (Data)
 
     return {result:1,text:"Set check time Num="+Data.Num};
 }
+
+
+var idAutoCorrTime;
+HTTPCaller.SetAutoCorrTime=function (bSet)
+{
+    var Ret=CheckCorrectDevKey();
+    if(Ret!==true)
+        return Ret;
+
+
+    if(idAutoCorrTime)
+        clearInterval(idAutoCorrTime);
+    idAutoCorrTime=undefined;
+    if(bSet)
+        idAutoCorrTime=setInterval(RunAutoCorrTime,1000);
+
+
+    return {result:1,text:"Auto correct: "+bSet};
+}
+
+var StartCheckTimeNum=0;
+function RunAutoCorrTime()
+{
+    if(WALLET.WalletOpen===false)
+        return;
+
+    if(GetCurrentBlockNumByTime()>StartCheckTimeNum && Math.abs(global.DELTA_CURRENT_TIME)>150)
+    {
+        var AutoDelta=-Math.trunc(global.DELTA_CURRENT_TIME);
+        var Data={Num:GetCurrentBlockNumByTime(),bUse:1,bAddTime:1};
+        if(AutoDelta<0)
+        {
+            AutoDelta=-AutoDelta;
+            Data.bAddTime=0;
+        }
+        Data.DeltaTime=50;
+        Data.StartBlockNum=Data.Num+5;
+        Data.EndBlockNum=Data.StartBlockNum+Math.trunc(AutoDelta/Data.DeltaTime);
+
+
+        var SignArr=SERVER.GetSignCheckDeltaTime(Data);
+        Data.Sign = secp256k1.sign(shabuf(SignArr), WALLET.KeyPair.getPrivateKey('')).signature;
+        global.CHECK_DELTA_TIME=Data;
+
+        SERVER.ResetNextPingAllNode();
+
+        StartCheckTimeNum=Data.EndBlockNum+1;
+        ToLog("Auto corr time Num:"+Data.Num+" AutoDelta="+AutoDelta);
+        //ToLog(JSON.stringify(Data));
+
+    }
+}
+
+
+
+
 
 HTTPCaller.SaveConstant=function (SetObj)
 {
@@ -851,6 +936,8 @@ HTTPCaller.GetBlockChain=function (type)
             DELTA_CURRENT_TIME:DELTA_CURRENT_TIME,
             memoryUsage:process.memoryUsage(),
             IsDevelopAccount:(CompareArr(WALLET.PubKeyArr,global.DEVELOP_PUB_KEY)===0),
+            LoadedChainCount:SERVER.LoadedChainList.length,
+            StartLoadBlockTime:SERVER.StartLoadBlockTime,
             sessionid:sessionid,
             result:1
         };
@@ -1082,6 +1169,12 @@ function CopyBlockDraw(Block,MainChains)
     if(Block.BlockNum===CHECK_POINT.BlockNum)
         CheckPoint=1;
 
+    var Mining;
+    if(SERVER.MiningBlock===Block)
+        Mining=1;
+    else
+        Mining=0;
+
 
     GetGUID(Block);
     var Item=
@@ -1110,6 +1203,7 @@ function CopyBlockDraw(Block,MainChains)
             TrDataLen:Block.TrDataLen,
             Power:GetPowPower(Block.Hash),
             CheckPoint:CheckPoint,
+            Mining:Mining,
 
         };
     if(Block.chain)
@@ -1257,6 +1351,12 @@ function SendFileHTML(response,name,StrCookie)
                 case "css":
                     response.writeHead(200, { 'Content-Type': 'text/css'});
                     break;
+                case "wav":
+                    response.writeHead(200, { 'Content-Type': 'audio/wav'});
+                    break;
+                case "mp3":
+                    response.writeHead(200, { 'Content-Type': 'audio/mpeg'});
+                    break;
                 case "ico":
                     response.writeHead(200, { 'Content-Type': 'image/vnd.microsoft.icon'});
                     break;
@@ -1358,12 +1458,11 @@ if(global.HTTP_PORT_NUMBER)
     {
         if(!request.headers)
             return;
-        var host=request.headers.host;
-        if(typeof host!=="string")
+        if(!request.socket || !request.socket.remoteAddress)
             return;
 
 
-        if(!global.HTTP_PORT_PASSWORD && host.substr(0,9)!=="127.0.0.1")
+        if(!global.HTTP_PORT_PASSWORD && request.socket.remoteAddress.indexOf("127.0.0.1")<0)
              return;
 
         let RESPONSE=response0;

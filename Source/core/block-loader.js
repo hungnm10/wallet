@@ -365,8 +365,13 @@ module.exports = class CBlock extends require("./db/block-db")
 
         this.SetChainNum(chain);
 
-        var max=2;
-        while(this.SendChainNext(chain,false) && max>0){max--};
+        var max=3;
+        while(max>0)
+        {
+            max--;
+            if(!this.SendChainNext(chain,false))
+                break;
+        };
 
         return true;
     }
@@ -567,46 +572,6 @@ module.exports = class CBlock extends require("./db/block-db")
     }
 
 
-    SendChainNext(chain,checktime)
-    {
-        var Ret=this.GetNextNode(chain,chain.BlockNum,checktime);
-        if(Ret.Result)
-        {
-            if(!chain.Context)
-                chain.Context={Chain:chain};
-
-            var Node=Ret.Node;
-            //ToLog("LC Block: "+chain.BlockNum+" to "+NodeName(Node));
-            this.SendF(Node,
-                {
-                    "Method":"GETBLOCKHEADER",
-                    "Context":chain.Context,
-                    "Data":{Foward:0,BlockNum:chain.BlockNum, Hash:chain.Hash, IsSum:chain.IsSum, Count:chain.Count}
-                }
-            );
-            //ToLog("SEND: "+JSON.stringify({id:chain.id,BlockNum:chain.BlockNum, Hash:chain.Hash, IsSum:chain.IsSum, Count:chain.Count}));
-
-
-            var DopStr="";
-            if(chain.IsSum)
-                DopStr="SUM:"
-            chain.AddInfo(chain.BlockNum+"/"+DopStr+this.GetStrFromHashShort(chain.Hash)+"->"+GetNodeStrPort(Node));
-
-            return true;
-        };
-        return false;
-    }
-    static GETBLOCKHEADER_F()
-    {
-        return "{\
-                Foward:byte,\
-                BlockNum:uint,\
-                Hash:hash,\
-                Count:uint,\
-                IsSum:byte\
-            }"
-    }
-
     GetNextNode(task,keyid,checktime,BlockNum)
     {
         //Получение ноды для отправки данных:
@@ -616,7 +581,6 @@ module.exports = class CBlock extends require("./db/block-db")
 
         var CurTime=GetCurrentTime(0)-0;
 
-       //ADD_TO_STAT("DO_GETNEXTNODE-1");
 
         if(checktime && task.time)
         {
@@ -630,16 +594,23 @@ module.exports = class CBlock extends require("./db/block-db")
         /*
          1. Циклический обход массива с ранее запомненного номера
          2. Отправляем пакет ноде
-         3. ??? Запоминаем последний номер массива для использования на шаге 1 при следующем входе в алгоритм
          */
         var StartI=0;
         if(task.Node)
             StartI=-1;
 
-        //ADD_TO_STAT("DO_GETNEXTNODE-2");
 
         var timewait=false;
         var arr=this.GetActualNodes();
+        arr.sort(function (a,b)
+        {
+            return b.BlockProcessCount-a.BlockProcessCount;
+        });
+        if(arr.length>20)
+            arr.length=20;
+
+
+
         for(var i=StartI;i<arr.length;i++)
         {
             var Node;
@@ -655,7 +626,7 @@ module.exports = class CBlock extends require("./db/block-db")
             }
             if(Node.Active && Node.CanHot)
             {
-                if(Node.INFO && Node.INFO.CheckPointHashDB && CHECK_POINT.BlockNum && CompareArr(CHECK_POINT.Hash,Node.INFO.CheckPointHashDB)!==0)
+                if(!Node.INFO || !Node.INFO.WasPing)// || Node.INFO.CheckPointHashDB && CHECK_POINT.BlockNum && CompareArr(CHECK_POINT.Hash,Node.INFO.CheckPointHashDB)!==0)
                 {
                     timewait=true;
                     continue;
@@ -718,6 +689,48 @@ module.exports = class CBlock extends require("./db/block-db")
 
         return {Result:false,timewait:timewait};
     }
+
+
+    SendChainNext(chain,checktime)
+    {
+        var Ret=this.GetNextNode(chain,chain.BlockNum,checktime);
+        if(Ret.Result)
+        {
+            if(!chain.Context)
+                chain.Context={Chain:chain};
+
+            var Node=Ret.Node;
+            //ToLog("LC Block: "+chain.BlockNum+" to "+NodeName(Node));
+            this.SendF(Node,
+                {
+                    "Method":"GETBLOCKHEADER",
+                    "Context":chain.Context,
+                    "Data":{Foward:0,BlockNum:chain.BlockNum, Hash:chain.Hash, IsSum:chain.IsSum, Count:chain.Count}
+                }
+            );
+            //ToLog("SEND: "+JSON.stringify({id:chain.id,BlockNum:chain.BlockNum, Hash:chain.Hash, IsSum:chain.IsSum, Count:chain.Count}));
+
+
+            var DopStr="";
+            if(chain.IsSum)
+                DopStr="SUM:"
+            chain.AddInfo(chain.BlockNum+"/"+DopStr+this.GetStrFromHashShort(chain.Hash)+"->"+GetNodeStrPort(Node));
+
+            return true;
+        };
+        return false;
+    }
+    static GETBLOCKHEADER_F()
+    {
+        return "{\
+                Foward:byte,\
+                BlockNum:uint,\
+                Hash:hash,\
+                Count:uint,\
+                IsSum:byte\
+            }"
+    }
+
 
     GETBLOCKHEADER(Info,CurTime)
     {
@@ -1896,11 +1909,6 @@ module.exports = class CBlock extends require("./db/block-db")
             StrSend="NO"
         }
 
-        // var Block=this.BlockChain[BlockNum];
-        // if(Block)
-        // {
-        //     AddInfoBlock(Block,"GETBLOCK TH:"+this.GetStrFromHashShort(TreeHash)+" "+StrSend)
-        // }
 
         this.Send(Info.Node,
             {
