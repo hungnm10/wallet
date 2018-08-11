@@ -32,8 +32,6 @@ class CApp
         var Params=LoadParams(CONFIG_NAME,undefined);
         if(!Params)
         {
-            this.WalletOpen=true;
-
             Params={};
             Params.Key=GetHexFromArr(crypto.randomBytes(32));
             Params.AccountMap={};

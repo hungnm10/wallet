@@ -133,6 +133,13 @@ function GetCurrentStatIndex()
 
     return CurStatIndex%DefMaxStatPeriod;;
 }
+global.HASH_RATE=0;
+global.ADD_HASH_RATE=function(Count)
+{
+    global.HASH_RATE+=Count;
+    ADD_TO_STAT("HASHRATE",Count);
+}
+
 
 global.ADD_TO_STAT=function(Key,Count,bDetail)
 {
@@ -283,6 +290,7 @@ global.ClearCommonStat=function()
     CONTEXT_STATS={Total:{},Interval:[]};
     CONTEXT_ERRORS={Total:{},Interval:[]};
 
+    global.HASH_RATE=0;
     SERVER.ClearStat();
 }
 

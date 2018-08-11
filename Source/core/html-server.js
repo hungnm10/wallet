@@ -252,7 +252,9 @@ HTTPCaller.GetHistoryAct=function (num,count,Direct,Filter)
 }
 
 
-
+var LastTimeGetHashRate=0;
+var LastHashRate=0;
+var HashRateOneSec=0;
 HTTPCaller.GetWalletInfo=function ()
 {
 
@@ -265,6 +267,14 @@ HTTPCaller.GetWalletInfo=function ()
 
     var MaxHistory=WALLET.GetHistoryMaxNum();
 
+    var Delta=(new Date)-LastTimeGetHashRate;
+    if(Delta>=1000)
+    {
+        if(Delta<1100)
+            HashRateOneSec=global.HASH_RATE-LastHashRate;
+        LastHashRate=global.HASH_RATE;
+        LastTimeGetHashRate=(new Date)-0;
+    }
 
     var Ret=
         {
@@ -278,7 +288,6 @@ HTTPCaller.GetWalletInfo=function ()
             CurTime:(new Date())-0,
             IsDevelopAccount:(CompareArr(WALLET.PubKeyArr,global.DEVELOP_PUB_KEY)===0),
 
-            MiningAccount:global.GENERATE_BLOCK_ACCOUNT,
             AccountMap:WALLET.AccountMap,
             ArrLog:ArrLogClient,
             MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE,
@@ -307,8 +316,14 @@ HTTPCaller.GetWalletInfo=function ()
             HTTPPassword:HTTP_PORT_PASSWORD,
 
             CONSTANTS:Constants,
-            CPU_COUNT:os.cpus().length,
             CheckPointBlockNum:CHECK_POINT.BlockNum,
+
+            //mining
+            MiningAccount:global.GENERATE_BLOCK_ACCOUNT,
+            CountMiningCPU:global.CountMiningCPU,
+            CountRunCPU:global.ArrMiningWrk.length,
+            MiningPaused:global.MiningPaused,
+            HashRate:HashRateOneSec,
 
         };
 
@@ -479,9 +494,6 @@ function CheckCorrectDevKey()
 
 HTTPCaller.SendECode=function (Param)
 {
-
-    // if(SERVER.BlockNumDB+10<GetCurrentBlockNumByTime())
-    //     return {result:0,text:"Bad BlockNumDB!!!"};
     var Node=FindNodeByAddr(Param.Addr,1);
     if(Node===undefined)
         return {result:0,text:"Node not found"};
@@ -701,6 +713,7 @@ HTTPCaller.SaveConstant=function (SetObj)
         global[key]=SetObj[key];
     }
     SAVE_CONST(true);
+    SERVER.DO_CONSTANT();
 
 
 
@@ -771,7 +784,79 @@ HTTPCaller.GetAccountKey=function (Num)
     return Result;
 }
 
+//HOT TREE
+HTTPCaller.GetHotArray=function ()
+{
+    //Hot
+    var HotArr=[];
+    for(var Level=0;Level<SERVER.LevelNodes.length;Level++)
+    {
+        var arr=SERVER.LevelNodes[Level];
+        HotArr[Level]=[];
+        for(var n=0;arr && n<arr.length;n++)
+        {
+            var Node=arr[n];
+            if(Node)
+            {
+                Node.Hot=1;
+                var Node2=GetCopyNode(Node,Level);
+                HotArr[Level].push(Node2);
+            }
+        }
+    }
 
+    //All
+    var arr=SERVER.GetActualNodes();
+    for(var n=0;arr && n<arr.length;n++)
+    {
+        var Node=arr[n];
+        if(!Node)
+            continue;
+        if(Node.Hot)
+            continue;
+
+        var Level=SERVER.AddrLevelNode(Node);
+        var Node2=GetCopyNode(Node,Level);
+        if(!HotArr[Level])
+            HotArr[Level]=[];
+
+        HotArr[Level].push(Node2);
+    }
+    for(var Level=0;Level<HotArr.length;Level++)
+    {
+        if(HotArr[Level])
+            HotArr[Level].sort(SortNode);
+    }
+    function SortNode(a,b)
+    {
+        if(b.Hot!==a.Hot)
+            return b.Hot-a.Hot;
+        if(b.BlockProcessCount!==a.BlockProcessCount)
+            return b.BlockProcessCount-a.BlockProcessCount;
+
+        return a.DeltaTime-b.DeltaTime;
+    }
+
+    return {result:1,HotArr:HotArr};
+}
+function GetCopyNode(Node,Level)
+{
+    return {
+            Level:Level,
+            LevelCount:Node.LevelCount,
+            ip:Node.ip,
+            port:Node.port,
+            Name:Node.Name,
+            addrStr:Node.addrStr,
+            BlockProcessCount:Node.BlockProcessCount,
+            Delta:Node.DeltaTime,
+            CanHot:Node.CanHot,
+            Active:Node.Active,
+            Hot:Node.Hot,
+            Stage:Node.Stage,
+            id:Node.id,
+        };
+}
 
 
 //STATS

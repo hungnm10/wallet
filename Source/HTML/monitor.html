@@ -320,7 +320,9 @@
             {
                 var dTop=0;
                 if(KKY>0.8)
-                    dTop=8;
+                {
+                    dTop=25;
+                }
 
                 var y=(heigh-Math.floor(KKY*heigh));
                 ctx.beginPath();
@@ -458,7 +460,7 @@
         [
 
             {name:"MAX:TIME_DELTA",text:"TIME_DELTA",value:0,red:"#729b67"},
-            {name:"MAX:NO_AUTO_CORRECT_TIME",text:"NO_AUTO_CORRECT_TIME",value:0,red:"#39519b"},
+            //{name:"MAX:NO_AUTO_CORRECT_TIME",text:"NO_AUTO_CORRECT_TIME",value:0,red:"#39519b"},
 
             {name:"MAX:BUSY_LEVEL",text:"BUSY_LEVEL",value:0,red:"#ff353b"},
             {name:"STOP_METHOD",text:"STOP_METHOD",value:0,red:"#8a3c40"},

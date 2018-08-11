@@ -346,7 +346,7 @@ module.exports = class CConsensus extends require("./block-loader")
         this.ToMaxPOWList(Data.MaxPOW);
         this.ToMaxSumList(Data.MaxSum);
 
-        ADD_TO_STAT_TIME("TRANSFER", startTime);
+        ADD_TO_STAT_TIME("TRANSFER_MS", startTime);
 
         var Delta=(new Date())-this.StartLoadBlockTime;
         if(Delta>10*1000)

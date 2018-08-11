@@ -38,20 +38,20 @@ var CServer=require("./server");
 
 global.glCurNumFindArr=0;
 global.ArrReconnect=[];
-var FindList=LoadParams(GetDataPath("finds-server.lst"),undefined);
-if(!FindList)
-{
-    FindList=[
-        {"ip":"194.1.237.94","port":30000},//3
-        {"ip":"91.235.136.81","port":30000},//5
-        {"ip":"209.58.140.250","port":30000},//16
-        // {"ip":"103.102.45.224","port":30000},//12
-        // {"ip":"185.17.122.144","port":30000},//14
-        // {"ip":"185.17.122.149","port":30000},//20
-        ];
+//var FindList=LoadParams(GetDataPath("finds-server.lst"),undefined);
+//if(!FindList)
+//{
+FindList=[
+    {"ip":"194.1.237.94","port":30000},//3
+    {"ip":"91.235.136.81","port":30000},//5
+    //{"ip":"185.17.122.144","port":30000},//14
+    {"ip":"209.58.140.250","port":30000},//16
+    // {"ip":"103.102.45.224","port":30000},//12
+    // {"ip":"185.17.122.149","port":30000},//20
+    ];
 
-    SaveParams(GetDataPath("finds-server.lst"),FindList);
-}
+//    SaveParams(GetDataPath("finds-server.lst"),FindList);
+//}
 //global.USE_LOG_NETWORK=1;
 
 
@@ -62,9 +62,7 @@ if(global.LOCAL_RUN)
 {
     FindList=[{"ip":"127.0.0.1","port":40000},{"ip":"127.0.0.1","port":40001}];
 }
-// if(global.TEST_DEVELOP_MODE)
-//     FindList=[{"ip":"91.235.136.81","port":30002}];
-
+//global.USE_LOG_NETWORK=1;
 
 global.SERVER=undefined;
 var idRunOnce;
@@ -130,17 +128,19 @@ if(global.ADDRLIST_MODE)
 }
 
 //ToLog("global.USE_MINING="+global.USE_MINING);
-var ArrWrk=[];
-var BlockMining;
 
 var StartCheckMining=0;
 const os = require('os');
 var cpus = os.cpus();
-var CountMiningCPU=cpus.length-1;
+global.CountMiningCPU=cpus.length-1;
+global.MiningPaused=0;
+global.ArrMiningWrk=[];
+var BlockMining;
+
 
 function RunStopPOWProcess(Mode)
 {
-    if(CountMiningCPU<=0)
+    if(!global.CountMiningCPU || global.CountMiningCPU<=0)
         return;
     if(!StartCheckMining)
     {
@@ -153,44 +153,49 @@ function RunStopPOWProcess(Mode)
     if(global.USE_MINING && global.MINING_START_TIME && global.MINING_PERIOD_TIME)
     {
         var Time=GetCurrentTime();
-        var TimeSec=Time.getUTCHours()*3600+Time.getUTCMinutes()*60+Time.getUTCSeconds();
+        var TimeCur=Time.getUTCHours()*3600+Time.getUTCMinutes()*60+Time.getUTCSeconds();
 
         var StartTime=GetSecFromStrTime(global.MINING_START_TIME);
         var RunPeriod=GetSecFromStrTime(global.MINING_PERIOD_TIME);
 
 
         var TimeEnd=StartTime+RunPeriod;
-        if(TimeSec<StartTime)
+
+        global.MiningPaused=1;
+        if(TimeCur>=StartTime && TimeCur<=TimeEnd)
         {
-            if(TimeEnd>24*3600)
-            {
-                TimeEnd=TimeEnd-24*3600;
-                if(TimeSec>TimeEnd)
-                {
-                    if(ArrWrk.length)
-                    {
-                        ArrWrk=[];
-                        ToLog("------------ MINING MUST STOP ON TIME")
-                    }
-                    return;
-                }
-            }
+            global.MiningPaused=0;
         }
         else
-        if(TimeSec>TimeEnd)
         {
-            if(ArrWrk.length)
+            //may be start on prev day
+            StartTime-=24*3600;
+            TimeEnd-=24*3600;
+            if(TimeCur>=StartTime && TimeCur<=TimeEnd)
             {
-                ArrWrk=[];
-                ToLog("------------ MINING MUST STOP ON TIME")
+                global.MiningPaused=0;
             }
-            return;
         }
 
-        if(!ArrWrk.length)
+        if(ArrMiningWrk.length && global.MiningPaused)
         {
-                ToLog("*********** MINING MUST START ON TIME")
+            ToLog("------------ MINING MUST STOP ON TIME")
+            ArrMiningWrk=[];
+            return;
         }
+        else
+        if(!ArrMiningWrk.length && !global.MiningPaused)
+        {
+            ToLog("*********** MINING MUST START ON TIME")
+        }
+        else
+        {
+            return;
+        }
+    }
+    else
+    {
+        global.MiningPaused=0;
     }
 
 
@@ -199,11 +204,11 @@ function RunStopPOWProcess(Mode)
 
     if(!global.USE_MINING || Mode==="STOP")
     {
-        ArrWrk=[];
+        ArrMiningWrk=[];
         return;
     }
 
-    if(global.USE_MINING && ArrWrk.length)
+    if(global.USE_MINING && ArrMiningWrk.length)
         return;
 
     if(SERVER.LoadHistoryMode)
@@ -220,8 +225,8 @@ function RunStopPOWProcess(Mode)
     {
         let Worker = child_process.fork("./core/pow-process.js");
         console.log(`Worker pid: ${Worker.pid}`);
-        ArrWrk.push(Worker);
-        Worker.Num=ArrWrk.length;
+        ArrMiningWrk.push(Worker);
+        Worker.Num=ArrMiningWrk.length;
 
         Worker.on('message',
             function (msg)
@@ -265,7 +270,7 @@ function RunStopPOWProcess(Mode)
                 else
                 if(msg.cmd==="HASHRATE")
                 {
-                    ADD_TO_STAT("HASHRATE",msg.CountNonce);
+                    ADD_HASH_RATE(msg.CountNonce);
                     //ADD_TO_STAT("MAX:POWER2",GetPowPower(msg.Hash));
 
                 }
@@ -274,7 +279,7 @@ function RunStopPOWProcess(Mode)
 
         Worker.on('error', (err) =>
         {
-            if(!ArrWrk.length)
+            if(!ArrMiningWrk.length)
                 return;
             ToError('ERROR IN PROCESS: '+err);
         });
@@ -282,12 +287,12 @@ function RunStopPOWProcess(Mode)
         Worker.on('close', (code) =>
         {
             ToLog("STOP PROCESS: "+Worker.Num);
-            for(var i=0;i<ArrWrk.length;i++)
+            for(var i=0;i<ArrMiningWrk.length;i++)
             {
-                if(ArrWrk[i].Num===Worker.Num)
+                if(ArrMiningWrk[i].Num===Worker.Num)
                 {
                     //ToLog("Delete wrk from arr");
-                    ArrWrk.splice(i,1);
+                    ArrMiningWrk.splice(i,1);
                 }
             }
         });
@@ -300,13 +305,13 @@ function SetCalcPOW(Block)
     if(!global.USE_MINING)
         return;
 
-    if(ArrWrk.length!==CountMiningCPU)
+    if(ArrMiningWrk.length!==CountMiningCPU)
         return;
 
     BlockMining=Block;
-    for(var i=0;i<ArrWrk.length;i++)
+    for(var i=0;i<ArrMiningWrk.length;i++)
     {
-        var CurWorker=ArrWrk[i];
+        var CurWorker=ArrMiningWrk[i];
         if(!CurWorker.bOnline)
             continue;
 
@@ -523,8 +528,12 @@ function RunOnUpdate()
         CheckRewriteTr(3047000,"2A8E6163A4413C33A5651F9547F365D21946D7586B1293AB0932432B98241283",2981080);
         CheckRewriteTr(3105000,"08F406ECDA4E3BE9DB0F0CBFF47D961E26C0443140557DC1CA6D729A4E96EC1D",3047000);
         CheckRewriteTr(3133700,"14B84537B73D1E00E42C6E5D7D91582D9B4F287C64F5114C4797BA60C8610FEE",3105000);
-
         CheckRewriteTr(3210000,"17FFDCCDF89B5803E9BD276636CEB9B9FDDA4B3A014E5045428A5F078AEE6C03",3133700);
+        CheckRewriteTr(3452000,"59E094C37B3C0B52EC52A97B50A192DC1430ED0D3862C7C542CD7C30EE48E4FA",3210000);
+
+        CheckRewriteTr(3510000,"8382C26507A070CF7B354D1EA97B3FA295E1A9E811C44A6681BEAD15281B775B",3452000);
+        CheckRewriteTr(3520000,"A6644B15A9EF0FC17E4B577AC90E9AFA9D5AF6CD78302FB493F068BB138748CB",3510000);
+
 
 
 

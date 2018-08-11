@@ -258,9 +258,8 @@
 
     function SetVisibleBlock(name,bSet)
     {
-
         var Item=document.getElementById(name);
-        if(typeof bSet==="string")
+        if(bSet && typeof bSet==="string")
             Item.style.display = bSet;
         else
         if(bSet)
@@ -1033,7 +1032,7 @@
 
     function UpdatesData()
     {
-        //UpdatesConfigData();
+
         UpdatesAccountsData();
         CheckNameAccTo();
         CheckSending();
@@ -1159,7 +1158,6 @@
             CanSendTransaction=1;
         }
 
-        MiningAccount=Data.MiningAccount;
         MaxAccID=Data.MaxAccID;
         MaxActNum=Data.MaxActNum;
         //MaxBlockNum=Data.CurBlockNum;
@@ -1202,6 +1200,7 @@
         SetVisibleBlock("idFilterB",Data.IsDevelopAccount);
         //SetVisibleBlock("idFilterH",Data.IsDevelopAccount);
 
+        SetVisibleBlock("idNetwork",CONFIG_DATA.CONSTANTS.COMMON_KEY);
 
 
 
@@ -1224,21 +1223,28 @@
         SERVER_IP=Data.ip;
         SERVER_PORT=Data.port;
 
+        //Mining
+        MiningAccount=Data.MiningAccount;
         document.getElementById("idUseMining").checked=CONFIG_DATA.CONSTANTS.USE_MINING;
-
-
         if(!idPercentItem || document.activeElement!==idPercentItem)
         {
             idPercentItem=document.getElementById("idPercentMining");
             idPercentItem.value=CONFIG_DATA.CONSTANTS.POW_MAX_PERCENT;
         }
-
-
-        if(Data.CPU_COUNT>1 && CONFIG_DATA.CONSTANTS.USE_MINING)
-            SetVisibleBlock("idPercentBlock","inline-block");
+        if(Data.CountMiningCPU>0 && CONFIG_DATA.CONSTANTS.USE_MINING)
+            SetVisibleBlock("idMiningParams","inline-block");
         else
-            SetVisibleBlock("idPercentBlock",0);
+            SetVisibleBlock("idMiningParams",0);
 
+        SetStatusMining(" Mining account:<B>"+MiningAccount+"</B>  HashRate:<B>"+Math.trunc(Data.HashRate/1000)+"</B>Kh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
+        if(CONFIG_DATA.CONSTANTS.USE_MINING && Data.CountRunCPU!==Data.CountMiningCPU)
+        {
+            $("idUseMining").className="checkbox checkbox_red";
+        }
+        else
+        {
+            $("idUseMining").className="checkbox";
+        }
 
         SetViewWN();
     }
@@ -1267,7 +1273,7 @@
                     if(Item.Direct==="+" && Item.BlockNum>ServerBlockNumDB-60 && Item.BlockNum<ServerBlockNumDB-20 && Item.BlockNum>WasLastNumSound)
                     {
                         WasLastNumSound=Item.BlockNum;
-                        SetStatus("Sound: "+WasLastNumSound);
+                        //SetStatus("Sound: "+WasLastNumSound);
                         $("sound_coin").play();
                     }
                 }
@@ -1554,12 +1560,19 @@
     function ViewStatus()
     {
         var Str=StrMainStatus+StrNormalStatus;
-        var id = document.getElementById("idStatus");
+        var id = $("idStatus");
         id.innerHTML=Str;
     }
-    function SetError(Str)
+    function SetError(Str,bNoSound)
     {
+        if(!bNoSound)
+            $("sound_err").play();
         SetStatus("<DIV  align='left' style='color:red'><B>"+Str+"</B></DIV>");
+    }
+    function SetStatusMining(Str)
+    {
+        var id = $("idStatusMining");
+        id.innerHTML=Str;
     }
 
 
@@ -1769,7 +1782,7 @@
         UpdatesData();
 
         setInterval(UpdatesData,1000);
-        setInterval(UpdatesConfigData,200);
+        setInterval(UpdatesConfigData,335);
         setInterval(CheckNewMoney,1000);
 
         SelectStyle();
@@ -1795,7 +1808,7 @@
             if(ValText && ValText!=="undefined" && ValText.trim())
             {
                 localStorage["WasStart"]="1";
-                SetError("Run script ... Was Error?");
+                SetError("Run script ... Was Error?",1);
                 eval(ValText);
                 SetStatus("Run script ... OK");
             }
@@ -2132,9 +2145,10 @@
     #idOpenWallet
     {
         z-index:1001;
-        position:absolute;
-        top:42px;
-        left:660px;
+        position:relative;
+        float: right;
+        top:22px;
+        right:0px;
         padding: 0 0 0 20px;
         text-align: center;
         box-shadow: 0 0 0 1px;
@@ -2155,9 +2169,9 @@
     #idBlockPassword
     {
         z-index:1000;
-        position:fixed;
-        top:200px;
-        left:250px;
+        position:absolute;
+        top:150px;
+        right:25%;
         height:150px;
         width:320px;
         padding: 10px;
@@ -2175,525 +2189,534 @@
 
 
 <body>
+<DIV align='center'>
+<DIV align='left' style="width: 800px;height: 920px; border: 1px solid #bfc1c0;">
+
+    <table id="TabHeader" onclick="SelectTab">
+        <tr>
+            <th><INPUT id="MTabAccounts" type="button" onclick="SelectTab('TabAccounts')" class="bttab" value="CONFIG"></th>
+            <th><INPUT id="MTabSend" type="button" onclick="SelectTab('TabSend')" class="bttab" value="SEND"></th>
+            <th><INPUT id="MTabHistory" type="button" onclick="SelectTab('TabHistory')" class="bttab" value="HISTORY"></th>
+            <th><INPUT id="MTabExplorer" type="button" onclick="SelectTab('TabExplorer')" class="bttab" value="EXPLORER"></th>
+        </tr>
+    </table>
+
+    <INPUT id="idOpenWallet" style="display: none" type="button" onclick="OnClickOpenCloseWallet()" value="Wallet closed">
+
+    <DIV id="idStatus">&nbsp;</DIV>
+    <BR><BR><BR>
+
+    <DIV id="TabAccounts" style="display: block">
+        <BR>
+        <DIV style="float: left">
+        <input type="checkbox" class="checkbox checkbox2" id="idUseMining" onchange = "UseMining()"/>
+        <label for="idUseMining">MINING</label>
+        </DIV>
+        <DIV style="float: left;display: none" id="idMiningParams">
+        <DIV style="float: left; margin: 0 0 0 10px; color: blue;"> CPU use:<input type="number" min=0 max=100 id="idPercentMining" onchange="SetPercentMining()"/>%</DIV>
+        <DIV style="float: left; margin: 0 0 0 10px;" id="idStatusMining"></DIV>
+        </DIV>
+        <BR><BR>
+        <DIV id="idDevelopService" style="display: none">
+            <INPUT type="button" id="idDown" onclick="SetVisibleBlock('idDevelopServiceView',!IsVisibleBlock('idDevelopServiceView'));SetImg(this,'idDevelopServiceView')"
+                   class="btdoit bt" value="DEV SERVICE">
+            <DIV id="idDevelopServiceView" style="display: none">
+
+                <table>
+                    <tr>
+                        <td style="width: 100px">
+                            <BR>
+                            <INPUT type="button" class="bt btdoit" onclick="SetCodeVersion()" value="CODE VERS>>"><BR>
+                            <INPUT type="button" class="bt btdoit" onclick="SetCorrTime()" value="DELTA TIME >>"><BR>
+
+                        </td>
+                        <td style="width: 500px">
+                            Value:<INPUT type="string" id="idDevValue" value="0"><BR>
+                            <TEXTAREA id="idDevService" rows="15" cols="90"> </TEXTAREA><BR>
+                        </td>
+                        <!--<td style="width: 100px">-->
+                        <!--</td>-->
+                    </tr>
+                </table>
+                <INPUT type="button" onclick="CreateCheckPoint()" class="btdoit  bt" value="CHECK POINT">
+                <INPUT type="button" onclick="SetNewCodeVersion()" class="btdoit  bt" value=">>NEW VERSION">
+                <INPUT type="button" onclick="StartTimeCorrect()" class="btdoit  bt" value=">>TIME CORR.">
 
 
-<table id="TabHeader" onclick="SelectTab">
-    <tr>
-        <th><INPUT id="MTabAccounts" type="button" onclick="SelectTab('TabAccounts')" class="bttab" value="CONFIG"></th>
-        <th><INPUT id="MTabSend" type="button" onclick="SelectTab('TabSend')" class="bttab" value="SEND"></th>
-        <th><INPUT id="MTabHistory" type="button" onclick="SelectTab('TabHistory')" class="bttab" value="HISTORY"></th>
-        <th><INPUT id="MTabExplorer" type="button" onclick="SelectTab('TabExplorer')" class="bttab" value="EXPLORER"></th>
-    </tr>
-</table>
-
-<INPUT id="idOpenWallet" style="display: none" type="button" onclick="OnClickOpenCloseWallet()" value="Wallet closed">
+                <input type="checkbox" class="checkbox" id="idUseAutoCheckPoint" onchange = "UseAutoCheckPoint()"/>
+                <label for="idUseAutoCheckPoint">Auto check point</label>
+                <input type="checkbox" class="checkbox" id="idUseAutoCorrTime" onchange = "UseAutoCorrTime()"/>
+                <label for="idUseAutoCorrTime">Auto corr time</label><BR>
 
 
+                <HR>
+            </DIV>
+        </DIV>
 
-<DIV id="idStatus">&nbsp;</DIV>
-<BR><BR><BR>
+        <DIV id="idCurrentBlockNum"></DIV>
+        Wallet data path: <B id="idDataPath"></B><BR>
+        Public key: <B id="idPubKey"></B><BR>
+        Node addr: <B id="idNodeAddr"></B>
 
-<DIV id="TabAccounts" style="display: block">
-    <BR>
+        <DIV id="wallet_config_tab" style="display: none">
+            <INPUT type="button" onclick="NewPrivateKey();" class="btdoit bt" value="New wallet..." id="idDown2">
+            <INPUT type="button" onclick="EditPrivateKey();SetImg(this,'edit_keys');" class="btdoit bt" value="Edit wallet" id="idDown">
+            <INPUT type="button" onclick="ViewNewAccount();SetImg(this,'edit_create_acc');" class="btdoit bt" value="New account" id="idDown">
+            <INPUT type="button" onclick="MiningSets();SetImg(this,'edit_mining_set');" class="btdoit bt" value="Set mining" id="idDown">
+            <INPUT type="button" onclick="ViewSetPassword();itemBtPassword=this; SetImg(itemBtPassword,'idBlockPassword');" class="bt btdoit" value="Set password" id="idDown">
+        </DIV>
 
 
-
-    <input type="checkbox" class="checkbox" id="idUseMining" onchange = "UseMining()"/>
-    <label for="idUseMining">MINING</label> <DIV id="idPercentBlock" style="color: blue;display: none"> CPU use:<input type="number" min=0 max=100 id="idPercentMining" onchange="SetPercentMining()"/>%</DIV><BR>
-    <DIV id="idDevelopService" style="display: none">
-        <INPUT type="button" id="idDown" onclick="SetVisibleBlock('idDevelopServiceView',!IsVisibleBlock('idDevelopServiceView'));SetImg(this,'idDevelopServiceView')"
-               class="btdoit bt" value="DEV SERVICE">
-        <DIV id="idDevelopServiceView" style="display: none">
-
-            <table>
+        <DIV id="edit_mining_set" style="display: none">
+            <table class="form_input keys" id="grid_mining_set">
                 <tr>
-                    <td style="width: 100px">
-                        <BR>
-                        <INPUT type="button" class="bt btdoit" onclick="SetCodeVersion()" value="CODE VERS>>"><BR>
-                        <INPUT type="button" class="bt btdoit" onclick="SetCorrTime()" value="DELTA TIME >>"><BR>
+                    <td><DIV>Mining account:</DIV></td><td><INPUT type="number" id="idMiningAccount" min=0 max=1000000000000 value="0"></td>
+                </tr>
 
-                    </td>
-                    <td style="width: 500px">
-                        Value:<INPUT type="string" id="idDevValue" value="0"><BR>
-                        <TEXTAREA id="idDevService" rows="15" cols="90"> </TEXTAREA><BR>
-                    </td>
-                    <!--<td style="width: 100px">-->
-                    <!--</td>-->
+                <tr>
+                    <td></td>
+                    <td><INPUT type="button" onclick="SaveMiningSet()" class="bt" value="Save">
+                        <INPUT type="button" onclick="CancalMiningSet()" class="bt" value="Cancel"></td>
                 </tr>
             </table>
-            <INPUT type="button" onclick="CreateCheckPoint()" class="btdoit  bt" value="CHECK POINT">
-            <INPUT type="button" onclick="SetNewCodeVersion()" class="btdoit  bt" value=">>NEW VERSION">
-            <INPUT type="button" onclick="StartTimeCorrect()" class="btdoit  bt" value=">>TIME CORR.">
-
-
-            <input type="checkbox" class="checkbox" id="idUseAutoCheckPoint" onchange = "UseAutoCheckPoint()"/>
-            <label for="idUseAutoCheckPoint">Auto check point</label>
-            <input type="checkbox" class="checkbox" id="idUseAutoCorrTime" onchange = "UseAutoCorrTime()"/>
-            <label for="idUseAutoCorrTime">Auto corr time</label><BR>
-
-
-            <HR>
         </DIV>
-    </DIV>
-
-    <DIV id="idCurrentBlockNum"></DIV>
-    Wallet data path: <B id="idDataPath"></B><BR>
-    Public key: <B id="idPubKey"></B><BR>
-    Node addr: <B id="idNodeAddr"></B>
-
-    <DIV id="wallet_config_tab" style="display: none">
-        <INPUT type="button" onclick="NewPrivateKey();" class="btdoit bt" value="New wallet..." id="idDown2">
-        <INPUT type="button" onclick="EditPrivateKey();SetImg(this,'edit_keys');" class="btdoit bt" value="Edit wallet" id="idDown">
-        <INPUT type="button" onclick="ViewNewAccount();SetImg(this,'edit_create_acc');" class="btdoit bt" value="New account" id="idDown">
-        <INPUT type="button" onclick="MiningSets();SetImg(this,'edit_mining_set');" class="btdoit bt" value="Set mining" id="idDown">
-        <INPUT type="button" onclick="ViewSetPassword();itemBtPassword=this; SetImg(itemBtPassword,'idBlockPassword');" class="bt btdoit" value="Set password" id="idDown">
-    </DIV>
 
 
-    <DIV id="edit_mining_set" style="display: none">
-        <table class="form_input keys" id="grid_mining_set">
-            <tr>
-                <td><DIV>Mining account:</DIV></td><td><INPUT type="number" id="idMiningAccount" min=0 max=1000000000000 value="0"></td>
-            </tr>
+        <DIV id="edit_keys" style="display: none">
+            <table class="form_input keys" id="grid_edit_key">
+                <tr>
+                    <td>
+                        <select size="1" id="idTypeKey" onkeyup="SelectTypeKey();" onchange="SelectTypeKey();">
+                            <option value="private">Private key</option>
+                            <option value="public">Public key (sign from another wallet)</option>
+                            <option value="brain">Brain key generator</option>
+                        </select>
+                    </td><td><INPUT type="string" id="idKeyNew" value=""></td>
+                </tr>
+                <tr id="idViewKeyNew2" style="display: none">
+                    <td>You can repeat the secret words:</td>
+                    <td><INPUT type="string" id="idKeyNew2" value=""></td>
+                </tr>
 
-            <tr>
-                <td></td>
-                <td><INPUT type="button" onclick="SaveMiningSet()" class="bt" value="Save">
-                    <INPUT type="button" onclick="CancalMiningSet()" class="bt" value="Cancel"></td>
-            </tr>
-        </table>
-    </DIV>
-
-
-    <DIV id="edit_keys" style="display: none">
-        <table class="form_input keys" id="grid_edit_key">
-            <tr>
-                <td>
-                    <select size="1" id="idTypeKey" onkeyup="SelectTypeKey();" onchange="SelectTypeKey();">
-                        <option value="private">Private key</option>
-                        <option value="public">Public key (sign from another wallet)</option>
-                        <option value="brain">Brain key generator</option>
-                    </select>
-                </td><td><INPUT type="string" id="idKeyNew" value=""></td>
-            </tr>
-            <tr id="idViewKeyNew2" style="display: none">
-                <td>You can repeat the secret words:</td>
-                <td><INPUT type="string" id="idKeyNew2" value=""></td>
-            </tr>
-
-            <tr>
-                <td></td>
-                <td>
-                    <INPUT type="button" onclick="ConvertToPrivateKey()" class="btdoit bt" style="width: 130px;display: none;" id="idBtConvertKey" value="Convert to key">
-                    <INPUT type="button" onclick="SavePrivateKey()" class="bt" id="idBtSaveKey" value="Save">
-                    <INPUT type="button" onclick="CancelSavePrivateKey()" class="bt" value="Cancel">
-                </td>
-            </tr>
-        </table>
-    </DIV>
+                <tr>
+                    <td></td>
+                    <td>
+                        <INPUT type="button" onclick="ConvertToPrivateKey()" class="btdoit bt" style="width: 130px;display: none;" id="idBtConvertKey" value="Convert to key">
+                        <INPUT type="button" onclick="SavePrivateKey()" class="bt" id="idBtSaveKey" value="Save">
+                        <INPUT type="button" onclick="CancelSavePrivateKey()" class="bt" value="Cancel">
+                    </td>
+                </tr>
+            </table>
+        </DIV>
 
 
 
 
-    <DIV id="edit_create_acc" style="display: none">
-        <table class="form_input keys" id="grid_edit_newacc">
-            <tr>
-                <td><DIV>Public name:</DIV></td>
-                <td>
-                    <INPUT type="string" maxlength="40" id="idAccDescription" onkeyup="CheckLengthAccDesription('idAccDescription',40)" value="">
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <DIV>Adviser:</DIV></td><td><INPUT type="number" id="idAdviser" min=0 max=1000000000000 value="0">
-                </td>
-            </tr>
-            <tr>
-                <td></td><td><INPUT type="checkbox" checked id="idAutoSetMining">Mining on this account</td>
-            </tr>
+        <DIV id="edit_create_acc" style="display: none">
+            <table class="form_input keys" id="grid_edit_newacc">
+                <tr>
+                    <td><DIV>Public name:</DIV></td>
+                    <td>
+                        <INPUT type="string" maxlength="40" id="idAccDescription" onkeyup="CheckLengthAccDesription('idAccDescription',40)" value="">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <DIV>Adviser:</DIV></td><td><INPUT type="number" id="idAdviser" min=0 max=1000000000000 value="0">
+                    </td>
+                </tr>
+                <tr>
+                    <td></td><td><INPUT type="checkbox" checked id="idAutoSetMining">Mining on this account</td>
+                </tr>
 
-            <tr id="idRowWN" style="display: none">
-                <td>
-                    <DIV>Wallet number:</DIV></td><td><INPUT type="number" id="idWN" min=0 max=100 value="0">
-             </td>
-            </tr>
+                <tr id="idRowWN" style="display: none">
+                    <td>
+                        <DIV>Wallet number:</DIV></td><td><INPUT type="number" id="idWN" min=0 max=100 value="0">
+                 </td>
+                </tr>
 
-            <tr>
-                <td></td>
-                <td><INPUT type="button" onclick="CreateAccount()" class="bt" value="Create">
-                    <INPUT type="button" onclick="CancelCreateAccount()" class="bt" value="Cancel"></td>
-            </tr>
+                <tr>
+                    <td></td>
+                    <td><INPUT type="button" onclick="CreateAccount()" class="bt" value="Create">
+                        <INPUT type="button" onclick="CancelCreateAccount()" class="bt" value="Cancel"></td>
+                </tr>
 
-        </table>
-    </DIV>
-
-
-    <BR>
-    <table id="grid_accounts" class="grid">
-        <tr>
-            <th id="Item.Num" class="num">ID</th>
-            <th id="SUM_TO_STRING(Item.Value)" class="sum bold">Amount</th>
-            <th id="MapCurrency[Item.Currency]" class="cur">Cur</th>
-            <th id="Item.Description" class="accname">Account name</th>
-            <th id="Item.Value.OperationID" class="num">Operation</th>
-            <th id="Item.Adviser" class="num">Adviser</th>
-            <th id="Item.WN" class="num" style="width: 30px;"></th>
-        </tr>
-    </table>
-
-    <B><DIV id="idMyTotalSum"></DIV></B>
+            </table>
+        </DIV>
 
 
-    <INPUT type="button" id="idDown" onclick="ViewNetworkMode();SetImg(this,'idNetworkView')"
-           class="btdoit bt" value="NET CONNECT">
-    <INPUT type="button" id="idDown" onclick="ViewRemoteParams();SetImg(this,'idRemoteView')"
-           class="btdoit bt" value="HTTP ACCESS">
-    <INPUT type="button" id="idDown" onclick="ViewConstant();SetImg(this,'idConstantView')"
-           class="btdoit bt" value="CONSTANTS">
-
-
-    <DIV id="idNetworkView" style="display: none">
-        <H3>Network connections:</H3>
-        <INPUT type="checkbox" id="idUseDirectIP">Run server and use direct IPv4 address on this computer (recommended):<BR>
-        IP:<INPUT  maxlength="16" id="idIP"> Port:<INPUT maxlength="9" id="idPort"><BR>
-        <!--<INPUT type="checkbox" id="idUseIncomeGrayIP">Allow connection users without a direct ip:<BR>-->
-        <!--White list nodes (HEX-format):<BR>-->
-        <TEXTAREA id="idNodeWhiteList" rows="4" cols="100" style="display: none"> </TEXTAREA>
         <BR>
-
-        <INPUT type="button" onclick="SetNetworkParams(0)" class="btdoit bt" value="Save">
-        <INPUT type="button" onclick="SetNetworkParams(1)" class="btdoit bt" value="Save and Restart">
-        <HR>
-    </DIV>
-
-    <DIV id="idRemoteView" style="display: none">
-        <H3>Remote access:</H3>
-
-        <table class="form_input keys">
-            <tr>
-                <td>HTTP port:</td>
-                <td><INPUT type="string" id="idHTTPPort" maxlength="6" value="80"></td>
-            </tr>
-            <tr>
-                <td>Password on HTTP:</td>
-                <td><INPUT type="string" id="idHTTPPassword"></td>
-            </tr>
-        </table>
-        <BR>
-        <INPUT type="button" onclick="SetRemoteParams(0)" class="btdoit bt" value="Save">
-        <INPUT type="button" onclick="SetRemoteParams(1)" class="btdoit bt" value="Save and Restart">
-        <HR>
-    </DIV>
-
-    <DIV id="idConstantView" style="display: none">
-        <H3>All constants (only for advanced users):</H3>
-        <TEXTAREA id="idConstant" rows="20" cols="110"> </TEXTAREA><BR>
-        <BR>
-        <INPUT type="button" onclick="SaveConstant(0)" class="btdoit bt" value="Save">
-        <INPUT type="button" onclick="SaveConstant(1)" class="btdoit bt" value="Save and Restart">
-        <HR>
-    </DIV>
-
-
-    Style:
-    <select size="1" id="idSelStyle" onkeyup="SelectStyle();SaveValues()" onchange="SelectStyle();SaveValues()">
-        <option value="styleBrown">Brown</option>
-        <option value="styleBlue">Blue</option>
-        <option value="styleGreen">Green</option>
-    </select>
-
-
-
-</DIV>
-
-
-<DIV id="TabHistory" style="display: none">
-    <DIV id="idPaginationHistory" style="display: none">
-        Search:<INPUT type="search" id="idViewHistoryFilter" value="" onchange="ViewCurrent(DefHistory)">
-        <INPUT type="button" onclick="ViewBegin(DefHistory)" class="btdoitm bt" value="|<-">
-        <INPUT type="button" onclick="ViewPrev(DefHistory)" class="btdoit bt" value="<< Prev">
-        <INPUT type="number" id="idViewHistoryNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefHistory)">
-        <INPUT type="button" onclick="ViewNext(DefHistory,HistoryMaxNum)" class="btdoit bt" value="Next >>">
-        <INPUT type="button" onclick="ViewEnd(DefHistory,HistoryMaxNum)" class="btdoitm bt" value="->|">
-    </DIV>
-
-    <table id="grid_history" class="grid">
-        <tr>
-            <th id="Item.Direct">Direct</th>
-            <th id="ConfirmationFromBlock(Item.BlockNum)" class="txt">Confirm</th>
-            <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
-            <th id="SUM_TO_STRING(Item)" class="sum smallbold">Amount</th>
-            <th id="MapCurrency[Item.Currency]" class="cur">Currency</th>
-            <th id="Item.Description"class="desc">Description</th>
-            <th id="Item.FromID" class="num">From</th>
-            <th id="(GetStrID(Item.ToID,Item.ToName))" class="txt">To</th>
-            <th id="Item.FromOperationID">Operation</th>
-            <th id="(RetOpenBlock(Item.BlockNum,1))" class="num">Block</th>
-        </tr>
-    </table>
-    <B><DIV id="idTotalSumH"></DIV></B>
-
-    <INPUT type="checkbox" onchange = "SaveValues()" id="idUseSoundHistory">Use sound on receive coins<BR>
-
-    <script>
-        //ACCOUNT ID
-        function GetStrID(num,name)
-        {
-            if(num===1000000000000)
-                num="<B>∞</B>";
-            if(name)
-                return ""+num+"&nbsp;<B>"+escapeHtml(name)+"</B>";
-            else
-                return "<B>"+num+"</B>";
-        }
-    </script>
-</DIV>
-
-
-
-
-<DIV id="TabSend" style="display: none">
-
-    <table class="form_input">
-        <tr>
-            <td>From account</td>
-            <td>
-
-                <select size="1" id="idAccount" onkeyup="OnEditTransactionFields()" onchange="OnEditTransactionFields()">
-                </select>
-
-            </td>
-        </tr>
-        <tr><td>&nbsp;</td><td><DIV id="idNameTo" class="smallbold"></DIV></td></tr>
-        <tr>
-            <td>Pay to</td>
-            <td>
-                <INPUT style="float: left" type="number" id="idTo" min=1 max=1000000000000 value="" onkeyup="OnEditIdTo()" onchange="OnEditIdTo()"placeholder="Payee (required)" >
-            </td>
-        </tr>
-        <tr>
-            <td>Amount</td>
-            <td>
-                <INPUT type="number" id="idSumTER" value="" step=0 min=0 max=1000000000 onkeyup="OnEditTransactionFields()" onchange="OnEditTransactionFields()">&nbsp;<B>TERA</B>
-            </td>
-        </tr>
-        <tr>
-            <td>Description (optional)</td><td><textarea id="idDescription" rows="4" onkeyup="CheckLengthAccDesription('idDescription',200);OnEditTransactionFields()" onchange="OnEditTransactionFields()"></textarea></td>
-        </tr>
-        <tr>
-            <td>
-            </td>
-            <td>
-                <INPUT type="button" onclick="ClearTransaction()" class="bsend bt" value="Clear">
-                <INPUT type="button" onclick="EditJSONTransaction();SetImg(this,'edit_transaction');" class="bsend bt" value="Edit JSON" id="idDown">
-                <INPUT type="button" onclick="SendMoney()" class="bsend bt" id="idSendButton" value="Send" >
-            </td>
-        </tr>
-    </table>
-    <DIV id="edit_transaction" style="display: none">
-        <textarea id="idTransaction" rows="18" onkeyup="StartEditTransactionJSON()" onchange="StartEditTransactionJSON()"></textarea>
-        <BR>
-        <INPUT type="button" onclick="SignJSON()" class="btdoit bt" value="Sign JSON" id="idSignJSON">
-        <INPUT type="button" onclick="SendMoneyJSON()" class="btdoit bt" value="Send from JSON">
-        POW:<INPUT type="number" id="idWalletPow" value="15">
-    </DIV>
-
-
-
-</DIV>
-
-
-
-
-<DIV id="TabExplorer" style="display: none">
-
-    <INPUT type="button" onclick="window.Open('./HTML/stat.html','counters')" class="btdoit btopen bt" id="idCounters" value="Counters">
-    <INPUT type="button" onclick="window.Open('./HTML/chains.html','chains',1200,600)" class="btdoit btopen bt" id="idChains" value="Chains">
-    <INPUT type="button" onclick="window.Open('./HTML/monitor.html','monitor',1200)" class="btdoit btopen bt" id="idMonitor" value="Monitor">
-    <INPUT type="button" onclick="window.Open('./HTML/console.html','console')" class="btdoit btopen bt" id="idConsole" value="Console">
-
-    <BR>
-    <INPUT type="button" onclick="ViewCurrent(DefAccounts,1,this);" class="btdoit bt btexlporer" id="idDown" value="Accounts">
-    <INPUT type="button" onclick="ViewCurrent(DefBlock,1,this)" class="btdoit bt btexlporer" id="idDown" value="Blocks & Tr">
-    <INPUT type="button" onclick="ViewCurrent(DefActs,1,this)" class="btdoit bt btexlporer" id="idDown" value="Accounts acts">
-    <INPUT type="button" onclick="ViewCurrent(DefHash,1,this)" class="btdoit bt btexlporer" id="idDown" value="Accounts hash">
-    <INPUT type="button" onclick="SetVisibleBlock('idUtilView',!IsVisibleBlock('idUtilView'));SetImg(this,'idUtilView');" class="btdoit bt btexlporer" id="idDown" value="Utilites">
-
-
-    <BR>
-    <DIV id="idPaginationAccount" style="display: none">
-        <HR>
-        <DIV id="view_header" >Accounts</DIV><BR>
-        JS:<INPUT type="search" id="idViewAccountFilter" value="" onchange="ViewCurrent(DefAccounts)">
-        <INPUT type="button" onclick="ViewBegin(DefAccounts)" class="btdoitm bt" value="|<-">
-        <INPUT type="button" onclick="ViewPrev(DefAccounts)" class="btdoit bt" value="<< Prev">
-        <INPUT type="number" id="idViewAccountNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefAccounts)">
-        <INPUT type="button" onclick="ViewNext(DefAccounts,MaxAccID)" class="btdoit bt" value="Next >>">
-        <INPUT type="button" onclick="ViewEnd(DefAccounts,MaxAccID)" class="btdoitm bt" value="->|">
-
-        <table id="grid_accounts_all" class="grid">
+        <table id="grid_accounts" class="grid">
             <tr>
                 <th id="Item.Num" class="num">ID</th>
-                <th id="SUM_TO_STRING(Item.Value)" class="sum smallbold">Amount</th>
+                <th id="SUM_TO_STRING(Item.Value)" class="sum bold">Amount</th>
                 <th id="MapCurrency[Item.Currency]" class="cur">Cur</th>
-                <th id="Item.Description" class="accname">Name</th>
-                <th id="Item.PubKeyStr" class="pubkey">PubKey</th>
+                <th id="Item.Description" class="accname">Account name</th>
                 <th id="Item.Value.OperationID" class="num">Operation</th>
                 <th id="Item.Adviser" class="num">Adviser</th>
-                <th id="(RetOpenBlock(Item.BlockNumCreate,1))" class="num">Block Num</th>
+                <th id="Item.WN" class="num" style="width: 30px;"></th>
             </tr>
         </table>
 
-        <INPUT type="button" onclick="ViewPrev(DefAccounts)" class="btdoit bt" value="<< Prev">
-        <INPUT type="button" onclick="ViewNext(DefAccounts,MaxAccID)" class="btdoit bt" value="Next >>">
-
-    <BR>
-    <B><DIV id="idTotalSum"></DIV></B>
-    <BR>
-    </DIV>
-
-    <DIV id="idPaginationBlock" style="display: none">
-        <HR>
-        <DIV id="view_header" >Blocks<BR></DIV>
-        <DIV id="idFilterB">JS:<INPUT type="search" id="idViewBlockFilter" value="" onchange="ViewCurrent(DefBlock)"></DIV>
-        <INPUT type="button" onclick="ViewBegin(DefBlock)" class="btdoitm bt" value="|<-">
-        <INPUT type="button" onclick="ViewPrev(DefBlock)" class="btdoit bt" value="<< Prev">
-        <INPUT type="number" id="idViewBlockNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefBlock)">
-        <INPUT type="button" onclick="ViewNext(DefBlock,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
-        <INPUT type="button" onclick="ViewEnd(DefBlock,ServerBlockNumDB)" class="btdoitm bt" value="->|">
-
-        <table id="grid_block_all" class="grid">
-            <tr>
-                <th id="(RetOpenBlock(Item.BlockNum,Item.TrDataLen))" class="num">Num</th>
-                <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
-                <th id="GetHexFromArr(Item.TreeHash)" class="hash">Data Hash</th>
-                <th id="GetHexFromArr(Item.Hash)" class="hash">Block Hash</th>
-                <th id="Item.TrDataLen" class="num">Bytes</th>
-                <th id="Item.Power" class="num">Pow</th>
-                <th id="Item.Miner" class="num">Miner</th>
-            </tr>
-        </table>
-
-        <INPUT type="button" onclick="ViewPrev(DefBlock)" class="btdoit bt" value="<< Prev">
-        <INPUT type="button" onclick="ViewNext(DefBlock,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
-
-    </DIV>
+        <B><DIV id="idMyTotalSum"></DIV></B>
 
 
-    <DIV id="idPaginationAct" style="display: none">
-        <HR>
-        <DIV id="view_header" >Accounts acts<BR></DIV>
-        <INPUT type="button" onclick="ViewBegin(DefActs)" class="btdoitm bt" value="|<-">
-        <INPUT type="button" onclick="ViewPrev(DefActs)" class="btdoit bt" value="<< Prev">
-        <INPUT type="number" id="idViewActNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefActs)">
-        <INPUT type="button" onclick="ViewNext(DefActs,MaxActNum)" class="btdoit bt" value="Next >>">
-        <INPUT type="button" onclick="ViewEnd(DefActs,MaxActNum)" class="btdoitm bt" value="->|">
+        <INPUT type="button" id="idDown" onclick="ViewNetworkMode();SetImg(this,'idNetworkView')"
+               class="btdoit bt" value="NET CONNECT">
+        <INPUT type="button" id="idDown" onclick="ViewRemoteParams();SetImg(this,'idRemoteView')"
+               class="btdoit bt" value="HTTP ACCESS">
+        <INPUT type="button" id="idDown" onclick="ViewConstant();SetImg(this,'idConstantView')"
+               class="btdoit bt" value="CONSTANTS">
 
 
-        <table id="grid_acts_all" class="grid">
-            <tr>
-                <th id="Item.Num" class="num">Num</th>
-                <th id="Item.ID" class="num">Account</th>
-                <th id="Item.Mode">Mode</th>
-                <th id="(RetOpenBlock(Item.BlockNum,1))" class="num">Block</th>
-                <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
-
-                <th id="Item.PrevValue.OperationID" class="num">Prev. Operation</th>
-                <th id="Item.PrevValue.BlockNum" class="num">Prev. Block</th>
-                <th id="SUM_TO_STRING(Item.PrevValue)" class="sum">Prev. amount</th>
-            </tr>
-        </table>
-        <INPUT type="button" onclick="ViewPrev(DefActs)" class="btdoit bt" value="<< Prev">
-        <INPUT type="button" onclick="ViewNext(DefActs,MaxActNum)" class="btdoit bt" value="Next >>">
-
-    </DIV>
-
-    <DIV id="idPaginationHash" style="display: none">
-        <HR>
-        <DIV id="view_header" >Accounts hash<BR></DIV>
-        <INPUT type="button" onclick="ViewBegin(DefHash)" class="btdoitm bt" value="|<-">
-        <INPUT type="button" onclick="ViewPrev(DefHash)" class="btdoit bt" value="<< Prev">
-        <INPUT type="number" id="idViewHashNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefHash)">
-        <INPUT type="button" onclick="ViewNext(DefHash,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
-        <INPUT type="button" onclick="ViewEnd(DefHash,ServerBlockNumDB)" class="btdoitm bt" value="->|">
-
-        <table id="grid_hash_all" class="grid">
-            <tr>
-                <th id="(RetOpenBlock(Item.BlockNum,Item.TrDataLen))" class="num">Block</th>
-                <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
-                <th id="GetHexFromArr(Item.Hash)" class="code">Hash</th>
-            </tr>
-        </table>
-        <INPUT type="button" onclick="ViewPrev(DefHash)" class="btdoit bt" value="<< Prev">
-        <INPUT type="button" onclick="ViewNext(DefHash,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
-    </DIV>
-
-    <DIV id="idUtilView" style="display: none">
-        <HR>
-        <DIV id="view_header" >UTILITES<BR></DIV>
-
-        Operation with Block number:<INPUT type="number" id="idBlockNum" onchange = "SaveValues()" value="0"> - <INPUT type="number" id="idBlockNumEnd" onchange = "SaveValues()" value="0"><BR>
-        <INPUT type="button" onclick="RewriteTransactions()"  class="bt btdoit btlong" value="Rewrite Transactions">
-        <INPUT type="button" onclick="CheckBlocks()"  class="bt btdoit btlong" value="Check Blocks">
-        <INPUT type="button" onclick="TruncateBlockChain()" class="btdoit btlong bt" value="Truncate chain <!>">
-
-
-
-        <DIV id="idDevelopService2">
-        <INPUT type="button" onclick="CleanChain()"  class="bt btdoit btlong" value="Clean chain">
+        <DIV id="idNetworkView" style="display: none">
+            <H3>Network connections:</H3>
+            <INPUT type="checkbox" id="idUseDirectIP">Run server and use direct IPv4 address on this computer (recommended):<BR>
+            IP:<INPUT  maxlength="16" id="idIP"> Port:<INPUT maxlength="9" id="idPort"><BR>
+            <!--<INPUT type="checkbox" id="idUseIncomeGrayIP">Allow connection users without a direct ip:<BR>-->
+            <!--White list nodes (HEX-format):<BR>-->
+            <TEXTAREA id="idNodeWhiteList" rows="4" cols="100" style="display: none"> </TEXTAREA>
             <BR>
-            <textarea id="idRunText" rows="8" cols="98" autofocus></textarea>
-            <BR>
-            <INPUT type="button" onclick="SetRun()"  class="bt btdoit" value="Set run">
+
+            <INPUT type="button" onclick="SetNetworkParams(0)" class="btdoit bt" value="Save">
+            <INPUT type="button" onclick="SetNetworkParams(1)" class="btdoit bt" value="Save and Restart">
+            <HR>
         </DIV>
 
-        <BR>
+        <DIV id="idRemoteView" style="display: none">
+            <H3>Remote access:</H3>
+
+            <table class="form_input keys">
+                <tr>
+                    <td>HTTP port:</td>
+                    <td><INPUT type="string" id="idHTTPPort" maxlength="6" value="80"></td>
+                </tr>
+                <tr>
+                    <td>Password on HTTP:</td>
+                    <td><INPUT type="string" id="idHTTPPassword"></td>
+                </tr>
+            </table>
+            <BR>
+            <INPUT type="button" onclick="SetRemoteParams(0)" class="btdoit bt" value="Save">
+            <INPUT type="button" onclick="SetRemoteParams(1)" class="btdoit bt" value="Save and Restart">
+            <HR>
+        </DIV>
+
+        <DIV id="idConstantView" style="display: none">
+            <H3>All constants (only for advanced users):</H3>
+            <TEXTAREA id="idConstant" rows="20" cols="110"> </TEXTAREA><BR>
+            <BR>
+            <INPUT type="button" onclick="SaveConstant(0)" class="btdoit bt" value="Save">
+            <INPUT type="button" onclick="SaveConstant(1)" class="btdoit bt" value="Save and Restart">
+            <HR>
+        </DIV>
+
+
+        Style:
+        <select size="1" id="idSelStyle" onkeyup="SelectStyle();SaveValues()" onchange="SelectStyle();SaveValues()">
+            <option value="styleBrown">Brown</option>
+            <option value="styleBlue">Blue</option>
+            <option value="styleGreen">Green</option>
+        </select>
+
+
 
     </DIV>
+
+
+    <DIV id="TabHistory" style="display: none">
+        <DIV id="idPaginationHistory" style="display: none">
+            Search:<INPUT type="search" id="idViewHistoryFilter" value="" onchange="ViewCurrent(DefHistory)">
+            <INPUT type="button" onclick="ViewBegin(DefHistory)" class="btdoitm bt" value="|<-">
+            <INPUT type="button" onclick="ViewPrev(DefHistory)" class="btdoit bt" value="<< Prev">
+            <INPUT type="number" id="idViewHistoryNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefHistory)">
+            <INPUT type="button" onclick="ViewNext(DefHistory,HistoryMaxNum)" class="btdoit bt" value="Next >>">
+            <INPUT type="button" onclick="ViewEnd(DefHistory,HistoryMaxNum)" class="btdoitm bt" value="->|">
+        </DIV>
+
+        <table id="grid_history" class="grid">
+            <tr>
+                <th id="Item.Direct">Direct</th>
+                <th id="ConfirmationFromBlock(Item.BlockNum)" class="txt">Confirm</th>
+                <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
+                <th id="SUM_TO_STRING(Item)" class="sum smallbold">Amount</th>
+                <th id="MapCurrency[Item.Currency]" class="cur">Currency</th>
+                <th id="Item.Description"class="desc">Description</th>
+                <th id="Item.FromID" class="num">From</th>
+                <th id="(GetStrID(Item.ToID,Item.ToName))" class="txt">To</th>
+                <th id="Item.FromOperationID">Operation</th>
+                <th id="(RetOpenBlock(Item.BlockNum,1))" class="num">Block</th>
+            </tr>
+        </table>
+        <B><DIV id="idTotalSumH"></DIV></B>
+
+        <INPUT type="checkbox" onchange = "SaveValues()" id="idUseSoundHistory">Use sound on receive coins<BR>
+
+        <script>
+            //ACCOUNT ID
+            function GetStrID(num,name)
+            {
+                if(num===1000000000000)
+                    num="<B>∞</B>";
+                if(name)
+                    return ""+num+"&nbsp;<B>"+escapeHtml(name)+"</B>";
+                else
+                    return "<B>"+num+"</B>";
+            }
+        </script>
+    </DIV>
+
+
+
+
+    <DIV id="TabSend" style="display: none">
+
+        <table class="form_input">
+            <tr>
+                <td>From account</td>
+                <td>
+
+                    <select size="1" id="idAccount" onkeyup="OnEditTransactionFields()" onchange="OnEditTransactionFields()">
+                    </select>
+
+                </td>
+            </tr>
+            <tr><td>&nbsp;</td><td><DIV id="idNameTo" class="smallbold"></DIV></td></tr>
+            <tr>
+                <td>Pay to</td>
+                <td>
+                    <INPUT style="float: left" type="number" id="idTo" min=1 max=1000000000000 value="" onkeyup="OnEditIdTo()" onchange="OnEditIdTo()"placeholder="Payee (required)" >
+                </td>
+            </tr>
+            <tr>
+                <td>Amount</td>
+                <td>
+                    <INPUT type="number" id="idSumTER" value="" step=0 min=0 max=1000000000 onkeyup="OnEditTransactionFields()" onchange="OnEditTransactionFields()">&nbsp;<B>TERA</B>
+                </td>
+            </tr>
+            <tr>
+                <td>Description (optional)</td><td><textarea id="idDescription" rows="4" onkeyup="CheckLengthAccDesription('idDescription',200);OnEditTransactionFields()" onchange="OnEditTransactionFields()"></textarea></td>
+            </tr>
+            <tr>
+                <td>
+                </td>
+                <td>
+                    <INPUT type="button" onclick="ClearTransaction()" class="bsend bt" value="Clear">
+                    <INPUT type="button" onclick="EditJSONTransaction();SetImg(this,'edit_transaction');" class="bsend bt" value="Edit JSON" id="idDown">
+                    <INPUT type="button" onclick="SendMoney()" class="bsend bt" id="idSendButton" value="Send" >
+                </td>
+            </tr>
+        </table>
+        <DIV id="edit_transaction" style="display: none">
+            <textarea id="idTransaction" rows="18" onkeyup="StartEditTransactionJSON()" onchange="StartEditTransactionJSON()"></textarea>
+            <BR>
+            <INPUT type="button" onclick="SignJSON()" class="btdoit bt" value="Sign JSON" id="idSignJSON">
+            <INPUT type="button" onclick="SendMoneyJSON()" class="btdoit bt" value="Send from JSON">
+            POW:<INPUT type="number" id="idWalletPow" value="15">
+        </DIV>
+
+
+
+    </DIV>
+
+
+
+
+    <DIV id="TabExplorer" style="display: none">
+
+        <INPUT type="button" onclick="window.Open('./HTML/stat.html','counters')" class="btdoit btopen bt" id="idCounters" value="Counters">
+        <INPUT type="button" onclick="window.Open('./HTML/chains.html','chains',1200,600)" class="btdoit btopen bt" id="idChains" value="Chains">
+        <INPUT type="button" onclick="window.Open('./HTML/console.html','console',1200)" class="btdoit btopen bt" id="idConsole" value="Console">
+        <INPUT type="button" onclick="window.Open('./HTML/monitor.html','monitor',1200)" class="btdoit btopen bt" id="idMonitor" value="Monitor">
+        <INPUT type="button" onclick="window.Open('./HTML/network.html','network',1200)" class="btdoit btopen bt" id="idNetwork" value="Network">
+
+
+        <BR>
+        <INPUT type="button" onclick="ViewCurrent(DefAccounts,1,this);" class="btdoit bt btexlporer" id="idDown" value="Accounts">
+        <INPUT type="button" onclick="ViewCurrent(DefBlock,1,this)" class="btdoit bt btexlporer" id="idDown" value="Blocks & Tr">
+        <INPUT type="button" onclick="ViewCurrent(DefActs,1,this)" class="btdoit bt btexlporer" id="idDown" value="Accounts acts">
+        <INPUT type="button" onclick="ViewCurrent(DefHash,1,this)" class="btdoit bt btexlporer" id="idDown" value="Accounts hash">
+        <INPUT type="button" onclick="SetVisibleBlock('idUtilView',!IsVisibleBlock('idUtilView'));SetImg(this,'idUtilView');" class="btdoit bt btexlporer" id="idDown" value="Utilites">
+
+
+        <BR>
+        <DIV id="idPaginationAccount" style="display: none">
+            <HR>
+            <DIV id="view_header" >Accounts</DIV><BR>
+            JS:<INPUT type="search" id="idViewAccountFilter" value="" onchange="ViewCurrent(DefAccounts)">
+            <INPUT type="button" onclick="ViewBegin(DefAccounts)" class="btdoitm bt" value="|<-">
+            <INPUT type="button" onclick="ViewPrev(DefAccounts)" class="btdoit bt" value="<< Prev">
+            <INPUT type="number" id="idViewAccountNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefAccounts)">
+            <INPUT type="button" onclick="ViewNext(DefAccounts,MaxAccID)" class="btdoit bt" value="Next >>">
+            <INPUT type="button" onclick="ViewEnd(DefAccounts,MaxAccID)" class="btdoitm bt" value="->|">
+
+            <table id="grid_accounts_all" class="grid">
+                <tr>
+                    <th id="Item.Num" class="num">ID</th>
+                    <th id="SUM_TO_STRING(Item.Value)" class="sum smallbold">Amount</th>
+                    <th id="MapCurrency[Item.Currency]" class="cur">Cur</th>
+                    <th id="Item.Description" class="accname">Name</th>
+                    <th id="Item.PubKeyStr" class="pubkey">PubKey</th>
+                    <th id="Item.Value.OperationID" class="num">Operation</th>
+                    <th id="Item.Adviser" class="num">Adviser</th>
+                    <th id="(RetOpenBlock(Item.BlockNumCreate,1))" class="num">Block Num</th>
+                </tr>
+            </table>
+
+            <INPUT type="button" onclick="ViewPrev(DefAccounts)" class="btdoit bt" value="<< Prev">
+            <INPUT type="button" onclick="ViewNext(DefAccounts,MaxAccID)" class="btdoit bt" value="Next >>">
+
+        <BR>
+        <B><DIV id="idTotalSum"></DIV></B>
+        <BR>
+        </DIV>
+
+        <DIV id="idPaginationBlock" style="display: none">
+            <HR>
+            <DIV id="view_header" >Blocks<BR></DIV>
+            <DIV id="idFilterB">JS:<INPUT type="search" id="idViewBlockFilter" value="" onchange="ViewCurrent(DefBlock)"></DIV>
+            <INPUT type="button" onclick="ViewBegin(DefBlock)" class="btdoitm bt" value="|<-">
+            <INPUT type="button" onclick="ViewPrev(DefBlock)" class="btdoit bt" value="<< Prev">
+            <INPUT type="number" id="idViewBlockNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefBlock)">
+            <INPUT type="button" onclick="ViewNext(DefBlock,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
+            <INPUT type="button" onclick="ViewEnd(DefBlock,ServerBlockNumDB)" class="btdoitm bt" value="->|">
+
+            <table id="grid_block_all" class="grid">
+                <tr>
+                    <th id="(RetOpenBlock(Item.BlockNum,Item.TrDataLen))" class="num">Num</th>
+                    <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
+                    <th id="GetHexFromArr(Item.TreeHash)" class="hash">Data Hash</th>
+                    <th id="GetHexFromArr(Item.Hash)" class="hash">Block Hash</th>
+                    <th id="Item.TrDataLen" class="num">Bytes</th>
+                    <th id="Item.Power" class="num">Pow</th>
+                    <th id="Item.Miner" class="num">Miner</th>
+                </tr>
+            </table>
+
+            <INPUT type="button" onclick="ViewPrev(DefBlock)" class="btdoit bt" value="<< Prev">
+            <INPUT type="button" onclick="ViewNext(DefBlock,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
+
+        </DIV>
+
+
+        <DIV id="idPaginationAct" style="display: none">
+            <HR>
+            <DIV id="view_header" >Accounts acts<BR></DIV>
+            <INPUT type="button" onclick="ViewBegin(DefActs)" class="btdoitm bt" value="|<-">
+            <INPUT type="button" onclick="ViewPrev(DefActs)" class="btdoit bt" value="<< Prev">
+            <INPUT type="number" id="idViewActNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefActs)">
+            <INPUT type="button" onclick="ViewNext(DefActs,MaxActNum)" class="btdoit bt" value="Next >>">
+            <INPUT type="button" onclick="ViewEnd(DefActs,MaxActNum)" class="btdoitm bt" value="->|">
+
+
+            <table id="grid_acts_all" class="grid">
+                <tr>
+                    <th id="Item.Num" class="num">Num</th>
+                    <th id="Item.ID" class="num">Account</th>
+                    <th id="Item.Mode">Mode</th>
+                    <th id="(RetOpenBlock(Item.BlockNum,1))" class="num">Block</th>
+                    <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
+
+                    <th id="Item.PrevValue.OperationID" class="num">Prev. Operation</th>
+                    <th id="Item.PrevValue.BlockNum" class="num">Prev. Block</th>
+                    <th id="SUM_TO_STRING(Item.PrevValue)" class="sum">Prev. amount</th>
+                </tr>
+            </table>
+            <INPUT type="button" onclick="ViewPrev(DefActs)" class="btdoit bt" value="<< Prev">
+            <INPUT type="button" onclick="ViewNext(DefActs,MaxActNum)" class="btdoit bt" value="Next >>">
+
+        </DIV>
+
+        <DIV id="idPaginationHash" style="display: none">
+            <HR>
+            <DIV id="view_header" >Accounts hash<BR></DIV>
+            <INPUT type="button" onclick="ViewBegin(DefHash)" class="btdoitm bt" value="|<-">
+            <INPUT type="button" onclick="ViewPrev(DefHash)" class="btdoit bt" value="<< Prev">
+            <INPUT type="number" id="idViewHashNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefHash)">
+            <INPUT type="button" onclick="ViewNext(DefHash,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
+            <INPUT type="button" onclick="ViewEnd(DefHash,ServerBlockNumDB)" class="btdoitm bt" value="->|">
+
+            <table id="grid_hash_all" class="grid">
+                <tr>
+                    <th id="(RetOpenBlock(Item.BlockNum,Item.TrDataLen))" class="num">Block</th>
+                    <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
+                    <th id="GetHexFromArr(Item.Hash)" class="code">Hash</th>
+                </tr>
+            </table>
+            <INPUT type="button" onclick="ViewPrev(DefHash)" class="btdoit bt" value="<< Prev">
+            <INPUT type="button" onclick="ViewNext(DefHash,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
+        </DIV>
+
+        <DIV id="idUtilView" style="display: none">
+            <HR>
+            <DIV id="view_header" >UTILITES<BR></DIV>
+
+            Operation with Block number:<INPUT type="number" id="idBlockNum" onchange = "SaveValues()" value="0"> - <INPUT type="number" id="idBlockNumEnd" onchange = "SaveValues()" value="0"><BR>
+            <INPUT type="button" onclick="RewriteTransactions()"  class="bt btdoit btlong" value="Rewrite Transactions">
+            <INPUT type="button" onclick="CheckBlocks()"  class="bt btdoit btlong" value="Check Blocks">
+            <INPUT type="button" onclick="TruncateBlockChain()" class="btdoit btlong bt" value="Truncate chain <!>">
+
+
+
+            <DIV id="idDevelopService2">
+            <INPUT type="button" onclick="CleanChain()"  class="bt btdoit btlong" value="Clean chain">
+                <BR>
+                <textarea id="idRunText" rows="8" cols="98" autofocus></textarea>
+                <BR>
+                <INPUT type="button" onclick="SetRun()"  class="bt btdoit" value="Set run">
+            </DIV>
+
+            <BR>
+
+        </DIV>
+    </DIV>
+
+
+
+    <BR>
+    <DIV id="idServerBlock" style="width: 99.5%">
+        <HR>
+        Log from node:
+        <DIV id="idServerLog"></DIV><BR>
+    </DIV>
+
+
+    <DIV id="idBlockPassword" style="display: none">
+        <H3 align="center">Enter your password:</H3>
+        <table class="password" id="idTablePassword">
+            <tr>
+                <td><DIV>Password:</DIV></td><td><INPUT type="password"  id="idPassword1" value=""></td>
+            </tr>
+
+            <tr id="idPasswordRow2" style="display: none">
+                <td><DIV>Repeat:</DIV></td><td><INPUT type="password"  id="idPassword2" onkeyup="" value=""></td>
+            </tr>
+
+            <tr>
+                <td></td>
+                <td><INPUT type="button" onclick="SetPassword()" class="bt" value="Set">
+                    <INPUT type="button" onclick="CancelSetPassword()" class="bt" value="Cancel"></td>
+            </tr>
+
+        </table>
+    </DIV>
+
+
+
+    <DIV id="idStableScroll">
+        @terafoundation
+        <!--progr76@gmail.com-->
+    </DIV>
+
+
+    <audio style="visibility: hidden;" controls="controls" id="sound_coin">
+        <source src="coin.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio style="visibility: hidden;" controls="controls" id="sound_err">
+        <source src="click.mp3" type="audio/mpeg"/>
+    </audio>
+
 </DIV>
-
-
-
-<BR>
-<DIV id="idServerBlock">
-    <HR>
-    Core log (from inner server):
-    <DIV id="idServerLog"></DIV><BR>
 </DIV>
-
-
-
-
-<DIV id="idBlockPassword" style="display: none">
-    <H3 align="center">Enter your password:</H3>
-    <table class="password" id="idTablePassword">
-        <tr>
-            <td><DIV>Password:</DIV></td><td><INPUT type="password"  id="idPassword1" value=""></td>
-        </tr>
-
-        <tr id="idPasswordRow2" style="display: none">
-            <td><DIV>Repeat:</DIV></td><td><INPUT type="password"  id="idPassword2" onkeyup="" value=""></td>
-        </tr>
-
-        <tr>
-            <td></td>
-            <td><INPUT type="button" onclick="SetPassword()" class="bt" value="Set">
-                <INPUT type="button" onclick="CancelSetPassword()" class="bt" value="Cancel"></td>
-        </tr>
-
-    </table>
-</DIV>
-
-<DIV id="idStableScroll">
-    @terafoundation
-    <!--progr76@gmail.com-->
-</DIV>
-
-
-<audio style="visibility: hidden;" controls="controls" id="sound_coin">
-    <source src="coin.mp3" type="audio/mpeg"/>
-</audio>
-
-
 </body>
 </html>

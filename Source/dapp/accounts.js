@@ -95,22 +95,9 @@ class MerkleDBRow extends DBRow
         }
 
         this.MerkleTree.RecalcCount=0;
-        //this.MerkleCalc.length=0;
         UpdateMerklTree(this.MerkleTree,0);
 
 
-        // ToLog("RecalcCount="+this.MerkleTree.RecalcCount)
-        // var HashTest=CalcMerklFromArray(this.MerkleArr,{Levels:[]}).Root;
-        // if(CompareArr(HashTest,this.MerkleTree.Root)!==0)
-        // {
-        //     var TreeTest=CalcMerklFromArray(this.MerkleArr,{Levels:[]});
-        //     this.MerkleTree.RecalcCount=0;
-        //     this.MerkleCalc=[];
-        //     UpdateMerklTree(this.MerkleTree,0);
-        //     throw "ERROR HASHTEST";
-        //
-        //     ToLog("====================================ERROR HASHTEST=========================================");
-        // }
 
         return this.MerkleTree.Root;
 
@@ -516,6 +503,9 @@ class AccountApp extends require("./dapp")
         {
             return "Error transaction format (retry transaction)";
         }
+
+        if(BlockNum>=3500000 && !TR.Description)
+            return "Account name required";
 
 
         var Data = TR;
@@ -1032,6 +1022,8 @@ class AccountApp extends require("./dapp")
             if(count<0)
                 break;
         }
+
+
         return arr;
     }
     NormalizeName(Name)
@@ -1093,6 +1085,19 @@ class AccountApp extends require("./dapp")
     }
     CalcHash(BlockNum)
     {
+        if(BlockNum>20)
+        {
+            //check prev value
+            var PrevData=this.DBAccountsHash.Read(BlockNum-1);
+            if(PrevData.BlockNum!==BlockNum-1)
+            {
+                ToLogTrace("Error write Account Hash. On BlockNum:"+BlockNum);
+                SERVER.SetTruncateBlockDB(BlockNum-20);
+                //throw "Error write Account Hash";
+            }
+        }
+
+
         //calc Merkle Tree
         if(this.DBState.WasUpdate)
         {

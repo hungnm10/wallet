@@ -64,7 +64,7 @@
 
 .btopen
 {
-    width: 177px;
+    width: 136px;
 }
 
 .btsmall
@@ -100,6 +100,12 @@
 #idConsole
 {
     background-image: url('/HTML/PIC/console.png');
+    background-repeat: no-repeat;
+    background-size:16px;
+}
+#idNetwork
+{
+    background-image: url('/HTML/PIC/network.png');
     background-repeat: no-repeat;
     background-size:16px;
 }

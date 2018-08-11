@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Network</title>
+    <link rel="shortcut icon" href="/HTML/PIC/network.png" type="image/png">
+
+    <link rel="stylesheet" type="text/css" href="../HTML/CSS/buttons.css">
+    <link rel="stylesheet" type="text/css" href="../HTML/CSS/style.css">
+</head>
+
+<script>
+    window.RUN_CLIENT=1;
+    window.RUN_SERVER=0;
+    if(typeof global === 'object')
+    {
+        global.RUN_CLIENT=1;
+        global.RUN_SERVER=0;
+    }
+</script>
+
+<script type="text/javascript" src="../HTML/JS/client.js"></script>
+
+<script>
+    var SaveIdArr=[];
+    var NodesArr=[];
+
+    function SetStatus(Str)
+    {
+        var id = $("idStatus");
+        id.innerHTML=Str;
+    }
+
+    function UpdateData()
+    {
+        GetData("/GetHotArray", function (Data)
+        {
+            if(Data && Data.result)
+            {
+                SetHotTable(Data.HotArr);
+            }
+        });
+    }
+
+    function SetHotTable(ArrHot)
+    {
+        var htmlTable=$("grid_hot");
+        if(!htmlTable.ItemsMap)
+        {
+            htmlTable.RowCounts=0;
+            htmlTable.ItemsMap=[];
+        }
+        var map=htmlTable.ItemsMap;
+
+        var colcount=1+8+1;
+
+        //Hot
+        htmlTable.RowCounts=Math.max(htmlTable.RowCounts,ArrHot.length);
+        for(var Level=0;Level<htmlTable.RowCounts;Level++)
+        {
+            var arr=ArrHot[Level];
+            if(!arr)
+                arr=[];
+
+            var row=map[Level];
+            if(!row)
+            {
+                htmlTable.RowCount++;
+                row=htmlTable.insertRow(-1);
+                map[Level]=row;
+
+                for(var n=0;n<colcount;n++)
+                {
+                    row.insertCell(n);
+                }
+            }
+            row.cells[0].innerText=1+Level;
+            var StrOther="";
+
+
+            var length=Math.max(colcount-2,arr.length)
+            length=Math.min(length,10);
+            for(var n=0;n<length;n++)
+            {
+                var cell=undefined;
+                if(n<colcount-2)
+                    cell=row.cells[n+1];
+                var Node=undefined;
+                var Str="";
+                if(n<arr.length)
+                {
+                    Node=arr[n];
+                    NodesArr[Node.id]=Node;
+                    if(Node.Name)
+                        Str+="<B>"+Node.Name+"</B> ";
+                    else
+                        Str+=Node.addrStr.substr(0,6)+" ";
+
+                    Str+=Node.BlockProcessCount+" ";
+                    if(Node.Hot)
+                        Str+="<BR>";
+
+                    //Str+='<INPUT type="button" class="bt" onclick="EditNode('+Node.id+')" value="View">';
+                    if(!Node.Hot)
+                        Str+='<INPUT type="button" class="bt" onclick="AddHot('+Node.id+')" value="Add">';
+                    if(Node.Hot)
+                        Str+='<INPUT type="button" class="bt" onclick="DeleteNode('+Node.id+')" value="Del">';
+                    if(!Node.Name)
+                        Str+='<INPUT type="button" class="bt" onclick="AddBan('+Node.id+')" value="Ban">';
+                    Str+="<BR>";
+                }
+                Str=Str.trim();
+                if(!Node || Node.Hot)
+                {
+                    if(cell && cell.innerHTML.trim()!==Str)
+                        cell.innerHTML=Str;
+                }
+                else
+                {
+                    StrOther+=Str;
+
+                }
+            }
+            cell=row.cells[9];
+            StrOther=StrOther.trim();
+            if(cell.innerHTML.trim()!==StrOther)
+                cell.innerHTML=StrOther;
+
+            //Other
+            for(var n=0;n<arr.length;n++)
+            {
+                var Node=arr[n];
+                if(!Node.Hot)
+                {
+
+                }
+            }
+
+
+        }
+
+    }
+
+
+    function EditNode(Index)
+    {
+        var Node=NodesArr[Index];
+        if(Node)
+        {
+            SetStatus(Node.Name);
+        }
+    }
+
+    function AddBan(Index)
+    {
+        var Node=NodesArr[Index];
+        if(Node)
+        {
+            var Code='SERVER.AddToBan(FindNodeByAddr("'+Node.addrStr+'"),"=BAN=");';
+            RunCode(Code);
+        }
+    }
+    function AddHot(Index)
+    {
+        var Node=NodesArr[Index];
+        if(Node)
+        {
+            var Code='SERVER.StartAddLevelConnect(FindNodeByAddr("'+Node.addrStr+'"));';
+            RunCode(Code);
+        }
+    }
+    function DeleteNode(Index)
+    {
+        var Node=NodesArr[Index];
+        if(Node)
+        {
+            var Code='SERVER.DeleteNodeFromHot(FindNodeByAddr("'+Node.addrStr+'"));';
+            RunCode(Code);
+        }
+    }
+    function RunCode(Code)
+    {
+        GetData("/SendDirectCode",Code, function (Data)
+        {
+            if(Data)
+            {
+                SetStatus("Run ok");
+            }
+        });
+    }
+
+    function CheckCtrlEnter(e,F)
+    {
+//        SaveValues();
+//
+//        if(e.ctrlKey && e.keyCode===13)
+//        {
+//            SendToServer();
+//        }
+//
+//        if(e.keyCode===27)
+//        {
+//            window.close();
+//        }
+    }
+
+
+    function CheckDevelop()
+    {
+        GetData("/GetWalletInfo", function (Data)
+        {
+            if(Data && Data.result)
+            {
+                if(!Data.IsDevelopAccount)
+                {
+                }
+            }
+        });
+    }
+
+    window.onload=function()
+    {
+        UpdateData();
+        setInterval(UpdateData,2000);
+        //setTimeout(CheckDevelop,500);
+
+        window.onkeydown = CheckCtrlEnter;
+
+        LoadValues();
+        SetStatus("");
+        document.body.className=localStorage["idSelStyle"];
+    }
+
+    function LoadValues()
+    {
+        if(LoadValuesByArr(SaveIdArr))
+        {
+
+        }
+    }
+    function SaveValues()
+    {
+        SaveValuesByArr(SaveIdArr);
+    }
+
+
+
+
+</script>
+
+
+
+<style type="text/css">
+    table
+    {
+        border-collapse: collapse;
+        width:100%;
+    }
+    .hot_nodes th, .hot_nodes td
+    {
+        border: 1px solid #264378;
+        padding: 4px;
+    }
+    .hot_nodes td:nth-child(1)
+    {
+        width: 30px;
+    }
+
+    .hot_nodes td:nth-child(10)
+    {
+        width: 300px;
+    }
+
+</style>
+
+
+<body>
+
+<DIV align='center'>
+    <B>NETWORK</B>
+    <DIV id="idStatus"></DIV><BR>
+
+    <DIV align='left' style="width: 1200px;height: 870px; border: 1px solid #bfc1c0;">
+
+        <table id="grid_hot" class="hot_nodes">
+            <tr>
+                <th>Level</th>
+                <th>Nodes...</th>
+                <th>---------</th>
+                <th>---------</th>
+                <th>---------</th>
+                <th>---------</th>
+                <th>---------</th>
+                <th>---------</th>
+                <th>---------</th>
+                <th>Other</th>
+            </tr>
+        </table>
+
+
+    </DIV>
+</DIV>
+
+</body>
+</html>

@@ -76,7 +76,7 @@ module.exports = class CBlock extends require("./db/block-db")
         if(!global.ADDRLIST_MODE && !this.VirtualMode)
         {
 
-            setInterval(this.RecalcLoadBlockStatictic.bind(this),STAT_BLOCK_LOAD_PERIOD);
+            //setInterval(this.RecalcLoadBlockStatictic.bind(this),STAT_BLOCK_LOAD_PERIOD);
 
 
             setTimeout(this.CheckStartedBlocks.bind(this),100);
@@ -181,7 +181,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var MaxHash=shaarr2(Block.SeqHash,AddrArr);
 
         var Ret=CreateAddrPOW(Block.SeqHash,AddrArr,MaxHash,0,CountNonce);
-        ADD_TO_STAT("HASHRATE",CountNonce);
+        ADD_HASH_RATE(CountNonce);
 
         Block.Hash=Ret.MaxHash;
         Block.AddrHash=AddrArr;
@@ -210,7 +210,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var AddrArr=GetArrFromValue(GENERATE_BLOCK_ACCOUNT);
         var Ret=CreateAddrPOW(Block.SeqHash,AddrArr,Block.Hash,Block.LastNonce,CountNonce);
 
-        ADD_TO_STAT("HASHRATE",CountNonce);
+        ADD_HASH_RATE(CountNonce);
 
         Block.LastNonce=Ret.LastNonce;
         if(Ret.bFind)

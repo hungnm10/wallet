@@ -127,6 +127,24 @@
     }
     ///////////////////
 
+    function OnSelectTypeCode()
+    {
+        var Type = $("idConsoleSend").value;
+        if(Type==="ECode")
+        {
+            $("idBtRun").value="Send eval";
+        }
+        else
+        if(Type==="HEX")
+        {
+            $("idBtRun").value="Send transaction";
+        }
+        else
+        {
+            $("idBtRun").value="Run";
+        }
+
+    }
 
     function SendToServer()
     {
@@ -175,6 +193,8 @@
     var AllSend=0;
     var AllNoSend=0;
     var MustSend=0;
+    var LastErr="";
+    var LastOK="";
     function SendECode(Code)
     {
         var DeltaBlockNum = parseInt($("idConsoleDeltaBlockNum").value);
@@ -184,6 +204,8 @@
         AllSend=0;
         AllNoSend=0;
         MustSend=0;
+        LastErr="";
+        LastOK="";
         var arr=Addr.split("\n");
         for(var i=0;i<arr.length;i++)
         {
@@ -198,12 +220,14 @@
                 if(Data && Data.result===1)
                 {
                     AllSend++;
+                    LastOK=Data.text;
                 }
                 else
                 {
                     AllNoSend++;
+                    LastErr=Data.text;
                 }
-                ToResult("OK:"+AllSend+" NO:"+AllNoSend+" OF :"+MustSend+" Last text:"+Data.text)
+                ToResult("OK:"+AllSend+" ("+LastOK+")   NO:"+AllNoSend+" ("+LastErr+")  OF:"+MustSend);
             });
         }
 
@@ -326,6 +350,7 @@
 
 
         SetStatus("");
+        OnSelectTypeCode();
 
     }
 
@@ -371,7 +396,7 @@
 
 
     Mode:
-    <select size="1" id="idConsoleSend" onkeyup="SaveValues()" onchange="SaveValues()">
+    <select size="1" id="idConsoleSend" onkeyup="OnSelectTypeCode();SaveValues()" onchange="OnSelectTypeCode();SaveValues()">
         <option value="DirectCode">Direct code</option>
         <option value="ECode" style="color:red;">Eval code !!</option>
         <option value="HEX">HEX Transaction</option>
@@ -381,13 +406,13 @@
 
     <BR>
 
-    <DIV align='left' style="border: 1px solid #39519b;width:802px;height:800px;">
-        <DIV style="width: 150px;height:100%; float:left;">
+    <DIV align='left' style="border: 1px solid #39519b;width:1198px;height:800px;">
+        <DIV style="width: 200px;height:100%; float:left;">
             <select size="45" id="idConsoleIndex" style="width:100%;height:100%;" onchange="SetConsoleText()" ondblclick="SetAndRun()">
             </select>
         </DIV>
 
-        <DIV style="width: 650px;height:100%; float: left;">
+        <DIV style="width: 998px;height:100%; float: left;">
             <DIV>
                 <DIV>
                     <INPUT type="button" onclick="NewRow()" class="bt" value="*New">
@@ -401,7 +426,7 @@
             <textarea rows="5" cols="98"  name="result" id="idNode" style="width: 99%;">
             </textarea>
 
-            <INPUT type="button" onclick="SendToServer()" class="bt btdoit" value="Send">
+            <INPUT type="button" onclick="SendToServer()" class="bt btdoit" id="idBtRun" value="Send">
             <BR>
 
 

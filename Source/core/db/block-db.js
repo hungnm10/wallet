@@ -22,14 +22,9 @@ module.exports = class CDB extends require("../code")
 
         this.StartOneProcess();
 
-        //TODO - поиск макс номера:
-        this.BodyFileNum=0;
-        this.BodyFileNumMax=0;
-
-
         this.BlockNumDB=0;
 
-        //this.StatMap={};
+        this.MapHeader={};
 
     }
 
@@ -79,28 +74,14 @@ module.exports = class CDB extends require("../code")
         if(this.BlockNumDB>=BLOCK_PROCESSING_LENGTH2)
         {
             this.TruncateBlockDB(this.BlockNumDB);
-            // var Block=this.ReadBlockHeaderDB(this.BlockNumDB);
-            // if(Block)
-            // {
-            // }
-
-            // var Block=this.ReadBlockHeaderDB(this.BlockNumDB);
-            // if(Block)
-            // {
-            //     this.BodyFileNum=Block.BodyFileNum;
-            //     this.BodyFileNumMax=Math.max(this.BodyFileNum,this.BodyFileNumMax);
-            // }
-            // else
-            // {
-            //     throw "Block not find!!!"
-            // }
-        }
+         }
 
         //Rewrite some transactions
-        this.ReWriteDAppTransactions(this.BlockNumDB-16);
+        if(this.BlockNumDB>100)
+            this.ReWriteDAppTransactions(this.BlockNumDB-100);
 
 
-        ToLog("START_BLOCK_NUM:"+this.BlockNumDB);//+" BODY_FILE_NUM_MAX:"+this.BodyFileNumMax)
+        ToLog("START_BLOCK_NUM:"+this.BlockNumDB);
     }
     CheckBlocksOnStartReverse(StartNum)
     {
@@ -211,13 +192,6 @@ module.exports = class CDB extends require("../code")
     GetChainFileNum(chain)
     {
         return 0;
-        // //TODO GetChainFileNum
-        // if(chain.BodyFileNum===undefined)
-        // {
-        //     this.BodyFileNumMax++;
-        //     chain.BodyFileNum=this.BodyFileNumMax;
-        // }
-        // return chain.BodyFileNum;
     }
 
     //Write
@@ -228,7 +202,6 @@ module.exports = class CDB extends require("../code")
     {
         var startTime = process.hrtime();
 
-        //this.BodyFileNum=random(5);
         if(Block.TrCount===0 && !IsZeroArr(Block.TreeHash))
         {
             ToLogTrace("ERROR WRITE TrCount BLOCK:"+Block.BlockNum)
@@ -484,6 +457,8 @@ module.exports = class CDB extends require("../code")
     {
         BlockNum=Math.trunc(BlockNum);
 
+        this.MapHeader={};
+
         var Position=BlockNum*BLOCK_HEADER_SIZE;
         var FD=BlockDB.OpenDBFile(FILE_NAME_HEADER).fd;
 
@@ -584,8 +559,6 @@ module.exports = class CDB extends require("../code")
 
     ReadBlockHeaderDB(Num)
     {
-        //TODO: сделать буферизацию чтения (с учетом перезаписи)
-
         if(Num<0)
         {
             return undefined;
@@ -611,6 +584,21 @@ module.exports = class CDB extends require("../code")
 
         return Block;
     }
+
+    ReadBlockHeaderFromMapDB(Num)
+    {
+        //буферизация чтения с учетом перезаписи
+
+        var Block=this.MapHeader[Num];
+        if(!Block)
+        {
+            Block=this.ReadBlockHeaderDB(Num);
+            this.MapHeader[Num]=Block;
+        }
+        return Block;
+
+    }
+
 
 
 
@@ -672,6 +660,8 @@ module.exports = class CDB extends require("../code")
         var size2=0;
         if(FItem2.size!==size2)
         {
+            this.MapHeader={};
+
             FItem2.size=size2;
             fs.ftruncateSync(FItem2.fd,FItem2.size);
         }
@@ -704,8 +694,7 @@ module.exports = class CDB extends require("../code")
 
     BlockHeaderToBuf(BufWrite,Block)
     {
-        if(Block.BodyFileNum===undefined)
-            Block.BodyFileNum=this.BodyFileNum;
+        Block.BodyFileNum=0;
 
         var len=BufWrite.len;
         BufWrite.Write(Block.TreeHash,"hash");

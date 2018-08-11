@@ -55,6 +55,8 @@ module.exports = class CNode
         this.VersionNum=0;
         this.Delete=0;
 
+        this.DeltaBan=300;
+        this.Name="";
 
         this.ResetNode();
     }
@@ -110,14 +112,7 @@ module.exports = class CNode
 
 
         this.ErrCount=0;
-        var Prioritet=(new Date)-0;
-        if(this.WhiteConnect)
-            Prioritet-=START_NETWORK_DATE;
-        else
-        if(this.StartFindList)
-            Prioritet-=START_NETWORK_DATE/2;
-
-
+        var Prioritet=this.BlockProcessCount;
         SERVER.SetNodePrioritet(this,Prioritet);
 
         this.SendPacketNum=0;
@@ -231,10 +226,10 @@ module.exports = class CNode
 
         this.Socket.Node=this;
         SetSocketStatus(this.Socket,100);
-        this.Socket.Prioritet=SocketOld.Prioritet+1;
+        //this.Socket.Prioritet=SocketOld.Prioritet+1;
         this.Socket.Buf=SocketOld.Buf;
-        SERVER.LoadBuf.remove(SocketOld);
-        SERVER.LoadBuf.insert(this.Socket);
+        SERVER.LoadBufSocketList.remove(SocketOld);
+        SERVER.LoadBufSocketList.insert(this.Socket);
 
 
         SocketOld.Buf=undefined;
@@ -453,14 +448,13 @@ module.exports = class CNode
             return;
         }
 
-
-
         if(Node.addrStrTemp)
         {
             ToLogNet("Set Addr = "+addrStr+"  for: "+NodeInfo(Node));
             Node.addrStr=addrStr;
             SERVER.CheckNodeMap(Node);
         }
+
 
 
         if(Buf.MIN_POWER_POW_HANDSHAKE>1+MIN_POWER_POW_HANDSHAKE)

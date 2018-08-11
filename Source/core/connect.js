@@ -60,7 +60,7 @@ module.exports = class CConnect extends require("./balanser")
 
         this.PerioadAfterCanStart=0;
 
-
+        this.DO_CONSTANT();
 
 
 
@@ -78,6 +78,13 @@ module.exports = class CConnect extends require("./balanser")
         setInterval(this.NodesArrSort.bind(this),TIME_AUTOSORT_GRAY_LIST);
 
 
+    }
+    DO_CONSTANT()
+    {
+        this.CommonKey=GetHexFromArr(WALLET.HashProtect(global.COMMON_KEY));
+
+        this.KeyToNode=shaarr(global.COMMON_KEY);
+        this.NameToNode=this.ValueToXOR("Name",global.NODES_NAME);
     }
 
     StartConnectTry(Node)
@@ -112,24 +119,36 @@ module.exports = class CConnect extends require("./balanser")
             Node=this.NodesIPMap[key];
             if(!Node)
             {
-                if(addrArr!==undefined)
-                    Node=this.GetNewNode(addrStr,ip,port)
-                else
-                {
-                    addrStr=GetHexFromAddres(crypto.randomBytes(32));
-                    Node=this.GetNewNode(addrStr,ip,port);
-                    Node.addrStrTemp=addrStr;
-                }
+                Node=this.GetNewNode(addrStr,ip,port)
             }
         }
-        if(bUpdate)
+
+        if(Node.addrStr!==addrStr)
         {
-            Node.ip=ip.trim();
-            Node.port=port;
+            delete this.NodesMap[Node.addrStr];
+            this.NodesMap[addrStr]=Node;
+            Node.addrStrTemp=undefined;
         }
 
+
+        Node.addrArr=addrArr;
+        Node.addrStr=addrStr;
+        Node.ip=ip.trim();
+        Node.port=port;
         return Node;
     }
+    CheckNodeMap(Node)
+    {
+        if(Node.addrStrTemp && Node.addrStrTemp!==Node.addrStr)
+        {
+            delete this.NodesMap[Node.addrStrTemp];
+            this.NodesMap[Node.addrStr]=Node;
+            Node.addrStrTemp=undefined;
+        }
+    }
+
+
+
 
     StartHandshake(Node)
     {
@@ -161,7 +180,7 @@ module.exports = class CConnect extends require("./balanser")
         for(var i=0;i<arr.length;i++)
         {
             var Node=arr[i];
-            if(this.IsCanConnect(Node) && !Node.AddrList)
+            if(this.IsCanConnect(Node) && !Node.IsAddrList)
             {
                 if(Node.Hot)
                     Node.NextPing=1000;
@@ -205,14 +224,14 @@ module.exports = class CConnect extends require("./balanser")
         var CheckPointHashDB=[];
         if(CHECK_POINT.BlockNum)
         {
-            var Block=this.ReadBlockHeaderDB(CHECK_POINT.BlockNum);
+            var Block=this.ReadBlockHeaderFromMapDB(CHECK_POINT.BlockNum);
             if(Block)
                 CheckPointHashDB=Block.Hash;
         }
         var HashDB=[];
         if(this.BlockNumDB>0)
         {
-            var Block=this.ReadBlockHeaderDB(this.BlockNumDB);
+            var Block=this.ReadBlockHeaderFromMapDB(this.BlockNumDB);
             if(Block)
                 HashDB=Block.Hash;
         }
@@ -238,7 +257,7 @@ module.exports = class CConnect extends require("./balanser")
             {
                 VERSIONMAX:DEF_VERSION,
                 FIRST_TIME_BLOCK:0,
-                PingVersion:2,
+                PingVersion:3,
                 GrayConnect:GrayAddres,
                 Reserve2:0,
                 AutoCorrectTime:AUTO_COORECT_TIME,
@@ -248,14 +267,16 @@ module.exports = class CConnect extends require("./balanser")
                 LoadHistoryMode:this.LoadHistoryMode,
                 CanStart:global.CAN_START,
                 CheckPoint:CHECK_POINT,
-                CodeVersion:CODE_VERSION,
+                Reserv3:[],
+                Key:this.KeyToNode,
+                Name:this.NameToNode,
                 TrafficFree:this.SendTrafficFree,
                 AccountBlockNum:BlockNumHash,
                 AccountsHash:AccountsHash,
                 MemoryUsage:Math.trunc(process.memoryUsage().heapTotal/1024/1024),
                 CheckDeltaTime:CHECK_DELTA_TIME,
-                CodeVersion2:CODE_VERSION,
-                AddrList:global.ADDRLIST_MODE,
+                CodeVersion:CODE_VERSION,
+                IsAddrList:global.ADDRLIST_MODE,
                 CheckPointHashDB:CheckPointHashDB,
                 NodesLevelCount:0,//this.GetNodesLevelCount(),
                 HashDB:HashDB,
@@ -280,14 +301,16 @@ module.exports = class CConnect extends require("./balanser")
             LoadHistoryMode:byte,\
             CanStart:byte,\
             CheckPoint:{BlockNum:uint,Hash:hash,Sign:arr64},\
-            CodeVersion:{VersionNum:uint,Hash:hash,Sign:arr64},\
+            Reserv3:arr38,\
+            Key:arr32,\
+            Name:arr32,\
             TrafficFree:uint,\
             AccountBlockNum:uint,\
             AccountsHash:hash,\
             MemoryUsage:uint,\
             CheckDeltaTime:{Num:uint,bUse:byte,StartBlockNum:uint,EndBlockNum:uint,bAddTime:byte,DeltaTime:uint,Sign:arr64},\
-            CodeVersion2:{BlockNum:uint,addrArr:arr32,LevelUpdate:byte,BlockPeriod:uint,VersionNum:uint,Hash:hash,Sign:arr64},\
-            AddrList:byte,\
+            CodeVersion:{BlockNum:uint,addrArr:arr32,LevelUpdate:byte,BlockPeriod:uint,VersionNum:uint,Hash:hash,Sign:arr64},\
+            IsAddrList:byte,\
             CheckPointHashDB:hash,\
             NodesLevelCount:uint16,\
             HashDB:hash,\
@@ -322,6 +345,14 @@ module.exports = class CConnect extends require("./balanser")
         Info.Node.LevelCount=Data.LevelCount;
         Info.Node.VERSIONMAX=Data.VERSIONMAX;
 
+        if(Data.PingVersion>=3 && global.COMMON_KEY && CompareArr(Data.Key,this.KeyToNode)===0)
+        {
+            Node.Name=this.ValueFromXOR(Node,"Name",Data.Name);
+        }
+        else
+        {
+            Node.Name="";
+        }
 
         Node.INFO=Data;
         Node.INFO.WasPing=1;
@@ -402,29 +433,30 @@ module.exports = class CConnect extends require("./balanser")
             Times=Node.Times;
             if(!Times || Times.Count>=10)
             {
-                Times={SumDelta:0,Count:0,AvgDelta:0};
+                Times={SumDelta:0,Count:0,AvgDelta:0,Arr:[]};
                 Node.Times=Times;
             }
 
             var Time1=Data.Time;
             var Time2=GetCurrentTime();
-            var Delta2=Time2-Time1-DeltaTime/2;
-            Delta2=-Delta2;
+            var Delta2=-(Time2-Time1-DeltaTime/2);
 
 
+            Times.Arr.push(Delta2);
             Times.SumDelta+=Delta2;
             Times.Count++;
             Times.AvgDelta=Times.SumDelta/Times.Count;
 
+            //AvgDelta - берем минимальное по абс значению из всех попыток
             if(Times.Count>=2)
-                Node.AvgDelta=Times.AvgDelta;
+            {
+                //Node.AvgDelta=Times.AvgDelta;
+                Times.Arr.sort(function (a,b) {return Math.abs(a)-Math.abs(b)});
+                Node.AvgDelta=Times.Arr[0];
+            }
 
             if(global.AUTO_COORECT_TIME)
             {
-                // if(Times.Count>2 && Node.addrStr==="FEEEB413358F0691E6775EC61A1852291863C7478344664ACBAA4214765FFF16" && global.DELTA_CURRENT_TIME===0)
-                // {
-                //     global.DELTA_CURRENT_TIME=Times.AvgDelta;
-                // }
                 this.CorrectTime();
             }
         }
@@ -501,7 +533,7 @@ module.exports = class CConnect extends require("./balanser")
 
     CheckCodeVersion(Data,Node)
     {
-        var CodeVersion=Data.CodeVersion2;
+        var CodeVersion=Data.CodeVersion;
         Node.VersionNum=CodeVersion.VersionNum;
         if(CodeVersion.VersionNum>=MIN_CODE_VERSION_NUM)
         {
@@ -558,7 +590,7 @@ module.exports = class CConnect extends require("./balanser")
                 var SignArr=arr2(CodeVersion.Hash,GetArrFromValue(CodeVersion.VersionNum));
                 if(CheckDevelopSign(SignArr,CodeVersion.Sign))
                 {
-                    ToLog("Get new CodeVersion = "+CodeVersion.VersionNum+" HASH:"+GetHexFromArr(CodeVersion.Hash));
+                    ToLog("Get new CodeVersion = "+CodeVersion.VersionNum+" HASH:"+GetHexFromArr(CodeVersion.Hash).substr(0,20));
 
                     if(CodeVersion.VersionNum>CODE_VERSION.VersionNum && CodeVersion.VersionNum>START_LOAD_CODE.StartLoadVersionNum)
                     {
@@ -572,7 +604,7 @@ module.exports = class CConnect extends require("./balanser")
                 }
                 else
                 {
-                    ToLog("Error Sign CodeVersion="+CodeVersion.VersionNum+" from "+NodeInfo(Node)+" HASH:"+GetHexFromArr(CodeVersion.Hash));
+                    ToLog("Error Sign CodeVersion="+CodeVersion.VersionNum+" from "+NodeInfo(Node)+" HASH:"+GetHexFromArr(CodeVersion.Hash).substr(0,20));
                     ToLog(JSON.stringify(CodeVersion));
                     this.AddCheckErrCount(Node,1,"Error Sign CodeVersion");
                     Node.NextConnectDelta=60*1000;
@@ -664,7 +696,7 @@ module.exports = class CConnect extends require("./balanser")
                 "Context":Info.Context,
                 "Data":{
                             arr:this.GetDirectNodesArray(false),
-                            AddrList:global.ADDRLIST_MODE,
+                            IsAddrList:global.ADDRLIST_MODE,
                         }
             },MAX_NODES_RETURN*150+300
         );
@@ -681,7 +713,7 @@ module.exports = class CConnect extends require("./balanser")
                             DeltaTime:uint\
                         }\
                     ],\
-                    AddrList:byte}";
+                    IsAddrList:byte}";
     }
 
 
@@ -696,7 +728,7 @@ module.exports = class CConnect extends require("./balanser")
                 this.AddToArrNodes(arr[i],true);
             }
         }
-        Info.Node.AddrList=Data.AddrList;
+        Info.Node.IsAddrList=Data.IsAddrList;
 
         //ToLog("RETGETNODES length="+arr.length);
     }
@@ -933,13 +965,6 @@ module.exports = class CConnect extends require("./balanser")
         );
     }
 
-    AddrLevelNode(Node)
-    {
-        if(Node.GrayConnect)
-            return MAX_LEVEL_SPECIALIZATION-1;//TODO с учетом номера серого соединения
-
-        return AddrLevelArr(this.addrArr,Node.addrArr);
-    }
 
     ADDLEVELCONNECT(Info,CurTime)
     {
@@ -1226,11 +1251,8 @@ module.exports = class CConnect extends require("./balanser")
             for(var n=0;n<arr.length;n++)
             {
                 var Node=arr[n];
-                //if(ChildCount>MIN_CONNECT_CHILD && Node.LevelNodes)
                 if(ChildCount>MIN_CONNECT_CHILD && Node.LevelCount>MIN_CONNECT_CHILD)
                 {
-                    // var arr2=Node.LevelNodes[Level];
-                    // if(arr2 && arr2.length>MIN_CONNECT_CHILD)
                     {
                         ChildCount--;
                         Node.Hot=false;
@@ -1332,6 +1354,11 @@ module.exports = class CConnect extends require("./balanser")
                 continue;
             if(Node.Times.Count<2)
                 continue;
+
+            if(this.PerioadAfterCanStart>=PERIOD_FOR_START_CHECK_TIME)
+                if(Node.Times.Count<5)
+                    continue;
+
             NodesSet.add(Node);
         }
 
@@ -1471,15 +1498,6 @@ module.exports = class CConnect extends require("./balanser")
         Node.Prioritet=Prioritet;
     }
 
-    CheckNodeMap(Node)
-    {
-        if(Node.addrStrTemp && Node.addrStrTemp!==Node.addrStr)
-        {
-            delete this.NodesMap[Node.addrStrTemp];
-            this.NodesMap[Node.addrStr]=Node;
-            Node.addrStrTemp=undefined;
-        }
-    }
 
     AddNodeToActive(Node)
     {
@@ -1520,6 +1538,8 @@ module.exports = class CConnect extends require("./balanser")
             Node.Stage=0;
         Node.Stage++;
         Node.Active=false;
+        if(Node.Hot)
+            this.DeleteNodeFromHot(Node);
         Node.Hot=false;
 
         // if(!Node.addrArr)
@@ -1603,7 +1623,15 @@ module.exports = class CConnect extends require("./balanser")
 
 
 
-    //Lvevels lib
+    //Levels lib
+    AddrLevelNode(Node)
+    {
+        if(Node.GrayConnect)
+            return MAX_LEVEL_SPECIALIZATION-1;//TODO с учетом номера серого соединения
+
+        return AddrLevelArr(this.addrArr,Node.addrArr);
+    }
+
     GetNodesLevelCount()
     {
         var Count=0;
@@ -1645,6 +1673,7 @@ module.exports = class CConnect extends require("./balanser")
             Node.Hot=false;
         }
 
+
         Node.CanHot=false;
         for(var i=0;i<this.LevelNodes.length;i++)
         {
@@ -1681,6 +1710,22 @@ module.exports = class CConnect extends require("./balanser")
         }
     }
 
+
+
+    //Other lib
+    ValueToXOR(StrType,Str)
+    {
+        var Arr1=toUTF8Array(Str);
+        var Arr2=shaarr(this.CommonKey+":"+this.addrStr+":"+StrType);
+        return WALLET.XORHash(Arr1,Arr2);
+    }
+    ValueFromXOR(Node,StrType,Arr1)
+    {
+        var Arr2=shaarr(this.CommonKey+":"+Node.addrStr+":"+StrType);
+        var Arr=WALLET.XORHash(Arr1,Arr2);
+        var Str=Utf8ArrayToStr(Arr);
+        return Str;
+    }
 }
 
 
@@ -1691,7 +1736,7 @@ function SortNodeBlockProcessCount(a,b)
 
     return a.DeltaTime-b.DeltaTime;
 }
-
+global.SortNodeBlockProcessCount=SortNodeBlockProcessCount;
 
 
 /*

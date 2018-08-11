@@ -654,7 +654,10 @@ function SetGridData(arr,id_name,TotalSum,bclear,revert)
 
 
     if(!htmlTable.ItemsMap)
+    {
         htmlTable.ItemsMap={};
+        htmlTable.RowCount=0;
+    }
 
     var map=htmlTable.ItemsMap;
 

@@ -79,7 +79,7 @@ module.exports = class CCommon
         for(var i=0;i<arr.length;i++)
         {
             var Node=arr[i];
-            if(!Node || Node.AddrList)
+            if(!Node || Node.IsAddrList)
                 continue;
             var INFO=Node.INFO;
             if(!INFO)
@@ -105,7 +105,7 @@ module.exports = class CCommon
             if(INFO.AutoCorrectTime)
                 CountCorrTime++;
             else
-            if(Node.VersionNum>=271)
+            if(Node.VersionNum>=271 && !Node.IsAddrList)
                 NoCountCorrTime++;
 
 
@@ -157,7 +157,7 @@ module.exports = class CCommon
         ADD_TO_STAT("MAX:TIME_DELTA",DELTA_CURRENT_TIME);
         ADD_TO_STAT("MAX:AUTO_CORRECT_TIME",CountCorrTime);
 
-        ADD_TO_STAT("MAX:NO_AUTO_CORRECT_TIME",NoCountCorrTime);
+        //ADD_TO_STAT("MAX:NO_AUTO_CORRECT_TIME",NoCountCorrTime);
 
 
 
