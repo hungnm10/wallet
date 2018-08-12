@@ -32,6 +32,11 @@ module.exports = class CNode
         this.LastTime=0;
         this.LastTimeError=0;
 
+        this.LastTimeTransfer=0;
+        this.StartTimeConnect=0;
+        this.StartTimeHot=0;
+
+
         this.DeltaTime=1000;
         this.SumDeltaTime=0;
         this.CountDeltaTime=0;
@@ -57,6 +62,9 @@ module.exports = class CNode
 
         this.DeltaBan=300;
         this.Name="";
+
+        this.Info="";
+        this.PrevInfo="";
 
         this.ResetNode();
     }
@@ -154,6 +162,8 @@ module.exports = class CNode
 
     CreateConnect()
     {
+        delete SERVER.BAN_IP[this.ip];
+
         let NODE=this;
         if(NODE.ConnectStatus())
         {
@@ -162,7 +172,8 @@ module.exports = class CNode
             return;
         }
 
-        ToLogNet("===CreateConnect=== to server: "+NODE.ip+":"+NODE.port);
+        //ToLogNet("===CreateConnect=== to server: "+NODE.ip+":"+NODE.port);
+        AddNodeInfo(NODE,"===CreateConnect===");
 
 
         CloseSocket(NODE.Socket,"CreateConnect");
@@ -173,7 +184,9 @@ module.exports = class CNode
             if(NODE.Socket)
             {
                 socketInit(NODE.Socket,"s");
-                ToLogNet("Connected *"+NODE.Socket.ConnectID+" to server: "+NODE.ip+":"+NODE.port);
+                //ToLogNet("Connected *"+NODE.Socket.ConnectID+" to server: "+NODE.ip+":"+NODE.port,NODE);
+                AddNodeInfo(NODE,"OK connected *"+NODE.Socket.ConnectID);
+
                 NODE.Socket.ConnectToServer=true;
                 SetSocketStatus(NODE.Socket,2);
             }
@@ -188,7 +201,8 @@ module.exports = class CNode
     CreateReconnection()
     {
         let NODE=this;
-        ToLogNet("===CreateReconnection=== to server: "+NODE.ip+":"+NODE.port);
+        //ToLogNet("===CreateReconnection=== to server: "+NODE.ip+":"+NODE.port);
+        AddNodeInfo(NODE,"===CreateReconnection===");
 
         CloseSocket(NODE.Socket2,"CreateReconnection");
 
@@ -198,7 +212,8 @@ module.exports = class CNode
             if(NODE.Socket2)
             {
                 socketInit(NODE.Socket2,"s");
-                ToLogNet("Reconnected *"+NODE.Socket2.ConnectID+" to server: "+NODE.ip+":"+NODE.port);
+                //ToLogNet("Reconnected *"+NODE.Socket2.ConnectID+" to server: "+NODE.ip+":"+NODE.port);
+                AddNodeInfo(NODE,"OK Reconnected *"+NODE.Socket2.ConnectID);
                 NODE.Socket2.ConnectToServer=true;
                 SetSocketStatus(NODE.Socket2,2);
             }
@@ -281,7 +296,9 @@ module.exports = class CNode
                     var Str=Buf.Data;
                     if(Str.substr(0,24)==="WAIT_CONNECT_FROM_SERVER")
                     {
-                        ToLogNet("2. -------------------- CLIENT OK POW to server: "+NodeInfo(NODE));
+                        //ToLogNet("2. -------------------- CLIENT OK POW to server: "+NodeInfo(NODE));
+                        AddNodeInfo(NODE,"2. CLIENT OK POW");
+
                         CloseSocket(SOCKET,"WAIT_CONNECT_FROM_SERVER");
                         NODE.WaitConnectFromServer=1;
                         NODE.WaitConnectIP=NODE.ip;
@@ -303,7 +320,8 @@ module.exports = class CNode
                     {
                         NODE.NextConnectDelta=1000;
                         SetSocketStatus(SOCKET,100);
-                        ToLogNet("4. ******************** CLIENT OK CONNECT to server: "+NodeInfo(NODE))
+                        //ToLogNet("4. ******************** CLIENT OK CONNECT to server: "+NodeInfo(NODE))
+                        AddNodeInfo(NODE,"4. CLIENT OK CONNECT");
 
                         if(RECONNECTION)
                         {
@@ -329,7 +347,8 @@ module.exports = class CNode
                     }
                     else
                     {
-                        ToLogNet("ERROR:"+Str);
+                        //ToLogNet("ERROR:"+Str);
+                        AddNodeInfo(NODE,"ERROR:"+Str);
                     }
                 }
 
@@ -344,7 +363,9 @@ module.exports = class CNode
         SOCKET.on('end', () =>
         {
             if(GetSocketStatus(SOCKET))
-                ToLogNet("Get socket end *"+SOCKET.ConnectID+" from server "+NodeInfo(NODE)+" Stat: "+SocketStatistic(SOCKET));
+                //ToLogNet("Get socket end *"+SOCKET.ConnectID+" from server "+NodeInfo(NODE)+" Stat: "+SocketStatistic(SOCKET));
+                AddNodeInfo(NODE,"Get socket end *"+SOCKET.ConnectID+" Stat: "+SocketStatistic(SOCKET));
+
             if(GetSocketStatus(SOCKET)===200)
             {
                 NODE.SwapSockets();
@@ -355,7 +376,8 @@ module.exports = class CNode
         SOCKET.on('close', (err) =>
         {
             if(SOCKET.ConnectID && GetSocketStatus(SOCKET))
-                ToLogNet("Get socket close *"+SOCKET.ConnectID+" from server "+NodeInfo(NODE)+" Stat: "+SocketStatistic(SOCKET));
+                //ToLogNet("Get socket close *"+SOCKET.ConnectID+" from server "+NodeInfo(NODE)+" Stat: "+SocketStatistic(SOCKET));
+                AddNodeInfo(NODE,"Get socket close *"+SOCKET.ConnectID+" Stat: "+SocketStatistic(SOCKET));
             if(!SOCKET.WasClose)
             {
                 if(GetSocketStatus(SOCKET)>=2)
@@ -442,7 +464,9 @@ module.exports = class CNode
             Result=secp256k1.verify(Buffer.from(Hash), Buffer.from(Buf.Sign), Buffer.from([Buf.PubKeyType].concat(Buf.addrArr)));
         if(!Result)
         {
-            ToLogNet("END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+            //ToLogNet("END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+            AddNodeInfo(Node,"END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+
             SERVER.SendCloseSocket(Socket,"ERROR_SIGN_SERVER");
             SERVER.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_SERVER");
             return;
@@ -450,7 +474,8 @@ module.exports = class CNode
 
         if(Node.addrStrTemp)
         {
-            ToLogNet("Set Addr = "+addrStr+"  for: "+NodeInfo(Node));
+            //ToLogNet("Set Addr = "+addrStr+"  for: "+NodeInfo(Node));
+            AddNodeInfo(Node,"Set Addr = "+addrStr);
             Node.addrStr=addrStr;
             SERVER.CheckNodeMap(Node);
         }
@@ -469,13 +494,15 @@ module.exports = class CNode
 
             if(GetSocketStatus(TestNode.Socket))
             {
-                ToLogNet("DoubleConnection find for: "+NodeInfo(Node));
+                //ToLogNet("DoubleConnection find for: "+NodeInfo(Node));
+                AddNodeInfo(Node,"DoubleConnection find");
                 Node.DoubleConnection=true;
                 return 0;
             }
             else
             {
-                ToLogNet("DoubleConnection find for: "+NodeInfo(TestNode));
+                //ToLogNet("DoubleConnection find for: "+NodeInfo(TestNode));
+                AddNodeInfo(Node,"DoubleConnection find");
                 TestNode.DoubleConnection=true;
             }
         }
@@ -582,6 +609,7 @@ global.CloseSocket=function(Socket,StrError,bHide)
         return;
     }
 
+    var Node=Socket.Node;
     if(Socket.Node && Socket.Node.Socket2===Socket && Socket.Node.Socket && Socket.Node.Socket.SocketStatus===200)
         SetSocketStatus(Socket.Node.Socket,100);
 
@@ -593,7 +621,8 @@ global.CloseSocket=function(Socket,StrError,bHide)
     //Socket.unref();
 
     if(!bHide)
-        ToLogNet("CLOSE "+StrNode+"  *"+Socket.ConnectID+" - "+StrError);
+        //ToLogNet("CLOSE "+StrNode+"  *"+Socket.ConnectID+" - "+StrError);
+        AddNodeInfo(Node,"CLOSE "+StrNode+"  *"+Socket.ConnectID+" - "+StrError);
     //ToLogTrace("CLOSE *"+Socket.ConnectID+" - "+StrError);
 }
 
@@ -683,11 +712,11 @@ function NodeName(Node)
 }
 
 
-function ToLogNet(Str)
-{
-    if(global.USE_LOG_NETWORK)
-        ToLog(Str);
-}
+// function ToLogNet(Str)
+// {
+//     if(global.USE_LOG_NETWORK)
+//         ToLog(Str);
+// }
 
 function FindNodeByAddr(Addr,bConnect)
 {
@@ -704,6 +733,40 @@ function FindNodeByAddr(Addr,bConnect)
     return undefined;
 }
 
+function AddNodeInfo(Node,Str,bSet)
+{
+    if(!Node)
+        return;
+    if(!Node.Info)
+        Node.Info="";
+    if(bSet)
+    {
+        Node.Info="";
+    }
+    else
+    {
+        if(Node.Socket && Node.Socket.Info)
+        {
+            Node.Info+=Node.Socket.Info+"\n";
+            Node.Socket.Info="";
+        }
+    }
+
+    if(Node.Info.length>1000)
+    {
+        Node.PrevInfo=Node.Info;
+        Node.Info="";
+    }
+
+    if(Node.Info.length<1000)
+    {
+        var timesend=GetTimeOnlyStr();
+        Str=timesend+": "+Str;
+        Node.Info+=Str+"\n";
+    }
+}
+
+
 global.SocketStatistic=SocketStatistic;
 global.GetSocketStatus=GetSocketStatus;
 global.SetSocketStatus=SetSocketStatus;
@@ -711,6 +774,7 @@ global.NodeInfo=NodeInfo;
 global.NodeName=NodeName;
 global.SocketInfo=SocketInfo;
 
-global.ToLogNet=ToLogNet;
+//global.ToLogNet=ToLogNet;
 
 global.FindNodeByAddr=FindNodeByAddr;
+global.AddNodeInfo=AddNodeInfo;

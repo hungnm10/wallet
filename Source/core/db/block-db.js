@@ -239,7 +239,7 @@ module.exports = class CDB extends require("../code")
                 if(USE_CHECK_KEY_DB)
                     this.CheckKeyDB(Block.BlockNum);
 
-                //TODO - may be write to disk after use transactions???
+
                 this.OnWriteBlock(Block);
 
                 this.BlockNumDB=Block.BlockNum;
@@ -278,9 +278,6 @@ module.exports = class CDB extends require("../code")
             Block.TrDataLen=0;
             return true;
         }
-        // var arrTrDapp=Block.arrContentDapp;
-        // if(!arrTrDapp)
-        //     arrTrDapp=[];
 
 
         var TrDataLen=4;
@@ -297,17 +294,11 @@ module.exports = class CDB extends require("../code")
         var BufWrite=BufLib.GetNewBuffer(TrDataLen);
         BufWrite.Write(arrTr.length,"uint16");
         BufWrite.Write(0,"uint16");
-        //BufWrite.Write(arrTrDapp.length,"uint16");
         for(var i=0;i<arrTr.length;i++)
         {
             var body=arrTr[i];
             BufWrite.Write(body,"tr");
         }
-        // for(var i=0;i<arrTrDapp.length;i++)
-        // {
-        //     var body=arrTrDapp[i];
-        //     BufWrite.Write(body,"tr");
-        // }
 
 
         var written=fs.writeSync(FD, BufWrite,0,BufWrite.length, Position);
@@ -316,7 +307,6 @@ module.exports = class CDB extends require("../code")
             TO_ERROR_LOG("DB",240,"Error write to file block-chain : "+written+" <> "+BufWrite.length);
             return false;
         }
-
 
         FileItem.size+=TrDataLen;
 
@@ -460,11 +450,15 @@ module.exports = class CDB extends require("../code")
         this.MapHeader={};
 
         var Position=BlockNum*BLOCK_HEADER_SIZE;
-        var FD=BlockDB.OpenDBFile(FILE_NAME_HEADER).fd;
+        var FI=BlockDB.OpenDBFile(FILE_NAME_HEADER);
 
 
-        var written=fs.writeSync(FD, BufWrite,0,BufWrite.length, Position);
-        //var written=this.FileBufWrite(this.FileBufHeader, FD,BufWrite, Position);
+        var written=fs.writeSync(FI.fd, BufWrite,0,BufWrite.length, Position);
+        if(Position>=FI.size)
+        {
+            FI.size=Position+BufWrite.length;
+        }
+
         if(written!==BufWrite.length)
         {
             TO_ERROR_LOG("DB",260,"Error write to file block-header :" +written+" <> "+Info.key_width);
@@ -626,6 +620,7 @@ module.exports = class CDB extends require("../code")
         {
             LastBlockNum=BLOCK_PROCESSING_LENGTH2-1;
             this.TruncateBlockBodyDBInner();
+            //TODO - delete all tables
         }
 
         var Block=this.ReadBlockDB(LastBlockNum);

@@ -354,6 +354,8 @@ module.exports = class CConsensus extends require("./block-loader")
             Info.Node.Stage=0;
             Info.Node.BlockProcessCount++;
         }
+
+        Info.Node.LastTimeTransfer=GetCurrentTime()-0;
     }
 
     TrToInfo(Block,Array,StrInfo)

@@ -64,6 +64,7 @@ module.exports = class CDBState extends require("./db")
         var FI=this.OpenDBFile(this.FileName);
 
         var written=fs.writeSync(FI.fd, BufWrite,0,BufWrite.length, Position);
+
         if(written!==BufWrite.length)
         {
             TO_ERROR_LOG("DB-STATE",10,"Error write to file:" +written+" <> "+BufWrite.length);
@@ -124,23 +125,23 @@ module.exports = class CDBState extends require("./db")
         Data.Num=Num;
         return Data;
     }
-    GetHash()
-    {
-        if(!this.LastHash)
-        {
-            var FI=this.OpenDBFile(this.FileName);
-            if(FI.size)
-            {
-                var BufRead=BufLib.GetNewBuffer(FI.size);
-                this.LastHash=shaarr(BufRead);
-            }
-            else
-            {
-                this.LastHash=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-            }
-        }
-        return this.LastHash;
-    }
+    // GetHash()
+    // {
+    //     if(!this.LastHash)
+    //     {
+    //         var FI=this.OpenDBFile(this.FileName);
+    //         if(FI.size)
+    //         {
+    //             var BufRead=BufLib.GetNewBuffer(FI.size);
+    //             this.LastHash=shaarr(BufRead);
+    //         }
+    //         else
+    //         {
+    //             this.LastHash=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    //         }
+    //     }
+    //     return this.LastHash;
+    // }
 
 
 

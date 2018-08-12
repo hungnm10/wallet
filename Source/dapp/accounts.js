@@ -312,9 +312,10 @@ class AccountApp extends require("./dapp")
                 if(!Result)
                 {
                     ToLog("2. ****FIND BAD ACCOUNT HASH IN BLOCK: "+BlockNumHash+ " DO BLOCK="+BlockNum);
+                    ToLog("Need to Rewrite transactions from: "+(Block.BlockNum-2*DELTA_BLOCK_ACCOUNT_HASH))
                     //SERVER.SetTruncateBlockDB(BlockNum-1);
                     SERVER.SetTruncateBlockDB(BlockNumHash-1);
-                    SERVER.SetRewriteBlockDB();
+                    //SERVER.SetRewriteBlockDB();
                 }
                 else
                 {
@@ -1089,7 +1090,7 @@ class AccountApp extends require("./dapp")
         {
             //check prev value
             var PrevData=this.DBAccountsHash.Read(BlockNum-1);
-            if(PrevData.BlockNum!==BlockNum-1)
+            if(!PrevData || PrevData.BlockNum!==BlockNum-1)
             {
                 ToLogTrace("Error write Account Hash. On BlockNum:"+BlockNum);
                 SERVER.SetTruncateBlockDB(BlockNum-20);

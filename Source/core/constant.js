@@ -1,6 +1,6 @@
 //Copyright: Yuriy Ivanov, 2017-2018 e-mail: progr76@gmail.com
-global.UPDATE_CODE_VERSION_NUM=304;
-global.MIN_CODE_VERSION_NUM=302;
+global.UPDATE_CODE_VERSION_NUM=337;
+global.MIN_CODE_VERSION_NUM=318;
 
 
 global.InitParamsArg=InitParamsArg;
@@ -14,6 +14,7 @@ global.CONST_NAME_ARR=["AUTO_COORECT_TIME","DELTA_CURRENT_TIME","COMMON_KEY","NO
 
 global.AUTO_COORECT_TIME=1;
 global.DELTA_CURRENT_TIME=0;
+
 
 global.NODES_NAME="";
 global.COMMON_KEY="";
@@ -66,7 +67,7 @@ global.MIN_CONNECT_CHILD=2;
 global.MAX_CONNECT_CHILD=8;
 
 //Сетевое взаимодействие
-global.MAX_NODES_RETURN = 160;
+global.MAX_NODES_RETURN = 100;
 global.USE_PACKET_STAT=0
 global.USE_CHECK_SEND=0;
 
@@ -124,8 +125,7 @@ global.START_NETWORK_DATE=1530446400000;//(new Date(2018, 6, 1, 12, 0, 0, 0))-0;
 
 
 //константы соединения:
-var NETWORK="TERA-R3";//10
-var NETWORK2="TERA-MAIN";//10
+var NETWORK="TERA-MAIN";//10
 global.DEF_MAJOR_VERSION="0001";//4
 
 
@@ -136,7 +136,7 @@ if(global.LOCAL_RUN)
 {
     global.START_MINING=60;
     global.REF_PERIOD_MINING=10;
-    global.START_NETWORK_DATE=((new Date)-0)-100*1000;
+    global.START_NETWORK_DATE=1534063270401;//((new Date)-0)-100*1000;
     global.DELTA_BLOCK_ACCOUNT_HASH=20;
     global.TEST_TRANSACTION_GENERATE=0;
     global.MIN_POWER_POW_TR=0;
@@ -151,11 +151,13 @@ if(global.LOCAL_RUN)
 
 global.GetNetworkName=function()
 {
-    var Num=GetCurrentBlockNumByTime();
-    if(Num>=3600000)
-        return NETWORK2+"-"+DEF_MAJOR_VERSION;
-    else
-        return NETWORK+"-"+DEF_MAJOR_VERSION;
+    return NETWORK+"-"+DEF_MAJOR_VERSION;
+
+    // var Num=GetCurrentBlockNumByTime();
+    // if(Num>=3600000)
+    //     return NETWORK+"-"+DEF_MAJOR_VERSION;
+    // else
+    //     return NETWORK+"-"+DEF_MAJOR_VERSION;
 }
 
 global.DEF_VERSION=DEF_MAJOR_VERSION+"."+UPDATE_CODE_VERSION_NUM;//9

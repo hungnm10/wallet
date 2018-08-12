@@ -38,12 +38,14 @@ var CServer=require("./server");
 
 global.glCurNumFindArr=0;
 global.ArrReconnect=[];
+global.ArrConnect=[];
+
 //var FindList=LoadParams(GetDataPath("finds-server.lst"),undefined);
 //if(!FindList)
 //{
 FindList=[
     {"ip":"194.1.237.94","port":30000},//3
-    {"ip":"91.235.136.81","port":30000},//5
+    {"ip":"91.235.136.81","port":30005},//5
     //{"ip":"185.17.122.144","port":30000},//14
     {"ip":"209.58.140.250","port":30000},//16
     // {"ip":"103.102.45.224","port":30000},//12
@@ -114,20 +116,17 @@ RunServer(false);
 
 setInterval(function run1()
 {
-    ReconnectingFromServer();
+    DoConnectToNodes(ArrReconnect,"RECONNECT");
 }, 200);
+
 setInterval(function run2()
 {
-    ConnectToNodes();
+    DoGetNodes();
+
+    DoConnectToNodes(ArrConnect,"CONNECT");
 }, 500);
 
 
-if(global.ADDRLIST_MODE)
-{
-    return;
-}
-
-//ToLog("global.USE_MINING="+global.USE_MINING);
 
 var StartCheckMining=0;
 const os = require('os');
@@ -138,6 +137,13 @@ global.ArrMiningWrk=[];
 var BlockMining;
 
 
+if(global.ADDRLIST_MODE)
+{
+    return;
+}
+
+
+//------------------------------------------------------------------------------------------------------------------
 function RunStopPOWProcess(Mode)
 {
     if(!global.CountMiningCPU || global.CountMiningCPU<=0)
@@ -336,47 +342,12 @@ global.SetCalcPOW=SetCalcPOW;
 global.RunStopPOWProcess=RunStopPOWProcess;
 
 
+//------------------------------------------------------------------------------------------------------------------
 
 
 
-function ReconnectingFromServer()
-{
-    if(!SERVER || SERVER.CanSend<2)
-    {
-        //ToLog("Not can send")
-        return;
-    }
 
-    if(global.NET_WORK_MODE && !NET_WORK_MODE.UseDirectIP)
-    {
-        //ToLog("!UseDirectIP")
-        return;
-    }
-
-    if(ArrReconnect.length)
-    {
-        var MinProcessCount=SERVER.BusyLevel;
-        for(var i=0;i<ArrReconnect.length;i++)
-        {
-            var Node=ArrReconnect[i];
-            if(Node.BlockProcessCount>MinProcessCount)
-            {
-                ArrReconnect.splice(i,1);
-                Node.WasAddToReconnect=undefined;
-                Node.CreateConnect();
-                break;
-            }
-        }
-        // var Node=ArrReconnect.shift();
-        // Node.WasAddToReconnect=undefined;
-        // Node.CreateConnect();
-    }
-
-    //connect to next node on another time (100ms)
-}
-
-
-function ConnectToNodes()
+function DoGetNodes()
 {
     if(!SERVER || SERVER.CanSend<2)
         return;
@@ -414,12 +385,52 @@ function ConnectToNodes()
 
         SERVER.StartGetNodes(Node);
     }
-    else
-    {
-        SERVER.StartConnectTry(Node);
-    }
-    //connect to next node on another time
 }
+
+
+
+function DoConnectToNodes(Arr,Mode)
+{
+    if(!SERVER || SERVER.CanSend<2)
+    {
+        return;
+    }
+
+    if(global.NET_WORK_MODE && !NET_WORK_MODE.UseDirectIP)
+    {
+        return;
+    }
+
+    if(Arr.length)
+    {
+        var MinProcessCount=SERVER.BusyLevel-1;
+        for(var i=0;i<Arr.length;i++)
+        {
+            var Node=Arr[i];
+            if(Node.BlockProcessCount>MinProcessCount)
+            {
+                Arr.splice(i,1);
+                //AddNodeInfo(Node,Mode);
+                if(Mode==="CONNECT")
+                {
+                    Node.WasAddToConnect=undefined;
+                    SERVER.StartConnectTry(Node);
+                }
+                else
+                if(Mode==="RECONNECT")
+                {
+                    Node.WasAddToReconnect=undefined;
+                    Node.CreateConnect();
+                }
+                break;
+            }
+        }
+    }
+
+    //connect to next node on another time (100ms)
+}
+
+
 
 
 function RunServer(bVirtual)
@@ -533,6 +544,11 @@ function RunOnUpdate()
 
         CheckRewriteTr(3510000,"8382C26507A070CF7B354D1EA97B3FA295E1A9E811C44A6681BEAD15281B775B",3452000);
         CheckRewriteTr(3520000,"A6644B15A9EF0FC17E4B577AC90E9AFA9D5AF6CD78302FB493F068BB138748CB",3510000);
+
+        CheckRewriteTr(3630000,"ED9EB2CB7016E5492E93F1B0FD1954E36A8C640CE11E3E280FBA84AD20E0AD55",3520000);
+        CheckRewriteTr(3635000,"7863A6835A93551E76730C987FBCF940D6CD3C3656E9DE65416F2BDADA0436A1",3630000);
+
+
 
 
 

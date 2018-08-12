@@ -74,7 +74,7 @@ module.exports = class CCommon
 
         var BufMap={},BufMap2={};
         var arr=SERVER.GetActualNodes();
-        var Count=0,CountHot=0,CountHotOK=0,CountActualOK=0,SumDeltaHot=0,SumDeltaActual=0,CountCP=0,CountLH=0,CountLevels=0,CountHash=0,CountVer=0,CountStop=0;
+        var Count=0,CountHot=0,CountHotOK=0,CountActualOK=0,SumDeltaHot=0,SumDeltaActual=0,CountCP=0,CountLH=0,CountHash=0,CountVer=0,CountStop=0;
         var CountEqAddr=0,CountCorrTime=0,NoCountCorrTime=0;
         for(var i=0;i<arr.length;i++)
         {
@@ -91,8 +91,6 @@ module.exports = class CCommon
             }
             if(INFO.LoadHistoryMode)
                 CountLH++;
-            if(Node.Hot && INFO.NodesLevelCount)
-                CountLevels+=INFO.NodesLevelCount;
 
 
             if(Node.StopGetBlock)
@@ -172,7 +170,6 @@ module.exports = class CCommon
             Count=0;
         ADD_TO_STAT("MAX:DELTA_TIME_HOT",SumDeltaHot/CountHot);
         ADD_TO_STAT("MAX:DELTA_TIME_ACTUAL",SumDeltaActual/Count);
-        ADD_TO_STAT("MAX:HOT_COUNT_LEVELS",CountLevels/CountHot);
 
 
 

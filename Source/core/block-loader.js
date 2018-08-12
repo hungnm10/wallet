@@ -383,7 +383,7 @@ module.exports = class CBlock extends require("./db/block-db")
         //check timeout
         if(Context.PrevBlockNum===Context.BlockNum)
         {
-            var DeltaTime=new Date()-Context.StartBlockNum;
+            var DeltaTime=new Date()-Context.StartTimeHistory;
             if(DeltaTime>120*1000)
             {
                 ToLog("DETECT TIMEOUT LOADHISTORY");
@@ -394,7 +394,7 @@ module.exports = class CBlock extends require("./db/block-db")
         else
         {
             Context.PrevBlockNum=Context.BlockNum;
-            Context.StartBlockNum=new Date();
+            Context.StartTimeHistory=new Date();
         }
 
         if(Context.Pause)
@@ -626,7 +626,7 @@ module.exports = class CBlock extends require("./db/block-db")
             }
             if(Node.Active && Node.CanHot)
             {
-                if(!Node.INFO || !Node.INFO.WasPing)// || Node.INFO.CheckPointHashDB && CHECK_POINT.BlockNum && CompareArr(CHECK_POINT.Hash,Node.INFO.CheckPointHashDB)!==0)
+                if(!Node.INFO || !Node.INFO.WasPing || Node.StopGetBlock)// || Node.INFO.CheckPointHashDB && CHECK_POINT.BlockNum && CompareArr(CHECK_POINT.Hash,Node.INFO.CheckPointHashDB)!==0)
                 {
                     timewait=true;
                     continue;
@@ -641,7 +641,7 @@ module.exports = class CBlock extends require("./db/block-db")
                 if(Node.TaskLastSend)
                 {
                     var Delta=CurTime-Node.TaskLastSend;
-                    if(Delta<global.PERIOD_GET_BLOCK || Node.StopGetBlock)
+                    if(Delta<global.PERIOD_GET_BLOCK)
                     {
                         timewait=true;
                         continue;//wait (not spaming)
@@ -1971,11 +1971,23 @@ module.exports = class CBlock extends require("./db/block-db")
                 {
                     if(!DApps.Accounts.TRCheckAccountHash(TR,Data.BlockNum))
                     {
-                        ToLog("1. **** NO LOAD BAD ACCOUNT Hash in block="+Block.BlockNum+" from:"+NodeName(Info.Node)+" ****");
+                        ToLog("**** BAD ACCOUNT Hash in block="+Block.BlockNum+" from:"+NodeName(Info.Node)+" ****");
+                        ToLog("May be need to Rewrite transactions from: "+(Block.BlockNum-2*DELTA_BLOCK_ACCOUNT_HASH))
                         this.SetBlockNOSendToNode(Block,Info.Node,"BAD CMP ACC HASH");
-                        //this.DeleteNodeFromActive(Info.Node);
-                        //this.AddToBan(Info.Node);
-                        return;
+                        if(CHECK_POINT.BlockNum>Data.BlockNum)//TODO
+                        {
+                            //this.FREE_ALL_MEM_CHAINS();
+                            //this.ReWriteDAppTransactions(Block.BlockNum-2*DELTA_BLOCK_ACCOUNT_HASH);
+                            //this.SetTruncateBlockDB(Block.BlockNum-2*DELTA_BLOCK_ACCOUNT_HASH);
+                            return;
+                        }
+                        else
+                        {
+                            // ToLog("May be need Rewrite transacrions from: "+(Block.BlockNum-2*DELTA_BLOCK_ACCOUNT_HASH))
+                            //this.DeleteNodeFromActive(Info.Node);
+                            //this.AddToBan(Info.Node);
+                            return;
+                        }
                     }
                 }
             }

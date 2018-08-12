@@ -30,7 +30,7 @@ var MAX_PING_FOR_CONNECT=200;//ms
 var TIME_AUTOSORT_GRAY_LIST=5000;//ms
 var MAX_TIME_CORRECT=3*3600*1000;//ms
 
-global.MAX_WAIT_PERIOD_FOR_HOT=2*CONSENSUS_PERIOD_TIME;
+global.MAX_WAIT_PERIOD_FOR_HOT=3*CONSENSUS_PERIOD_TIME;
 global.MAX_WAIT_PERIOD_FOR_ACTIVE=10*CONSENSUS_PERIOD_TIME;
 
 const PERIOD_FOR_START_CHECK_TIME=300;//sec
@@ -38,7 +38,7 @@ const PERIOD_FOR_START_CHECK_TIME=300;//sec
 
 
 
-module.exports = class CConnect extends require("./balanser")
+module.exports = class CConnect extends require("./transfer-msg")
 {
     constructor(SetKeyPair,RunIP,RunPort,UseRNDHeader,bVirtual)
     {
@@ -68,8 +68,11 @@ module.exports = class CConnect extends require("./balanser")
         {
 
             setInterval(this.StartPingPong.bind(this),1000);
-            setInterval(this.StartCheckConnect.bind(this),1000);
+            //setInterval(this.StartCheckConnect.bind(this),1000);
             setInterval(this.DeleteNodeFromActiveByTimer.bind(this),MAX_WAIT_PERIOD_FOR_ACTIVE);
+
+            setInterval(this.StartCheckTransferTree.bind(this),1000);
+
 
 
             //setInterval(this.StartReconnect.bind(this),60*1000);
@@ -278,7 +281,7 @@ module.exports = class CConnect extends require("./balanser")
                 CodeVersion:CODE_VERSION,
                 IsAddrList:global.ADDRLIST_MODE,
                 CheckPointHashDB:CheckPointHashDB,
-                NodesLevelCount:0,//this.GetNodesLevelCount(),
+                Reserv4:0,
                 HashDB:HashDB,
                 StopGetBlock:StopGetBlock,
                 Reserve:[],
@@ -312,7 +315,7 @@ module.exports = class CConnect extends require("./balanser")
             CodeVersion:{BlockNum:uint,addrArr:arr32,LevelUpdate:byte,BlockPeriod:uint,VersionNum:uint,Hash:hash,Sign:arr64},\
             IsAddrList:byte,\
             CheckPointHashDB:hash,\
-            NodesLevelCount:uint16,\
+            Reserv4:uint16,\
             HashDB:hash,\
             StopGetBlock:uint,\
             Reserve:arr40,\
@@ -342,12 +345,13 @@ module.exports = class CConnect extends require("./balanser")
         var Node=Info.Node;
         var Data=this.DataFromF(Info);
 
-        Info.Node.LevelCount=Data.LevelCount;
         Info.Node.VERSIONMAX=Data.VERSIONMAX;
 
         if(Data.PingVersion>=3 && global.COMMON_KEY && CompareArr(Data.Key,this.KeyToNode)===0)
         {
             Node.Name=this.ValueFromXOR(Node,"Name",Data.Name);
+            if(Node.BlockProcessCount<5000000)
+                Node.BlockProcessCount=5000000;
         }
         else
         {
@@ -358,10 +362,6 @@ module.exports = class CConnect extends require("./balanser")
         Node.INFO.WasPing=1;
         Node.LevelCount=Data.LevelCount;
         Node.LoadHistoryMode=Data.LoadHistoryMode;
-        // if((Data.LoadHistoryMode || !Data.CanStart) && Node.Hot)
-        // {
-        //     this.DeleteNodeFromHot(Node);
-        // }
 
         Node.LastTime=GetCurrentTime()-0;
         Node.NextConnectDelta=1000;//connection is good
@@ -636,30 +636,31 @@ module.exports = class CConnect extends require("./balanser")
 
 
 
-    StartDisconnectHot(Node,StrError)
+    StartDisconnectHot(Node,StrError,bDeleteHot)
     {
-        this.Send(Node,
-            {
-                "Method":"DISCONNECTHOT",
-                "Context":{},
-                "Data":StrError
-            },STR_TYPE
-        );
-        //this.DeleteNodeFromActive(Node);
+        AddNodeInfo(Node,"DisconnectHot:"+StrError);
+        if(Node.Active && Node.Hot)
+        {
+            AddNodeInfo(Node,"SEND DISCONNECTHOT");
+            this.Send(Node,
+                {
+                    "Method":"DISCONNECTHOT",
+                    "Context":{},
+                    "Data":StrError
+                },STR_TYPE
+            );
+        }
+
+        this.DeleteNodeFromHot(Node);
     }
 
-    DISCONNECT(Info,CurTime)
-    {
-        ToLogNet("FROM "+NodeInfo(Info.Node)+" DISCONNECT: "+Info.Data);
-        this.DeleteNodeFromActive(Info.Node);
-        this.DeleteNodeFromHot(Info.Node);
-        ADD_TO_STAT("DISCONNECT");
-    }
+
     DISCONNECTHOT(Info,CurTime)
     {
         this.DeleteNodeFromHot(Info.Node);
         ADD_TO_STAT("DISCONNECTHOT");
-        ToLogNet("FROM "+NodeInfo(Info.Node)+" DISCONNECTHOT: "+Info.Data);
+        //ToLogNet("FROM "+NodeInfo(Info.Node)+" DISCONNECTHOT: "+Info.Data);
+        AddNodeInfo(Info.Node,"GET DISCONNECTHOT:"+Info.Data);
     }
 
 
@@ -731,6 +732,8 @@ module.exports = class CConnect extends require("./balanser")
         Info.Node.IsAddrList=Data.IsAddrList;
 
         //ToLog("RETGETNODES length="+arr.length);
+        AddNodeInfo(Info.Node,"RETGETNODES length="+arr.length);
+
     }
 
 
@@ -832,6 +835,7 @@ module.exports = class CConnect extends require("./balanser")
                 DeltaTime:Item.DeltaTime,
                 Hot:Item.Hot,
                 BlockProcessCount:Item.BlockProcessCount,
+                Name:Item.Name,
             };
 
             ret.push(Value);
@@ -896,6 +900,8 @@ module.exports = class CConnect extends require("./balanser")
             Node.FirstTime=Item.FirstTime;
             Node.FirstTimeStr=Item.FirstTimeStr;
         }
+        if(Item.Name)
+            Node.Name=Item.Name;
 
 
 
@@ -906,7 +912,8 @@ module.exports = class CConnect extends require("./balanser")
     {
         this.NodesArr.sort(SortNodeBlockProcessCount);
 
-        if((new Date())-this.StartTime > 120*1000)
+
+        if(!this.LoadHistoryMode && (new Date())-this.StartTime > 120*1000)
         {
             var arr=this.GetDirectNodesArray(true).slice(1);
             SaveParams(GetDataPath("nodes.lst"),arr);
@@ -926,8 +933,8 @@ module.exports = class CConnect extends require("./balanser")
                 if(typeof arr[i].LastTime === "string")
                     arr[i].LastTime=0;
 
-                this.AddToArrNodes(arr[i],true);
             }
+            this.AddToArrNodes(arr[i],true);
         }
     }
 
@@ -940,39 +947,52 @@ module.exports = class CConnect extends require("./balanser")
 
     StartAddLevelConnect(Node)
     {
-        if(this.LoadHistoryMode || !global.CAN_START)
+        if(!global.CAN_START)
             return;
-
-        if(!Node.Stage)
-            Node.Stage=0;
-        Node.Stage++;
-
-        if(Node.Stage>10 && Node.Active)
-        {
-            this.DeleteNodeFromActive(Node);
-        }
+        // if(this.LoadHistoryMode)
+        //     return;
 
         ADD_TO_STAT("NETCONFIGURATION");
 
+        //Node.Stage++;
+        // if(Node.Stage>10 && Node.Active)
+        // {
+        //     this.DeleteNodeFromActive(Node);
+        //     return;
+        // }
+
+        var Level=this.AddrLevelNode(Node);
+        var arr=this.LevelNodes[Level];
+        var Count=0;
+        if(arr)
+            Count=arr.length;
+
 
         if(Node.Active && Node.CanHot)
-        this.Send(Node,
+        this.SendF(Node,
             {
                 "Method":"ADDLEVELCONNECT",
                 "Context":{},
-                "Data":undefined
+                "Data":Count
             }
         );
     }
 
+    static ADDLEVELCONNECT_F()
+    {
+        return "uint";
+    }
 
     ADDLEVELCONNECT(Info,CurTime)
     {
+        Info.Node.LevelCount=this.DataFromF(Info);
+
         var ret;
         var Count;
-
-        if(this.LoadHistoryMode || !global.CAN_START)
+        if(!global.CAN_START)
             return;
+        // if(this.LoadHistoryMode)
+        //     return;
 
         var Level=this.AddrLevelNode(Info.Node);
         var arr=this.LevelNodes[Level];
@@ -981,31 +1001,10 @@ module.exports = class CConnect extends require("./balanser")
         else
             Count=arr.length;
 
-        var bAdd=0;
-        if(!Info.Node.CanHot || Count>=MAX_CONNECT_CHILD)
-        {
-            if(Count>=MAX_CONNECT_CHILD && Info.Node.CanHot)
-            {
-                arr.sort(SortNodeBlockProcessCount);
-                var NodeLast=arr[arr.length-1];
-                if(NodeLast.BlockProcessCount<Info.Node.BlockProcessCount)
-                {
-                    ADD_TO_STAT("DeleteFromMaxBlockProcessCount");
-                    this.DeleteNodeFromHot(NodeLast);
-                    this.StartDisconnectHot(NodeLast,"DeleteFromMaxBlockProcessCount");
-                    Count--;
-                    bAdd=1;
-                }
-            }
-        }
-        else
-        {
-            bAdd=1;
-        }
 
+        var bAdd=this.AddLevelConnect(Info.Node);
         if(bAdd)
         {
-            this.AddLevelConnect(Info.Node);
             ret={result:1,Count:Count};
         }
         else
@@ -1013,6 +1012,7 @@ module.exports = class CConnect extends require("./balanser")
             ret={result:0,Count:Count};
         }
 
+        AddNodeInfo(Info.Node,"GET ADDLEVELCONNECT, DO bAdd="+bAdd);
 
 
         this.SendF(Info.Node,
@@ -1023,6 +1023,53 @@ module.exports = class CConnect extends require("./balanser")
             }
         );
     }
+
+    AddLevelConnect(Node)
+    {
+        if(!global.CAN_START)
+            return false;
+        // if(this.LoadHistoryMode)
+        //     return false;
+
+
+
+        var Level=this.AddrLevelNode(Node);
+
+        //Добавляем в массив
+        Node.Hot=true;
+        var arr=this.LevelNodes[Level];
+        if(!arr)
+        {
+            arr=[];
+            this.LevelNodes[Level]=arr;
+        }
+        for(var i=0;i<arr.length;i++)
+        if(arr[i]===Node)
+        {
+            return true;
+        }
+        arr.push(Node);
+
+        //Проверяем по приоритетам
+        Node.LastTimeTransfer=(GetCurrentTime()-0)+60*1000;
+
+        Node.CanHot=true;
+        this.CheckDisconnect(Level);
+        if(!Node.CanHot)
+            return false;
+
+
+        this.SendGetMessage(Node);
+        ADD_TO_STAT("NETCONFIGURATION");
+        ADD_TO_STAT("AddLevelConnect");
+        //ToLog("Add Level connect: "+Level+"  "+NodeName(Node));
+        AddNodeInfo(Node,"Add Level connect");
+
+        return true;
+    }
+
+
+
     static RETADDLEVELCONNECT_F()
     {
         return "{result:byte,Count:uint}";
@@ -1031,6 +1078,8 @@ module.exports = class CConnect extends require("./balanser")
     RETADDLEVELCONNECT(Info,CurTime)
     {
         var Data=this.DataFromF(Info);
+
+        AddNodeInfo(Info.Node,"GET RETADDLEVELCONNECT: "+Data.result);
 
         if(Data.result===1)
         {
@@ -1042,7 +1091,8 @@ module.exports = class CConnect extends require("./balanser")
             Info.Node.Stage++
         }
 
-        Info.Node.CountChildConnect=Data.Count;
+        Info.Node.LevelCount=Data.Count;
+        //Info.Node.CountChildConnect=Data.Count;
     }
 
 
@@ -1050,78 +1100,67 @@ module.exports = class CConnect extends require("./balanser")
 
     StartCheckConnect()
     {
-        if(glStopNode)
-            return;
-        if(this.LoadHistoryMode || !global.CAN_START)
-            return;
+        // if(glStopNode)
+        //     return;
+        // if(this.LoadHistoryMode || !global.CAN_START)
+        //     return;
+        //
+        //
+        // var CurTime=GetCurrentTime();
+        //
+        //
+        // //проверяем существующие соединения - время последнего обмена (может был дисконнект?)
+        // for(var i=0;i<this.LevelNodes.length;i++)
+        // {
+        //     var arr=this.LevelNodes[i];
+        //     for(var n=0;arr && n<arr.length;n++)
+        //     {
+        //         var Node=arr[n];
+        //         if(!Node.LastTime)
+        //             Node.LastTime=CurTime-0;
+        //
+        //         var DeltaTime=CurTime-Node.LastTime;
+        //         if(!Node.Hot  || !Node.CanHot || DeltaTime>MAX_WAIT_PERIOD_FOR_HOT)
+        //         {
+        //             //ToLog("Node.Hot="+Node.Hot+" DeltaTime="+DeltaTime);
+        //             ADD_TO_STAT("StartCheckConnect");
+        //             this.StartDisconnectHot(Node,"StartCheckConnect:D="+DeltaTime,1);
+        //             break;
+        //         }
+        //     }
+        // }
 
+        // //проверяем может ноды могут соединитьcя по другому
+        // for(var i=0;i<this.LevelNodes.length;i++)
+        // {
+        //     this.CheckDisconnect(i);
+        // }
 
-        var CurTime=GetCurrentTime();
-
-
-        //проверяем существующие соединения - время последнего обмена (может был дисконнект?)
-        for(var i=0;i<this.LevelNodes.length;i++)
-        {
-            var arr=this.LevelNodes[i];
-            for(var n=0;arr && n<arr.length;n++)
-            {
-                var Node=arr[n];
-                if(!Node.LastTime)
-                    Node.LastTime=CurTime-0;
-
-                var DeltaTime=CurTime-Node.LastTime;
-                if(!Node.Hot  || !Node.CanHot || DeltaTime>MAX_WAIT_PERIOD_FOR_HOT)
-                {
-                    //ToLog("Node.Hot="+Node.Hot+" DeltaTime="+DeltaTime);
-                    this.DeleteNodeFromHot(Node);
-                    ADD_TO_STAT("StartCheckConnect");
-                    this.StartDisconnectHot(Node,"StartCheckConnect:D="+DeltaTime);
-                    break;
-                }
-            }
-        }
-
-        //проверяем может ноды могут соединитьcя по другому
-        for(var i=0;i<this.LevelNodes.length;i++)
-        {
-            this.CheckDisconnectChilds(i);
-        }
-
-        //проверяем новые соединения (может сеть уже увеличилась?)
-
-        if(0)
-        for(var L=0;L<=MAX_LEVEL_SPECIALIZATION;L++)
-        {
-            var arr=this.LevelNodes[i];
-            if(!arr || arr.length!==1)
-            {
-                var Res=this.FindPair(L);
-            }
-        }
-
-
-        var StatLevels=this.CalcLevels();
-        for(var i=0;i<StatLevels.length;i++)
-        {
-            var Stat=StatLevels[i];
-            if(!Stat)
-                continue;
-
-            var arr=this.LevelNodes[i];
-            if(arr && arr.length>=MIN_CONNECT_CHILD)
-                continue;
-
-
-            //требуется соединение
-            var Node=Stat.Node;
-            this.StartAddLevelConnect(Node);
-        }
+        // //проверяем новые соединения (может сеть уже увеличилась?)
+        // var StatLevels=this.CalcLevels();
+        // for(var i=0;i<StatLevels.length;i++)
+        // {
+        //     var Stat=StatLevels[i];
+        //     if(!Stat)
+        //         continue;
+        //
+        //     var arr=this.LevelNodes[i];
+        //     if(arr && arr.length>=MIN_CONNECT_CHILD)
+        //         continue;
+        //
+        //
+        //     //требуется соединение
+        //     var Node=Stat.Node;
+        //     this.StartAddLevelConnect(Node);
+        // }
 
 
 
     }
     DeleteNodeFromActiveByTimer()
     {
+        return;
+
         if(glStopNode)
             return;
 
@@ -1136,7 +1175,7 @@ module.exports = class CConnect extends require("./balanser")
                 var Delta=CurTime-Node.LastTime;
                 if(Delta>MAX_WAIT_PERIOD_FOR_ACTIVE)
                 {
-                    ToLog("Delete node from Active by timer: "+NodeInfo(Node))
+                    //ToLog("Delete node from Active by timer: "+NodeInfo(Node))
                     this.DeleteNodeFromActive(Node);
                 }
             }
@@ -1203,132 +1242,54 @@ module.exports = class CConnect extends require("./balanser")
 
 
 
-    AddLevelConnect(Node)
-    {
-        if(this.LoadHistoryMode || !global.CAN_START)
-            return;
-
-
-        //отсоедняем все дочерние узлы, имеющие более одного соединения
-        var Level=this.AddrLevelNode(Node);
-
-        this.CheckDisconnectChilds(Level);
-
-
-        if(Node.Hot)
-            return;
-
-        Node.Hot=true;
-
-        var arr=this.LevelNodes[Level];
-        if(!arr)
-        {
-            arr=[];
-            this.LevelNodes[Level]=arr;
-        }
-        arr.push(Node);
-
-        //this.LevelNodesCount=this.GetNodesLevelCount();
-
-
-        this.SendGetMessage(Node);
-
-        ADD_TO_STAT("NETCONFIGURATION");
-
-        ADD_TO_STAT("AddLevelConnect");
-        //ToLog("Add Level connect: "+Level+"  "+NodeName(Node));
-    }
-
     //КРИТЕРИИ НОРМАЛЬНОСТИ СВЯЗЕЙ:
-    CheckDisconnectChilds(Level)
+    CheckDisconnect(Level)
     {
+        var CurTime=GetCurrentTime()-0;
+
         //отсоединяем все дочерние узлы, имеющие более MIN_CONNECT_CHILD соединения
-        var bWas=0;
         var arr=this.LevelNodes[Level];
         if(arr)
         {
-            var ChildCount=arr.length;
-            for(var n=0;n<arr.length;n++)
+            //удаляем устаревшие соеднинения
+            for(var n=arr.length-1;n>=0;n--)
             {
                 var Node=arr[n];
-                if(ChildCount>MIN_CONNECT_CHILD && Node.LevelCount>MIN_CONNECT_CHILD)
+                var DeltaTime=CurTime-Node.LastTimeTransfer;
+                if(!Node.Hot  || DeltaTime>MAX_WAIT_PERIOD_FOR_HOT)
                 {
-                    {
-                        ChildCount--;
-                        Node.Hot=false;
-                        this.DeleteNodeFromHot(Node);
-                        ADD_TO_STAT("DisconnectChild");
-                        this.StartDisconnectHot(Node,"CheckDisconnectChilds");
-                        bWas=1;
-                        continue;
-                    }
+                    this.StartDisconnectHot(Node,"TimeDisconnectHot");
+                }
+            }
+
+
+
+            arr.sort(SortNodeBlockProcessCount);
+            var ChildCount=arr.length;
+            for(var n=arr.length-1;n>=2;n--)
+            {
+                var Node=arr[n];
+                if(ChildCount>MAX_CONNECT_CHILD)
+                {
+                    ChildCount--;
+                    Node.CanHot=false;
+                    this.StartDisconnectHot(Node,"MAX_CONNECT_CHILD");
+                    ADD_TO_STAT("DisconnectChild");
+                    continue;
+                }
+
+                if(ChildCount>MIN_CONNECT_CHILD && Node.LevelCount>=MIN_CONNECT_CHILD)
+                {
+                    ChildCount--;
+                    Node.CanHot=false;
+                    this.AddCheckErrCount(Node,1);
+                    this.StartDisconnectHot(Node,"MIN_CONNECT_CHILD");
+                    ADD_TO_STAT("DisconnectChild");
+                    continue;
                 }
             }
         }
-        return bWas;
     }
-
-    FindPair(L)
-    {
-        //пока не исп-ся
-        for(let n=0;n<this.NodesArr.length;n++)
-        {
-            let Node=this.NodesArr[n];
-            if(Node.addrStr===this.addrStr)
-                continue;
-
-            if(Node.CountDeltaTime<=2)
-                continue;
-            if(Node.DeltaTime<=MAX_PING_FOR_CONNECT)
-                continue;
-
-            var Level=this.AddrLevelNode(Node);
-            if(Level!==L)
-                continue;
-
-            // if(!Node.LevelNodes)
-            //     continue;
-            // var arr=Node.LevelNodes[Level];
-            // if(arr && arr.length>=MAX_CONNECT_CHILD)
-            //     continue;
-            if(Node.LevelCount>=MIN_CONNECT_CHILD)
-                continue;
-
-
-
-                var arr_len;
-            if(!arr)
-                arr_len=0;
-            else
-                arr_len=arr.length;
-
-            if(arr_len===0)
-            {
-                this.StartAddLevelConnect(Node);
-                return true;
-            }
-
-
-
-            for(var i=0;i<arr_len;i++)
-            {
-                var Node2=arr[i];
-                if(Node2.addrStr===this.addrStr)
-                    continue;
-                if(!Node2.LevelNodes)
-                    continue;
-
-                var arr2=Node2.LevelNodes[Level];
-                if(arr2 && arr2.length>1)
-                {
-                    this.StartAddLevelConnect(Node);
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
 
 
     //TIME TIME TIME
@@ -1527,8 +1488,6 @@ module.exports = class CConnect extends require("./balanser")
         }
 
         ADD_TO_STAT("AddToActive");
-        //ToLog("AddNodeToActive: "+Node.addrStr)
-
     }
 
 
@@ -1539,17 +1498,12 @@ module.exports = class CConnect extends require("./balanser")
         Node.Stage++;
         Node.Active=false;
         if(Node.Hot)
-            this.DeleteNodeFromHot(Node);
+            this.StartDisconnectHot(Node,"NotActive",1);
         Node.Hot=false;
 
-        // if(!Node.addrArr)
-        //     throw "DeleteNodeFromActive !Node.addrArr"
 
         this.ActualNodes.remove(Node);
 
-        //ToLogTrace("DeleteNodeFromActive");
-
-        //Node.CloseNode();
         CloseSocket(Node.Socket,"DeleteNodeFromActive");
         CloseSocket(Node.Socket2,"DeleteNodeFromActive");
         Node.ResetNode();
@@ -1672,23 +1626,19 @@ module.exports = class CConnect extends require("./balanser")
             Node.Stage++;
             Node.Hot=false;
         }
-
-
         Node.CanHot=false;
         for(var i=0;i<this.LevelNodes.length;i++)
         {
             var arr=this.LevelNodes[i];
             for(var n=0;arr && n<arr.length;n++)
-                if(arr[n]===Node)
-                {
-                    //ToLog("Del Level connect: "+i+"  "+NodeName(Node));
+            if(arr[n]===Node)
+            {
+                arr.splice(n,1);
 
-                    ADD_TO_STAT("DeleteLevelConnect");
-                    arr.splice(n,1);
-                    ADD_TO_STAT("NETCONFIGURATION");
-
-                    break;
-                }
+                ADD_TO_STAT("DeleteLevelConnect");
+                ADD_TO_STAT("NETCONFIGURATION");
+                break;
+            }
         }
     }
 
@@ -1703,13 +1653,108 @@ module.exports = class CConnect extends require("./balanser")
                 if(Node.Hot)
                 {
                     ADD_TO_STAT("DeleteAllNodesFromHot");
-                    this.DeleteNodeFromHot(Node);
-                    this.StartDisconnectHot(Node,Str);
+                    this.StartDisconnectHot(Node,Str,1);
                 }
             }
         }
     }
 
+    //All Tree
+    GetTransferTree()
+    {
+        //Hot
+        var HotArr=[];
+        for(var Level=0;Level<this.LevelNodes.length;Level++)
+        {
+            var arr=this.LevelNodes[Level];
+            HotArr[Level]=[];
+            for(var n=0;arr && n<arr.length;n++)
+            {
+                var Node=arr[n];
+                if(Node)
+                {
+                    Node.Hot=1;
+                    Node.Level=Level;
+                    HotArr[Level].push(Node);
+                }
+            }
+        }
+
+        //All
+        //var arr=this.GetActualNodes();
+        var arr=this.NodesArr;
+        for(var n=0;arr && n<arr.length;n++)
+        {
+            var Node=arr[n];
+            if(!Node)
+                continue;
+            if(Node.Hot)
+                continue;
+
+            Node.Level=this.AddrLevelNode(Node);
+            if(!HotArr[Node.Level])
+                HotArr[Node.Level]=[];
+
+            HotArr[Node.Level].push(Node);
+        }
+        return HotArr;
+    }
+
+    //Check Transfer Tree
+    StartCheckTransferTree()
+    {
+        var ArrTree=this.GetTransferTree();
+        this.TransferTree=ArrTree;
+
+        var CurTime=GetCurrentTime(0)-0;
+
+        //1.check not active node and try to connect
+        //2.check active connect and add to hot
+        for(var Level=0;Level<ArrTree.length;Level++)
+        {
+            var arr=ArrTree[Level];
+            if(!arr)
+                continue;
+
+            //sort by BlockProcess
+            arr.sort(SortNodeBlockProcessCount);
+
+            var WasDoConnect=0;
+            var WasDoHot=0;
+            var length=Math.min(arr.length,10);
+            for(var n=0;n<length;n++)
+            {
+                var Node=arr[n];
+                var DeltaTime=CurTime-Node.StartTimeConnect;
+                if(!Node.Active && WasDoConnect<5 && !Node.WasAddToConnect && DeltaTime>60*1000)
+                {
+                    AddNodeInfo(Node,"To connect");
+                    Node.WasAddToConnect=1;
+                    Node.StartTimeConnect=CurTime;
+                    ArrConnect.push(Node);
+                    WasDoConnect++;
+                }
+
+
+                DeltaTime=CurTime-Node.StartTimeHot;
+                if(Node.Active && !Node.Hot && WasDoHot<2 && Node.Stage<10 && DeltaTime>60*1000)//Node.LevelCount<MIN_CONNECT_CHILD)
+                {
+
+                    AddNodeInfo(Node,"To hot level");
+                    this.StartAddLevelConnect(Node);
+                    Node.StartTimeHot=CurTime;
+                    WasDoHot++;
+                }
+                if(Node.Hot)
+                    WasDoHot++;
+
+            }
+
+            //3. проверяем может ноды могут соединитьcя по другому + оставляем приоритетные ноды
+            this.CheckDisconnect(Level);
+
+        }
+    }
 
 
     //Other lib
@@ -1726,6 +1771,10 @@ module.exports = class CConnect extends require("./balanser")
         var Str=Utf8ArrayToStr(Arr);
         return Str;
     }
+
+
+
+
 }
 
 
@@ -1734,8 +1783,12 @@ function SortNodeBlockProcessCount(a,b)
     if(b.BlockProcessCount!==a.BlockProcessCount)
        return b.BlockProcessCount-a.BlockProcessCount;
 
-    return a.DeltaTime-b.DeltaTime;
+    if(a.DeltaTime!==b.DeltaTime)
+        return a.DeltaTime-b.DeltaTime;
+
+    return a.id-b.id;
 }
+
 global.SortNodeBlockProcessCount=SortNodeBlockProcessCount;
 
 

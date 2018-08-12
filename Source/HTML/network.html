@@ -6,7 +6,7 @@
     <link rel="shortcut icon" href="/HTML/PIC/network.png" type="image/png">
 
     <link rel="stylesheet" type="text/css" href="../HTML/CSS/buttons.css">
-    <link rel="stylesheet" type="text/css" href="../HTML/CSS/style.css">
+    <!--<link rel="stylesheet" type="text/css" href="../HTML/CSS/style.css">-->
 </head>
 
 <script>
@@ -20,10 +20,13 @@
 </script>
 
 <script type="text/javascript" src="../HTML/JS/client.js"></script>
+<!--<script type="text/javascript" src="../HTML/JS/sha3.js"></script>-->
+<!--<script type="text/javascript" src="../HTML/JS/crypto-client.js"></script>-->
 
 <script>
-    var SaveIdArr=[];
+    var SaveIdArr=["idMaxNodesCount"];
     var NodesArr=[];
+    var CurNode;
 
     function SetStatus(Str)
     {
@@ -31,18 +34,31 @@
         id.innerHTML=Str;
     }
 
+    var WasSetInfo;
+    function SetInfo(Str)
+    {
+        var id = $("idNodeInfo");
+
+        if(WasSetInfo!==Str)
+        {
+            WasSetInfo=Str;
+            id.innerHTML=Str;
+        }
+    }
+
+
     function UpdateData()
     {
         GetData("/GetHotArray", function (Data)
         {
             if(Data && Data.result)
             {
-                SetHotTable(Data.HotArr);
+                SetHotTable(Data.ArrTree);
             }
         });
     }
 
-    function SetHotTable(ArrHot)
+    function SetHotTable(ArrTree)
     {
         var htmlTable=$("grid_hot");
         if(!htmlTable.ItemsMap)
@@ -52,13 +68,14 @@
         }
         var map=htmlTable.ItemsMap;
 
-        var colcount=1+8+1;
+        var ColHotCount=8;
+        var MaxNode=ParseNum($("idMaxNodesCount").value);
 
         //Hot
-        htmlTable.RowCounts=Math.max(htmlTable.RowCounts,ArrHot.length);
+        htmlTable.RowCounts=Math.max(htmlTable.RowCounts,ArrTree.length);
         for(var Level=0;Level<htmlTable.RowCounts;Level++)
         {
-            var arr=ArrHot[Level];
+            var arr=ArrTree[Level];
             if(!arr)
                 arr=[];
 
@@ -69,22 +86,20 @@
                 row=htmlTable.insertRow(-1);
                 map[Level]=row;
 
-                for(var n=0;n<colcount;n++)
+                for(var n=0;n<ColHotCount+3;n++)
                 {
                     row.insertCell(n);
                 }
             }
             row.cells[0].innerText=1+Level;
             var StrOther="";
+            var StrConnect="";
 
 
-            var length=Math.max(colcount-2,arr.length)
-            length=Math.min(length,10);
+            var length=Math.max(ColHotCount,arr.length)
+            length=Math.min(length,MaxNode);
             for(var n=0;n<length;n++)
             {
-                var cell=undefined;
-                if(n<colcount-2)
-                    cell=row.cells[n+1];
                 var Node=undefined;
                 var Str="";
                 if(n<arr.length)
@@ -92,62 +107,110 @@
                     Node=arr[n];
                     NodesArr[Node.id]=Node;
                     if(Node.Name)
-                        Str+="<B>"+Node.Name+"</B> ";
+                        Str+=Node.Name;
                     else
-                        Str+=Node.addrStr.substr(0,6)+" ";
+                        Str+=Node.addrStr.substr(0,6);
 
-                    Str+=Node.BlockProcessCount+" ";
+                    Str+="="+Node.BlockProcessCount+" ";
+                    if(Node.Name)
+                        strClass="mnode";
+                    else
+                        strClass="node";
+
+                    Str='<INPUT type="button" class="'+strClass+'" onclick="ViewInfo('+Node.id+',1)" value="'+Str+'">';
+
                     if(Node.Hot)
                         Str+="<BR>";
 
-                    //Str+='<INPUT type="button" class="bt" onclick="EditNode('+Node.id+')" value="View">';
-                    if(!Node.Hot)
-                        Str+='<INPUT type="button" class="bt" onclick="AddHot('+Node.id+')" value="Add">';
+
+                    if(!Node.Active)
+                        Str+='<INPUT type="button" class="connect" onclick="AddConnect('+Node.id+')" value="Con...">';
+                    if(!Node.Hot && Node.Active)
+                        Str+='<INPUT type="button" class="edit" onclick="AddHot('+Node.id+')" value="Add">';
                     if(Node.Hot)
-                        Str+='<INPUT type="button" class="bt" onclick="DeleteNode('+Node.id+')" value="Del">';
-                    if(!Node.Name)
-                        Str+='<INPUT type="button" class="bt" onclick="AddBan('+Node.id+')" value="Ban">';
+                        Str+='<INPUT type="button" class="edit" onclick="DeleteNode('+Node.id+')" value="Del">';
+                    if(!Node.Name && Node.Active)
+                        Str+='<INPUT type="button" class="edit" onclick="AddBan('+Node.id+')" value="Ban">';
                     Str+="<BR>";
                 }
-                Str=Str.trim();
-                if(!Node || Node.Hot)
+
+                if(n<ColHotCount)
                 {
-                    if(cell && cell.innerHTML.trim()!==Str)
-                        cell.innerHTML=Str;
+                    var StrHot="";
+                    var cell=row.cells[n+1];
+                    if(Node && Node.Hot)
+                    {
+                        StrHot=Str.trim();
+                    }
+
+                    if(cell && cell.innerHTML.trim()!==StrHot)
+                        cell.innerHTML=StrHot;
                 }
-                else
+
+                if(Node && !Node.Hot && Node.Active)
                 {
                     StrOther+=Str;
+                }
 
+                if(Node && !Node.Active)
+                {
+                    StrConnect+=Str;
                 }
             }
-            cell=row.cells[9];
+            var cell=row.cells[9];
             StrOther=StrOther.trim();
             if(cell.innerHTML.trim()!==StrOther)
                 cell.innerHTML=StrOther;
 
-            //Other
-            for(var n=0;n<arr.length;n++)
-            {
-                var Node=arr[n];
-                if(!Node.Hot)
-                {
-
-                }
-            }
+            var cell=row.cells[10];
+            StrConnect=StrConnect.trim();
+            if(cell.innerHTML.trim()!==StrConnect)
+                cell.innerHTML=StrConnect;
 
 
         }
 
+        ViewInfo(CurNode);
+      }
+
+
+
+    function ViewInfo(Index,bSet)
+    {
+        if(Index!==undefined)
+        {
+            if(bSet)
+                CurNode=Index;
+
+            var Node=NodesArr[Index];
+            if(Node)
+            {
+                var Name;
+                if(Node.Name)
+                    Name=Node.Name;
+                else
+                    Name=Node.addrStr.substr(0,6);
+
+                var Info=Node.Info;
+                Node.Info=undefined;
+                var Str=JSON.stringify(Node,"",2);
+                Node.Info=Info;
+
+                SetInfo(escapeHtml(Name+"\n"+Str+"\n"+Node.Info));
+                return;
+            }
+            else
+                SetInfo("Not found");
+        }
     }
 
-
-    function EditNode(Index)
+    function AddConnect(Index)
     {
         var Node=NodesArr[Index];
         if(Node)
         {
-            SetStatus(Node.Name);
+            var Code='var Node=SERVER.NodesMap["'+Node.addrStr+'"]; Node.NextConnectDelta=1000; Node.CreateConnect();"OK"';
+            RunCode(Code);
         }
     }
 
@@ -156,7 +219,7 @@
         var Node=NodesArr[Index];
         if(Node)
         {
-            var Code='SERVER.AddToBan(FindNodeByAddr("'+Node.addrStr+'"),"=BAN=");';
+            var Code='var Node=SERVER.NodesMap["'+Node.addrStr+'"]; SERVER.AddToBan(Node,"=BAN=");"OK"';
             RunCode(Code);
         }
     }
@@ -165,7 +228,7 @@
         var Node=NodesArr[Index];
         if(Node)
         {
-            var Code='SERVER.StartAddLevelConnect(FindNodeByAddr("'+Node.addrStr+'"));';
+            var Code='var Node=SERVER.NodesMap["'+Node.addrStr+'"];Node.Stage=0; SERVER.StartAddLevelConnect(Node);"OK"';
             RunCode(Code);
         }
     }
@@ -174,7 +237,7 @@
         var Node=NodesArr[Index];
         if(Node)
         {
-            var Code='SERVER.DeleteNodeFromHot(FindNodeByAddr("'+Node.addrStr+'"));';
+            var Code='var Node=SERVER.NodesMap["'+Node.addrStr+'"]; SERVER.StartDisconnectHot(Node,"=DEL=",1);"OK"';
             RunCode(Code);
         }
     }
@@ -184,7 +247,7 @@
         {
             if(Data)
             {
-                SetStatus("Run ok");
+                SetStatus(Data.text);
             }
         });
     }
@@ -221,7 +284,7 @@
     window.onload=function()
     {
         UpdateData();
-        setInterval(UpdateData,2000);
+        setInterval(UpdateData,1000);
         //setTimeout(CheckDevelop,500);
 
         window.onkeydown = CheckCtrlEnter;
@@ -235,7 +298,8 @@
     {
         if(LoadValuesByArr(SaveIdArr))
         {
-
+            if(!$("idMaxNodesCount").value)
+                $("idMaxNodesCount").value=10;
         }
     }
     function SaveValues()
@@ -255,6 +319,7 @@
     {
         border-collapse: collapse;
         width:100%;
+        font-size: small;
     }
     .hot_nodes th, .hot_nodes td
     {
@@ -264,11 +329,39 @@
     .hot_nodes td:nth-child(1)
     {
         width: 30px;
+        text-align: center;
     }
 
     .hot_nodes td:nth-child(10)
     {
-        width: 300px;
+        width: 190px;
+    }
+    .hot_nodes td:nth-child(11)
+    {
+        width: 180px;
+    }
+
+    .mnode
+    {
+        width: 100px;
+        font-weight: 700;
+        font-size: 9pt;
+    }
+    .node
+    {
+        width: 100px;
+        font-size: 9pt;
+
+    }
+    .edit
+    {
+        width: 35px;
+        font-size: 9pt;
+    }
+    .connect
+    {
+        width: 60px;
+        font-size: 9pt;
     }
 
 </style>
@@ -277,28 +370,31 @@
 <body>
 
 <DIV align='center'>
-    <B>NETWORK</B>
-    <DIV id="idStatus"></DIV><BR>
+    <B>NETWORK</B><BR>
+    Max nodes in level: <INPUT type="number" id="idMaxNodesCount" style="width:80px" value="10" onchange="SaveValues()" onkeyup="SaveValues()">
+    <DIV id="idStatus" style="height: 20px;"></DIV><BR>
 
-    <DIV align='left' style="width: 1200px;height: 870px; border: 1px solid #bfc1c0;">
+    <DIV align='left' style="width: 1200px;height: 870px; float: left">
 
         <table id="grid_hot" class="hot_nodes">
             <tr>
-                <th>Level</th>
-                <th>Nodes...</th>
-                <th>---------</th>
-                <th>---------</th>
-                <th>---------</th>
-                <th>---------</th>
-                <th>---------</th>
-                <th>---------</th>
-                <th>---------</th>
-                <th>Other</th>
+                <th>LEVEL</th>
+                <th>Transfer 1</th>
+                <th>Transfer 2</th>
+                <th>Transfer 3</th>
+                <th>Transfer 4</th>
+                <th>Transfer 5</th>
+                <th>Transfer 6</th>
+                <th>Transfer 7</th>
+                <th>Transfer 8</th>
+                <th>Active</th>
+                <th>Not connected</th>
             </tr>
         </table>
 
 
     </DIV>
+    <DIV id="idNodeInfo" style="width: 300px; float: left; border: 0px solid #bfc1c0; text-align: left"></DIV>
 </DIV>
 
 </body>

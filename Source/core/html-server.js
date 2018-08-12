@@ -788,61 +788,58 @@ HTTPCaller.GetAccountKey=function (Num)
 HTTPCaller.GetHotArray=function ()
 {
     //Hot
-    var HotArr=[];
-    for(var Level=0;Level<SERVER.LevelNodes.length;Level++)
+    var ArrTree=SERVER.TransferTree;
+    if(!ArrTree)
+        return {result:0};
+
+    for(var Level=0;Level<ArrTree.length;Level++)
     {
-        var arr=SERVER.LevelNodes[Level];
-        HotArr[Level]=[];
-        for(var n=0;arr && n<arr.length;n++)
+        var arr=ArrTree[Level];
+        if(!arr)
+            continue;
+
+        arr.sort(SortNodeHot);
+        for(var n=0;n<arr.length;n++)
         {
-            var Node=arr[n];
-            if(Node)
-            {
-                Node.Hot=1;
-                var Node2=GetCopyNode(Node,Level);
-                HotArr[Level].push(Node2);
-            }
+            arr[n]=GetCopyNode(arr[n]);
         }
     }
 
-    //All
-    var arr=SERVER.GetActualNodes();
-    for(var n=0;arr && n<arr.length;n++)
-    {
-        var Node=arr[n];
-        if(!Node)
-            continue;
-        if(Node.Hot)
-            continue;
 
-        var Level=SERVER.AddrLevelNode(Node);
-        var Node2=GetCopyNode(Node,Level);
-        if(!HotArr[Level])
-            HotArr[Level]=[];
-
-        HotArr[Level].push(Node2);
-    }
-    for(var Level=0;Level<HotArr.length;Level++)
-    {
-        if(HotArr[Level])
-            HotArr[Level].sort(SortNode);
-    }
-    function SortNode(a,b)
+    function SortNodeHot(a,b)
     {
         if(b.Hot!==a.Hot)
             return b.Hot-a.Hot;
         if(b.BlockProcessCount!==a.BlockProcessCount)
             return b.BlockProcessCount-a.BlockProcessCount;
 
-        return a.DeltaTime-b.DeltaTime;
+        if(a.DeltaTime!==b.DeltaTime)
+            return a.DeltaTime-b.DeltaTime;
+
+        return a.id-b.id;
+
     }
 
-    return {result:1,HotArr:HotArr};
+
+    return {result:1,ArrTree:ArrTree};
 }
-function GetCopyNode(Node,Level)
+function GetCopyNode(Node)
 {
-    return {
-            Level:Level,
+    if(!Node)
+        return;
+
+    if(Node.Socket && Node.Socket.Info)
+    {
+        Node.Info+=Node.Socket.Info+"\n";
+        Node.Socket.Info="";
+    }
+    if(!Node.PrevInfo)
+        Node.PrevInfo="";
+
+    var Item=
+        {
+            Level:Node.Level,
+            VersionNum:Node.VersionNum,
             LevelCount:Node.LevelCount,
             ip:Node.ip,
             port:Node.port,
@@ -855,7 +852,11 @@ function GetCopyNode(Node,Level)
             Hot:Node.Hot,
             Stage:Node.Stage,
             id:Node.id,
+            Info:Node.PrevInfo+Node.Info,
+            InConnectArr:Node.WasAddToConnect,
         };
+
+    return Item;
 }
 
 

@@ -146,12 +146,12 @@ module.exports = class CTransport extends require("./connect")
         MethodTiming:
         {
             Map["STARTBLOCK"]=  {Period:1000, Hot:1};
-            Map["TRANSFER"]=    {Period:700, Hot:1};
+            Map["TRANSFER"]=    {Period:700,  Hot:1};
             Map["GETTRANSFER"]= {Period:1000, Hot:1};
             Map["CONTROLHASH"]= {Period:500,  Hot:1};
 
             Map["PING"]=        {Period:1000,LowVersion:1, Hard:1, Immediately:1};
-            Map["PONG"]=        {Period:0,   LowVersion:1, Immediately:1};
+            Map["PONG"]=        {Period:0,   LowVersion:1,         Immediately:1};
 
             Map["ADDLEVELCONNECT"]=     {Period:1000, Hard:1};
             Map["RETADDLEVELCONNECT"]=  {Period:0};
@@ -168,7 +168,7 @@ module.exports = class CTransport extends require("./connect")
             Map["GETBLOCK"]=            {Period:PERIOD_GET_BLOCK, Hard:2};
 
             Map["GETNODES"]=            {Period:1000, Hard:1, LowVersion:1, IsAddrList:1};
-            Map["RETGETNODES"]=         {Period:0, IsAddrList:1};
+            Map["RETGETNODES"]=         {Period:0,                          IsAddrList:1};
 
             Map["GETCODE"]=             {Period:10000, Hard:1, LowVersion:1};
             Map["EVAL"]=                {Period:10000, Hard:1};
@@ -771,7 +771,7 @@ module.exports = class CTransport extends require("./connect")
         {
             if(Param.Hard)
             {
-                if(Param.Immediately && this.HardPacketForSend.size===0)
+                if(Param.Immediately && this.HardPacketForSend.size<=3)
                 {
                     this.OnPacketTCP(Buf);
                 }
@@ -1217,7 +1217,9 @@ module.exports = class CTransport extends require("./connect")
                 Node.NextConnectDelta=1000;
                 Node.WaitConnectFromServer=0;
                 //Node.DirectIP=1;
-                ToLogNet("3. ******************** SERVER OK CONNECT  for client node: "+NodeInfo(Node)+" "+SocketInfo(Socket));
+                //ToLogNet("3. ******************** SERVER OK CONNECT  for client node: "+NodeInfo(Node)+" "+SocketInfo(Socket));
+                AddNodeInfo(Node,"3. SERVER OK CONNECT  for client node "+SocketInfo(Socket));
+
                 this.AddNodeToActive(Node);
                 Node.Socket=Socket;
                 SetSocketStatus(Socket,3);
@@ -1263,7 +1265,8 @@ module.exports = class CTransport extends require("./connect")
                 Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
 
 
-                ToLogNet("1. -------------------- SERVER OK POW for client node: "+NodeInfo(Node)+" "+SocketInfo(Socket));
+                //ToLogNet("1. -------------------- SERVER OK POW for client node: "+NodeInfo(Node)+" "+SocketInfo(Socket));
+                AddNodeInfo(Node,"1. SERVER OK POW for client node "+SocketInfo(Socket));
 
                 Node.FromIP=Info.FromIP;
                 Node.FromPort=Info.FromPort;
@@ -1319,7 +1322,9 @@ module.exports = class CTransport extends require("./connect")
 
 
             // 'connection' listener
-            ToLogNet("Client *"+SOCKET.ConnectID+" connected from "+SOCKET.remoteAddress+":"+SOCKET.remotePort);
+            //ToLogNet("Client *"+SOCKET.ConnectID+" connected from "+SOCKET.remoteAddress+":"+SOCKET.remotePort);
+            AddNodeInfo(SOCKET,"Client *"+SOCKET.ConnectID+" connected from "+SOCKET.remoteAddress+":"+SOCKET.remotePort,1);
+
             ADD_TO_STAT("ClientConnected");
 
             SOCKET.HashRND=crypto.randomBytes(32);
@@ -1367,11 +1372,12 @@ module.exports = class CTransport extends require("./connect")
             {
                 ADD_TO_STAT("ClientEnd");
 
+                var Node=SOCKET.Node;
                 var Status=GetSocketStatus(SOCKET);
                 if(Status)
-                    ToLogNet("Get socket end *"+SOCKET.ConnectID+" from client Stat: "+SocketStatistic(SOCKET));
+                    //ToLogNet("Get socket end *"+SOCKET.ConnectID+" from client Stat: "+SocketStatistic(SOCKET));
+                    AddNodeInfo(Node,"Get socket end *"+SOCKET.ConnectID+" from client Stat: "+SocketStatistic(SOCKET));
 
-                var Node=SOCKET.Node;
                 if(Node && Status===200)
                 {
                     Node.SwapSockets();
@@ -1384,7 +1390,9 @@ module.exports = class CTransport extends require("./connect")
                 ADD_TO_STAT("ClientClose");
 
                 if(SOCKET.ConnectID && GetSocketStatus(SOCKET))
-                    ToLogNet("Get socket close *"+SOCKET.ConnectID+" from client Stat: "+SocketStatistic(SOCKET));
+                    //ToLogNet("Get socket close *"+SOCKET.ConnectID+" from client Stat: "+SocketStatistic(SOCKET));
+                    AddNodeInfo(SOCKET.Node,"Get socket close *"+SOCKET.ConnectID+" from client Stat: "+SocketStatistic(SOCKET));
+
 
                 if(!SOCKET.WasClose && SOCKET.Node)
                 {
@@ -1513,14 +1521,16 @@ module.exports = class CTransport extends require("./connect")
 
     CLOSE_SOCKET(Context,CurTime)
     {
-        ToLogNet("GET CLOSE_SOCKET *"+Context.Socket.ConnectID+": "+Context.Data.toString())
+        //ToLogNet("GET CLOSE_SOCKET *"+Context.Socket.ConnectID+": "+Context.Data.toString())
+        AddNodeInfo(Context.Socket.Node,"GET CLOSE_SOCKET *"+Context.Socket.ConnectID+": "+Context.Data.toString());
         CloseSocket(Context.Socket,"CLOSE_SOCKET");
     }
 
     SendCloseSocket(Socket,Str)
     {
         //var address=Socket.address();
-        ToLogNet("CLOSE_SOCKET "+SocketInfo(Socket)+" - "+Str);
+        //ToLogNet("CLOSE_SOCKET "+SocketInfo(Socket)+" - "+Str);
+        AddNodeInfo(Socket.Node,"CLOSE_SOCKET "+SocketInfo(Socket)+" - "+Str);
         if(Socket.WasClose)
         {
             return;
@@ -1533,7 +1543,8 @@ module.exports = class CTransport extends require("./connect")
         }
         else
         {
-            ToLogNet("END *"+Socket.ConnectID+": "+Str)
+            //ToLogNet("END *"+Socket.ConnectID+": "+Str)
+            AddNodeInfo(Socket.Node,"END *"+Socket.ConnectID+": "+Str);
             Socket.end(this.GetBufFromData("CLOSE_SOCKET",Str,2));
         }
         CloseSocket(Socket,Str);
