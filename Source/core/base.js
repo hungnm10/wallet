@@ -75,7 +75,7 @@ module.exports = class CCommon
         var BufMap={},BufMap2={};
         var arr=SERVER.GetActualNodes();
         var Count=0,CountHot=0,CountHotOK=0,CountActualOK=0,SumDeltaHot=0,SumDeltaActual=0,CountCP=0,CountLH=0,CountHash=0,CountVer=0,CountStop=0;
-        var CountEqAddr=0,CountCorrTime=0,NoCountCorrTime=0;
+        var CountActive=0,SumAvgDeltaTime=0;
         for(var i=0;i<arr.length;i++)
         {
             var Node=arr[i];
@@ -96,15 +96,13 @@ module.exports = class CCommon
             if(Node.StopGetBlock)
                 CountStop++;
 
-            if(Node.Socket && Node.Socket.remoteAddress===Node.ip)
-                CountEqAddr++;
 
 
-            if(INFO.AutoCorrectTime)
-                CountCorrTime++;
-            else
-            if(Node.VersionNum>=271 && !Node.IsAddrList)
-                NoCountCorrTime++;
+            if(Node.Active)
+            {
+                CountActive++;
+                SumAvgDeltaTime+=Node.DeltaGlobTime;
+            }
 
 
             Count++;
@@ -141,7 +139,10 @@ module.exports = class CCommon
             }
         }
 
-        ADD_TO_STAT("MAX:ACTUAL_NODES",Count);
+        var CountAll=SERVER.NodesArr.length;
+
+        ADD_TO_STAT("MAX:ALL_NODES",CountAll);
+        ADD_TO_STAT("MAX:CONNECTED_NODES",Count);
         ADD_TO_STAT("MAX:HOT_NODES",CountHot);
         ADD_TO_STAT("MAX:HOT_OK",CountHotOK);
         ADD_TO_STAT("MAX:ACTUAL_OK",CountActualOK);
@@ -151,12 +152,12 @@ module.exports = class CCommon
         ADD_TO_STAT("MAX:MIN_VERSION",CountVer);
         ADD_TO_STAT("MAX:STOP_GET",CountStop);
 
-        //ADD_TO_STAT("MAX:COUNT_EQ_ADDR",CountEqAddr);
         ADD_TO_STAT("MAX:TIME_DELTA",DELTA_CURRENT_TIME);
-        ADD_TO_STAT("MAX:AUTO_CORRECT_TIME",CountCorrTime);
 
-        //ADD_TO_STAT("MAX:NO_AUTO_CORRECT_TIME",NoCountCorrTime);
 
+        if(!CountActive)
+            CountActive=1;
+        ADD_TO_STAT("MAX:DELTA_GLOB_TIME",SumAvgDeltaTime/CountActive);
 
 
 

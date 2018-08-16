@@ -24,6 +24,7 @@
 <!--<script type="text/javascript" src="../HTML/JS/crypto-client.js"></script>-->
 
 <script>
+    var MaxChildCount=7;//MAX_CONNECT_CHILD
     var SaveIdArr=["idMaxNodesCount"];
     var NodesArr=[];
     var CurNode;
@@ -34,22 +35,41 @@
         id.innerHTML=Str;
     }
 
+    var WasSetName;
+    var WasSetProperty;
     var WasSetInfo;
-    function SetInfo(Str)
+    function SetInfo(Name,StrProperty,StrInfo)
     {
-        var id = $("idNodeInfo");
-
-        if(WasSetInfo!==Str)
+        var id;
+        if(WasSetName!==Name)
         {
-            WasSetInfo=Str;
-            id.innerHTML=Str;
+            WasSetName=Name;
+            id = $("idNodeName");
+            id.innerHTML="<B>"+Name+"</B>";
         }
+
+        if(WasSetProperty!==StrProperty)
+        {
+            WasSetProperty=StrProperty;
+            id = $("idNodeProperty");
+            id.value=StrProperty;
+        }
+
+        if(WasSetInfo!==StrProperty)
+        {
+            WasSetInfo=StrProperty;
+            id = $("idNodeLog");
+            id.value=StrInfo;
+        }
+
     }
 
 
     function UpdateData()
     {
-        GetData("/GetHotArray", function (Data)
+        var CountBlock=ParseNum($("idCountBlock").value);
+
+        GetData("/GetHotArray",{CountBlock:CountBlock}, function (Data)
         {
             if(Data && Data.result)
             {
@@ -68,7 +88,6 @@
         }
         var map=htmlTable.ItemsMap;
 
-        var ColHotCount=8;
         var MaxNode=ParseNum($("idMaxNodesCount").value);
 
         //Hot
@@ -86,30 +105,37 @@
                 row=htmlTable.insertRow(-1);
                 map[Level]=row;
 
-                for(var n=0;n<ColHotCount+3;n++)
+                for(var n=0;n<MaxChildCount+3;n++)
                 {
                     row.insertCell(n);
                 }
+                row.MaxRows=2;
             }
             row.cells[0].innerText=1+Level;
-            var StrOther="";
             var StrConnect="";
+            var StrActive="";
 
 
-            var length=Math.max(ColHotCount,arr.length)
+            var CountNodesA=0;
+            var CountNodesC=0;
+            var length=Math.max(MaxChildCount,arr.length)
             length=Math.min(length,MaxNode);
             for(var n=0;n<length;n++)
             {
                 var Node=undefined;
                 var Str="";
+                var Name="";
                 if(n<arr.length)
                 {
                     Node=arr[n];
+
+
                     NodesArr[Node.id]=Node;
                     if(Node.Name)
-                        Str+=Node.Name;
+                        Name=Node.Name;
                     else
-                        Str+=Node.addrStr.substr(0,6);
+                        Name=Node.addrStr.substr(0,6);
+                    Str+=Name;
 
                     Str+="="+Node.BlockProcessCount+" ";
                     if(Node.Name)
@@ -117,7 +143,7 @@
                     else
                         strClass="node";
 
-                    Str='<INPUT type="button" class="'+strClass+'" onclick="ViewInfo('+Node.id+',1)" value="'+Str+'">';
+                    Str='<INPUT type="button" id="N'+Node.id+'" class="'+strClass+'" onclick="ViewInfo('+Node.id+',1)" value="'+Str+'">';
 
                     if(Node.Hot)
                         Str+="<BR>";
@@ -134,38 +160,93 @@
                     Str+="<BR>";
                 }
 
-                if(n<ColHotCount)
+                if(n<MaxChildCount)
                 {
-                    var StrHot="";
                     var cell=row.cells[n+1];
                     if(Node && Node.Hot)
                     {
-                        StrHot=Str.trim();
+                        var id=$("S"+Node.id);
+                        if(!id || cell.NodeID!==Node.id)
+                        {
+                            var Stat="<DIV id='S"+Node.id+"'></DIV>";
+                            cell.innerHTML=Stat+Str;
+                            cell.NodeID=Node.id;
+                            id=$("S"+Node.id);
+                        }
+                        var StrTransfer,StrDelta,StrGetTiming;
+                        if(Node.TransferCount>1000)
+                        {
+                            StrTransfer="<B>"+Node.TransferCount+"</B>";
+                        }
+                        else
+                        {
+                            StrTransfer=Node.TransferCount;
+                        }
+                        StrDelta=Node.DeltaTime;
+//                        if(Node.DeltaTime<100)
+//                        {
+//                            StrDelta="<B style='color:#1727ff'>"+Node.DeltaTime+"</B>";
+//                        }
+//                        else
+//                        {
+//                            StrDelta=Node.DeltaTime;
+//                        }
+                        if(Node.GetTiming>2)
+                            StrGetTiming="<B style='color:red'>"+Node.GetTiming+"</B>";
+                        else
+                        if(Node.GetTiming>1)
+                            StrGetTiming="<B style='color:#df7a59'>"+Node.GetTiming+"</B>";
+                        else
+                            StrGetTiming="<B style='color:#1727ff'>"+Node.GetTiming+"</B>";
+
+                        var Str=
+                            "Transfer:"+StrTransfer+"<BR>"+
+                            "Process:"+Node.BlockProcessCount+"<BR>"+
+                            "Time:"+StrGetTiming+"<BR>"+
+                            "Delta:"+StrDelta;
+
+                        id.innerHTML=Str;
                     }
-
-                    if(cell && cell.innerHTML.trim()!==StrHot)
-                        cell.innerHTML=StrHot;
-                }
-
-                if(Node && !Node.Hot && Node.Active)
-                {
-                    StrOther+=Str;
+                    else
+                    {
+                        cell.innerHTML="";
+                    }
                 }
 
                 if(Node && !Node.Active)
                 {
+                    CountNodesC++;
                     StrConnect+=Str;
                 }
+                if(Node && !Node.Hot && Node.Active)
+                {
+                    CountNodesA++;
+                    StrActive+=Str;
+                }
             }
-            var cell=row.cells[9];
-            StrOther=StrOther.trim();
-            if(cell.innerHTML.trim()!==StrOther)
-                cell.innerHTML=StrOther;
 
-            var cell=row.cells[10];
-            StrConnect=StrConnect.trim();
-            if(cell.innerHTML.trim()!==StrConnect)
+            row.MaxRows=Math.max(row.MaxRows,CountNodesA,CountNodesC);
+            for(var i=CountNodesC;i<row.MaxRows;i++)
+            {
+                StrConnect+="<DIV class='node'></DIV>"
+            }
+
+            if(row.StrActive!==StrActive)
+            {
+                var cell=row.cells[MaxChildCount+1];
+                row.StrActive=StrActive;
+                cell.innerHTML=StrActive;
+            }
+
+
+            if(row.StrConnect!==StrConnect)
+            {
+                var cell=row.cells[MaxChildCount+2];
+                row.StrConnect=StrConnect;
                 cell.innerHTML=StrConnect;
+            }
+
+
 
 
         }
@@ -196,11 +277,11 @@
                 var Str=JSON.stringify(Node,"",2);
                 Node.Info=Info;
 
-                SetInfo(escapeHtml(Name+"\n"+Str+"\n"+Node.Info));
-                return;
+                SetInfo(Name,Str,Info);
+                //SetInfo(escapeHtml(Name+"\n"+Str+"\n"+Node.Info));
             }
             else
-                SetInfo("Not found");
+                SetInfo("Not found","","");
         }
     }
 
@@ -228,7 +309,7 @@
         var Node=NodesArr[Index];
         if(Node)
         {
-            var Code='var Node=SERVER.NodesMap["'+Node.addrStr+'"];Node.Stage=0; SERVER.StartAddLevelConnect(Node);"OK"';
+            var Code='var Node=SERVER.NodesMap["'+Node.addrStr+'"]; SERVER.StartAddLevelConnect(Node);"OK"';
             RunCode(Code);
         }
     }
@@ -326,19 +407,27 @@
         border: 1px solid #264378;
         padding: 4px;
     }
+    .hot_nodes td
+    {
+        width: 100px;
+        text-align: left;
+        padding: 1px;
+    }
+
     .hot_nodes td:nth-child(1)
     {
-        width: 30px;
+        width: 20px;
         text-align: center;
     }
 
+
+    .hot_nodes td:nth-child(9)
+    {
+        width: 170px;
+    }
     .hot_nodes td:nth-child(10)
     {
-        width: 190px;
-    }
-    .hot_nodes td:nth-child(11)
-    {
-        width: 180px;
+        width: 160px;
     }
 
     .mnode
@@ -346,12 +435,13 @@
         width: 100px;
         font-weight: 700;
         font-size: 9pt;
+        height: 20px;
     }
     .node
     {
         width: 100px;
         font-size: 9pt;
-
+        height: 20px;
     }
     .edit
     {
@@ -363,6 +453,31 @@
         width: 60px;
         font-size: 9pt;
     }
+    #idNodeBlock
+    {
+        position: fixed;
+        top: 10px;
+        left: 1200px;
+        width: 650px;
+        height: 920px;
+        font-size: 11pt;
+    }
+    #idNodeName
+    {
+        height: 20px;
+        width: 100%;
+        text-align: center;
+    }
+    #idNodeProperty
+    {
+        height: 280px;
+        width: 100%;
+    }
+    #idNodeLog
+    {
+        height: 600px;
+        width: 100%;
+    }
 
 </style>
 
@@ -371,22 +486,23 @@
 
 <DIV align='center'>
     <B>NETWORK</B><BR>
-    Max nodes in level: <INPUT type="number" id="idMaxNodesCount" style="width:80px" value="10" onchange="SaveValues()" onkeyup="SaveValues()">
+    Max nodes on level: <INPUT type="number" id="idMaxNodesCount" style="width:80px" value="10" onchange="SaveValues()" onkeyup="SaveValues()">
+    <INPUT type="number" id="idCountBlock" style="width:80px" value="4">
+
     <DIV id="idStatus" style="height: 20px;"></DIV><BR>
 
-    <DIV align='left' style="width: 1200px;height: 870px; float: left">
+    <DIV align='left' style="width: 1190px;height: 870px; float: left">
 
         <table id="grid_hot" class="hot_nodes">
             <tr>
-                <th>LEVEL</th>
-                <th>Transfer 1</th>
-                <th>Transfer 2</th>
-                <th>Transfer 3</th>
-                <th>Transfer 4</th>
-                <th>Transfer 5</th>
-                <th>Transfer 6</th>
-                <th>Transfer 7</th>
-                <th>Transfer 8</th>
+                <th>L</th>
+                <th class="mnode">Node1</th>
+                <th class="mnode">Node2</th>
+                <th class="mnode">Node3</th>
+                <th class="mnode">Node4</th>
+                <th class="mnode">Node5</th>
+                <th class="mnode">Node6</th>
+                <th class="mnode">Node7</th>
                 <th>Active</th>
                 <th>Not connected</th>
             </tr>
@@ -394,7 +510,13 @@
 
 
     </DIV>
-    <DIV id="idNodeInfo" style="width: 300px; float: left; border: 0px solid #bfc1c0; text-align: left"></DIV>
+    <DIV id="idNodeBlock" style="float: left; border: 0px solid #bfc1c0; text-align: left">
+            <DIV id="idNodeName"></DIV>
+            <textarea rows="5" cols="250"  id="idNodeProperty" style="width: 99%;">
+            </textarea>
+            <textarea rows="5" cols="250"  id="idNodeLog" style="width: 99%;">
+            </textarea>
+    </DIV>
 </DIV>
 
 </body>

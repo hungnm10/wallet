@@ -524,7 +524,7 @@ global.GetDeltaCurrentTime=function ()
 
 
 //Date time
-global.GetUTCStrTime=function (now)
+global.GetStrTimeUTC=function (now)
 {
     if(!now)
         now = GetCurrentTime();
@@ -534,21 +534,20 @@ global.GetUTCStrTime=function (now)
     Str=Str+" "+now.getUTCHours();
     Str=Str+":"+now.getUTCMinutes();
     Str=Str+":"+now.getUTCSeconds();
-    Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
+    //Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
     return Str;
 }
 
-global.GetTimeStr=global.GetUTCStrTime;
 
-global.GetTimeOnlyStr=function (now)
+global.GetStrOnlyTimeUTC=function (now)
 {
     if(!now)
         now = GetCurrentTime();
     var Str;
-    Str=""+now.getUTCHours();
-    Str=Str+":"+now.getUTCMinutes();
-    Str=Str+":"+now.getUTCSeconds();
-    Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
+    Str=""+now.getUTCHours().toStringZ(2);
+    Str=Str+":"+now.getUTCMinutes().toStringZ(2);
+    Str=Str+":"+now.getUTCSeconds().toStringZ(2);
+    //Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
     return Str;
 }
 

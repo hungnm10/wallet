@@ -35,6 +35,10 @@ class DApp
         return "";
     }
 
+    ClearDataBase()
+    {
+
+    }
 
 
     //EVENTS

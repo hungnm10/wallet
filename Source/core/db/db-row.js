@@ -119,6 +119,7 @@ module.exports = class CDBState extends require("./db")
         }
         catch (e)
         {
+            ToLog("DBROW:"+e);
             return undefined;
         }
 

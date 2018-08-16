@@ -240,53 +240,6 @@ module.exports = class CMessages extends require("./transaction-validator")
     //TRANSACTION
 
 
-    __AddTransactionKeyValue(Key,Value,nonce,bHashKey,Num)
-    {
-        Key = Key || "";
-        Value = Value || "";
-        if(typeof Key!=="string" || typeof Value!=="string" || typeof nonce!=="number")
-            return ({
-                result:0,
-                error:"Bad params"
-            });
-
-        var arrkey,arrval;
-        if(bHashKey)
-            arrkey=shaarr(Key);
-        else
-        {
-            arrkey=Buffer.alloc(32);
-            arrkey.write(Key,0,32);
-        }
-
-        arrval=Buffer.alloc(32);
-        arrval.write(Value,0,32);
-
-
-        var body=[];
-        body[0]=0;  //smart-contract number 0
-        body[64]=0;
-        for(var i=0;i<32;i++)
-        {
-            body[i+1]=arrkey[i];
-            body[i+33]=arrval[i];
-        }
-
-        var Tr=
-            {
-                body:body,
-                nonce:nonce,
-                num:Num
-            };
-
-        var res=this.AddTransaction(Tr);
-
-        return ({
-            result:res,
-            key:GetHexFromAddres(arrkey),
-            value:Value
-        });
-    }
 
     AddTransaction(Tr)
     {
@@ -334,6 +287,10 @@ module.exports = class CMessages extends require("./transaction-validator")
 
     SendTransaction(Tr)
     {
+        return;
+
+        //this code only for gray connect mode?
+
         var CurTime=GetCurrentTime(0)-0;
 
         //отправляем транзакцию всем нодам

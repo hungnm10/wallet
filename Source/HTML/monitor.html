@@ -434,14 +434,15 @@
             {name:"MAX:BUSY_LEVEL",text:"BUSY_LEVEL",value:0,red:"#ff353b"},
             {name:"STOP_METHOD",text:"STOP_METHOD",value:0,red:"#8a3d74"},
             {name:"AddToBan",text:"AddToBan",value:0,red:"#8a3d74"},
+            {name:"TRANSFER_TIME_OUT",text:"TRANSFER TIME OUT, count",value:0,red:"#ff353b"},
             {name:"NETCONFIGURATION",text:"NETCONFIGURATION",value:0,red:"#8a5663"},
 
 
-            {name:"MAX:ACTUAL_NODES",text:"Nodes count",value:0,red:"#83a3d6"},
+            {name:"MAX:ALL_NODES",text:"All nodes count",value:0,red:"#83a3d6"},
+            {name:"MAX:CONNECTED_NODES",text:"Connected nodes count",value:0,red:"#516e80"},
             {name:"MAX:HASH_OK",text:"Block chain Hash = OK",value:0,red:"#2b6311"},
 
             {name:"MAX:HOT_NODES",text:"TRANSFER nodes, count",value:0,red:"#063c8a"},
-            {name:"TRANSFER_TIME_OUT",text:"TRANSFER TIME OUT, count",value:0,red:"#ff353b"},
 
 
 
@@ -459,13 +460,14 @@
     var DiagramArrD=
         [
 
-            {name:"MAX:TIME_DELTA",text:"TIME_DELTA",value:0,red:"#729b67"},
-            //{name:"MAX:NO_AUTO_CORRECT_TIME",text:"NO_AUTO_CORRECT_TIME",value:0,red:"#39519b"},
+            {name:"MAX:DELTA_GLOB_TIME",text:"DELTA_GLOB_TIME",value:0,red:"#8b7a9b"},
+            {name:"MAX:TIME_DELTA",text:"TIME_DELTA",value:0,red:"#4d989b"},
 
             {name:"MAX:BUSY_LEVEL",text:"BUSY_LEVEL",value:0,red:"#ff353b"},
             {name:"STOP_METHOD",text:"STOP_METHOD",value:0,red:"#8a3c40"},
 
             {name:"AddToBan",text:"AddToBan",value:0,red:"#8a3d74"},
+            {name:"TRANSFER_TIME_OUT",text:"TRANSFER TIME OUT, count",value:0,red:"#ff353b"},
             {name:"NETCONFIGURATION",text:"NETCONFIGURATION",value:0,red:"#8a5663"},
 
 
@@ -498,7 +500,10 @@
 
             //{name:"MAX:COUNT_EQ_ADDR",text:"COUNT_EQ_ADDR",value:0,red:"#8a5663"},
 
-            {name:"MAX:ACTUAL_NODES",text:"Nodes count",value:0,red:"#83a3d6"},
+
+
+            {name:"MAX:ALL_NODES",text:"All nodes count",value:0,red:"#83a3d6"},
+            {name:"MAX:CONNECTED_NODES",text:"Connected nodes count",value:0,red:"#516e80"},
             {name:"MAX:MIN_VERSION",text:"MAX:MIN_VERSION",value:0,red:"#99eeff"},
             {name:"MAX:HASH_OK",text:"Block chain Hash = OK",value:0,red:"#2b6311"},
             {name:"MAX:CHECK_POINT_OK",text:"Check point = OK",value:0,red:"#356361"},
@@ -508,7 +513,6 @@
 
 
             {name:"MAX:HOT_NODES",text:"TRANSFER nodes, count",value:0,red:"#063c8a"},
-            {name:"TRANSFER_TIME_OUT",text:"TRANSFER TIME OUT, count",value:0,red:"#ff353b"},
 
 
             //{name:"MAX:HOT_OK",text:"TRANSFER Accounts Hash - OK",value:0,red:"#2b6311"},
@@ -1043,9 +1047,10 @@
         var Count=ParseNum(document.getElementById("idBlockCount").value);
         var Miner=ParseNum(document.getElementById("idMiner").value);
         var Adviser=ParseNum(document.getElementById("idAdviser").value);
+        var bNonce=document.getElementById("idNonce").checked;
 
 
-        GetData("/GetBlockchainStat",{BlockNum:BlockNum,Count:Count,Miner:Miner,Adviser:Adviser}, function (Data)
+        GetData("/GetBlockchainStat",{BlockNum:BlockNum,Count:Count,Miner:Miner,Adviser:Adviser,bNonce:bNonce}, function (Data)
         {
             if(Data && Data.result)
             {
@@ -1056,6 +1061,16 @@
                 ItemClient.steptime=Data.steptime;
                 ItemClient.startnumber=BlockNum;
 
+                var bNonce=document.getElementById("idNonce").checked;
+                if(bNonce)
+                {
+                    var arr=ItemClient.arr;
+                    for(var i=0;i<arr.length;i++)
+                    {
+                        arr[i]=arr[i]/10000000;
+                    }
+
+                }
                 DrawDiagram(ItemClient);
             }
         });
@@ -1123,6 +1138,8 @@
     <DIV style="text-align: center;">Blockchain Power</DIV>
     Adviser:<INPUT type="search" id="idAdviser" style="width:50px" value="0">
     Miner:<INPUT type="search" id="idMiner" style="width:50px" value="0">
+    Nonce:<INPUT type="checkbox" id="idNonce" style="margin:1px" value="0">
+
     Block start:<INPUT type="number" id="idBlockNum" style="width:80px" value="0"> length:<INPUT type="number" id="idBlockCount" style="width:80px" value="100">
     <INPUT type="button" onclick="GetBlockchainPrev()" value="Prev">
     <INPUT type="button" onclick="GetBlockchainNext()" value="Next">

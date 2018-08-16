@@ -60,7 +60,7 @@
     var SaveIdArr=["idAccount","idTo","idSumTER","idDescription","idSelStyle",
         "idViewAccountNum","idViewBlockNum","idViewHistoryNum","idViewActNum","idViewHashNum","idWalletPow",
         "idRunText","idViewAccountFilter","idViewHistoryFilter","idUseSoundHistory",
-        "idBlockNum","idBlockNumEnd"];
+        "idBlockCount"];
     var LoadMapAfter={};
 
 
@@ -858,87 +858,48 @@
 
     //UTIL
 
-    function CleanChain()
-    {
-        SaveValues();
-
-        var BlockNum=ParseNum(document.getElementById("idBlockNum").value);
-        if(!BlockNum)
-        {
-            SetError("The block number must be more then 0");
-            return;
-        }
-
-
-        SetVisibleBlock("idServerBlock",1);
-        SetStatus("Start clean chain: "+BlockNum);
-
-        GetData("/CleanChain",BlockNum, function (Data)
-        {
-            if(Data && Data.result)
-            {
-                SetStatus("Clean completed ");
-            }
-        });
-    }
     function RewriteTransactions()
     {
-        var BlockNum=ParseNum(document.getElementById("idBlockNum").value);
-        if(!BlockNum)
-        {
-            SetError("The block number must be more then 0");
-            return;
-        }
-
-        var EndNum=ParseNum(document.getElementById("idBlockNumEnd").value);
-        if(!EndNum)
-            EndNum=MaxBlockNum;
-
-        SetVisibleBlock("idServerBlock",1);
-        SetStatus("Start rewrite transactions from: "+BlockNum+" to: "+EndNum);
-
-        GetData("/RewriteTransactions",{StartNum:BlockNum,EndNum:EndNum}, function (Data)
-        {
-            if(Data && Data.result)
-            {
-                SetStatus("Rewriting completed ");
-            }
-        });
-    }
-    function CheckBlocks()
-    {
-        var BlockNum=ParseNum(document.getElementById("idBlockNum").value);
-        if(!BlockNum)
-        {
-            SetError("The block number must be more then 0");
-            return;
-        }
-
-        SetVisibleBlock("idServerBlock",1);
-        SetStatus("Start CheckBlocks from: "+BlockNum);
-
-        GetData("/CheckBlocks",BlockNum, function (Data)
-        {
-            if(Data && Data.result)
-            {
-                SetStatus("CheckBlocks completed");
-            }
-        });
+        DoBlockChainProcess("RewriteTransactions","Rewrite transactions on last %1 blocks",1);
     }
 
     function TruncateBlockChain()
     {
-        var BlockNum=ParseNum(document.getElementById("idBlockNum").value);
-        if(!BlockNum)
+        DoBlockChainProcess("TruncateBlockChain","Truncate last %1 blocks",1);
+    }
+    function ClearDataBase()
+    {
+        DoBlockChainProcess("ClearDataBase","Clear DataBase",0);
+    }
+    function CleanChain()
+    {
+        DoBlockChainProcess("CleanChain","Clean chain on last %1 blocks",1);
+    }
+
+    function DoBlockChainProcess(FuncName,Text,LastBlock)
+    {
+        SaveValues();
+
+        var Params={};
+        if(LastBlock)
         {
-            SetError("The block number must be more then 0");
-            return;
+            Params.BlockCount=ParseNum(document.getElementById("idBlockCount").value);
+            Text=Text.replace("%1",Params.BlockCount);
         }
-        GetData("/TruncateBlockChain/"+BlockNum,function (Data)
+        var result = confirm(Text+"?");
+        if(!result)
+            return;
+
+
+        SetVisibleBlock("idServerBlock",1);
+        SetStatus("START: "+Text);
+
+
+        GetData("/"+FuncName,Params, function (Data)
         {
-            if(Data && Data.result===1)
+            if(Data)
             {
-                SetStatus(Data.text);
+                SetStatus("FINISH: "+Text,!Data.result);
             }
         });
     }
@@ -1912,7 +1873,7 @@
             AutoDelta=-AutoDelta;
             Data.bAddTime=0;
         }
-        Data.DeltaTime=50;
+        Data.DeltaTime=40;
         Data.StartBlockNum=(ServerCurBlockNum+100)-ServerCurBlockNum%100;
         Data.EndBlockNum=Data.StartBlockNum+Math.trunc(AutoDelta/Data.DeltaTime);
 
@@ -2615,6 +2576,7 @@
                     <th id="Item.ID" class="num">Account</th>
                     <th id="Item.Mode">Mode</th>
                     <th id="(RetOpenBlock(Item.BlockNum,1))" class="num">Block</th>
+                    <th id="Item.TrNum" class="num">TrNum</th>
                     <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
 
                     <th id="Item.PrevValue.OperationID" class="num">Prev. Operation</th>
@@ -2651,10 +2613,10 @@
             <HR>
             <DIV id="view_header" >UTILITES<BR></DIV>
 
-            Operation with Block number:<INPUT type="number" id="idBlockNum" onchange = "SaveValues()" value="0"> - <INPUT type="number" id="idBlockNumEnd" onchange = "SaveValues()" value="0"><BR>
-            <INPUT type="button" onclick="RewriteTransactions()"  class="bt btdoit btlong" value="Rewrite Transactions">
-            <INPUT type="button" onclick="CheckBlocks()"  class="bt btdoit btlong" value="Check Blocks">
-            <INPUT type="button" onclick="TruncateBlockChain()" class="btdoit btlong bt" value="Truncate chain <!>">
+            Number of blocks in depth:<INPUT type="number" id="idBlockCount" onchange = "SaveValues()" value="0"><BR>
+            <INPUT type="button" onclick="RewriteTransactions()"  class="bt btdoit btlong" value="Rewrite transactions">
+            <INPUT type="button" onclick="TruncateBlockChain()" class="btdoit btlong bt" value="Truncate chain">
+            <INPUT type="button" onclick="ClearDataBase()" class="btdoit btlong bt" value="Clear DataBase <!>">
 
 
 

@@ -579,12 +579,12 @@ global.GetStrTime=function (now)
 
 global.GetStrOnlyTime=function (now)
 {
-    now = now || GetCurrentTime(0);
+    now = now || GetCurrentTime();
 
     var Str=""+now.getHours().toStringZ(2);
     Str=Str+":"+now.getMinutes().toStringZ(2);
     Str=Str+":"+now.getSeconds().toStringZ(2);
-    //Str=Str+"."+now.getMilliseconds().toStringZ(3);
+    Str=Str+"."+now.getMilliseconds().toStringZ(3);
     return Str;
 }
 

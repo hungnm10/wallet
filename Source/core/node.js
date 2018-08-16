@@ -11,7 +11,6 @@ require("./library.js");
 const RBTree = require('bintrees').RBTree;
 const net=require("net");
 
-global.MAX_WAIT_PERIOD_FOR_STATUS=10000;
 
 var ConnectIDCount=1;
 
@@ -31,15 +30,10 @@ module.exports = class CNode
         this.FirstTimeStr="";
         this.LastTime=0;
         this.LastTimeError=0;
-
         this.LastTimeTransfer=0;
-        this.StartTimeConnect=0;
-        this.StartTimeHot=0;
 
 
-        this.DeltaTime=1000;
-        this.SumDeltaTime=0;
-        this.CountDeltaTime=0;
+
 
         //this.TryConnectCount=0;
         //this.DirectIP=0;
@@ -48,8 +42,7 @@ module.exports = class CNode
 
         this.Active=false;
         this.Hot=false;
-        this.Stage=0;
-        this.CanHot=false;
+         this.CanHot=false;
 
         this.CountChildConnect=0;
 
@@ -66,14 +59,24 @@ module.exports = class CNode
         this.Info="";
         this.PrevInfo="";
 
+        this.StartTimeHot=0;
+        this.NextHotDelta=1000;
+
         this.ResetNode();
     }
 
 
     ResetNode()
     {
+        this.DeltaGlobTime=0;
+        this.CountDeltaTime=0;
+        this.DeltaTime=1000;
+        this.SumDeltaTime=0;
+
+        this.TransferCount=0;
         this.StopGetBlock=0;
         this.LevelCount=0;
+        this.LevelEnum=100;
 
         this.TimeMap={};
 
@@ -82,10 +85,11 @@ module.exports = class CNode
 
         this.DoubleConnectCount=0;
 
-        this.ConnectStart=0
+        this.StartTimeConnect=0
         this.NextConnectDelta=1000;
-        this.GetNodesStart=0
+        this.StartTimeGetNodes=0
         this.NextGetNodesDelta=1000;
+
 
         this.PingStart=0;
         this.NextPing=1000;
@@ -120,33 +124,13 @@ module.exports = class CNode
 
 
         this.ErrCount=0;
+        this.ErrCountAll=0;
+
+
         var Prioritet=this.BlockProcessCount;
         SERVER.SetNodePrioritet(this,Prioritet);
 
         this.SendPacketNum=0;
-        this.LoadPacketNum=0;
-
-        this.MaxSendProof=0;
-        this.PrevMaxSendProof=0;
-        this.SendFragmentH=0;
-        this.SendFragmentL=0;
-        this.FragmentOverflow=0;
-        this.LimitFragmentLightSend=0;
-        this.LimitFragmentHardSend=0;
-        this.SkipFragmentLightSend=0;
-        this.SkipFragmentHardSend=0;
-
-
-        if(this.addrArr && !IsZeroArr(this.addrArr))
-            this.addrStr=GetHexFromArr(this.addrArr),
-
-
-            this.Flood=
-            {
-                Count:1,
-                MaxCount:MAX_CONNECTION_ACTIVE,
-                Time:GetCurrentTime(0)
-            };
 
     }
 
@@ -448,7 +432,7 @@ module.exports = class CNode
 
         if(!Node.StartFindList && addrStr!==Node.addrStr)
         {
-            Node.Delete=1;
+            //Node.Delete=1;
             ToLog("END: CHANGED ADDR: "+Node.addrStr.substr(0,16)+"->"+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
             SERVER.SendCloseSocket(Socket,"ADDRESS_HAS_BEEN_CHANGED");
             return;
@@ -637,6 +621,8 @@ function SetSocketStatus(Socket,Status)
             ToLogTrace("===================ERROR=================== "+Status)
             return;
         }
+        if(Status===100 && Socket.Node)
+            Socket.Node.LastTime=GetCurrentTime()-0;
 
         Socket.SocketStatus=Status;
         Socket.TimeStatus=(new Date)-0;
@@ -712,11 +698,6 @@ function NodeName(Node)
 }
 
 
-// function ToLogNet(Str)
-// {
-//     if(global.USE_LOG_NETWORK)
-//         ToLog(Str);
-// }
 
 function FindNodeByAddr(Addr,bConnect)
 {
@@ -752,16 +733,16 @@ function AddNodeInfo(Node,Str,bSet)
         }
     }
 
-    if(Node.Info.length>1000)
+    if(Node.Info.length>500)
     {
         Node.PrevInfo=Node.Info;
         Node.Info="";
     }
 
-    if(Node.Info.length<1000)
+    if(Node.Info.length<500)
     {
-        var timesend=GetTimeOnlyStr();
-        Str=timesend+": "+Str;
+        var timesend=GetStrOnlyTimeUTC();
+        Str=timesend+" "+Str;
         Node.Info+=Str+"\n";
     }
 }

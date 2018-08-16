@@ -132,6 +132,7 @@ class CApp
         this.Password="";
         this.WalletOpen=false;
         this.KeyPair = crypto.createECDH('secp256k1');
+        this.SetPrivateKey(GetHexFromArr(this.PubKeyArr),false);
         ToLogClient("Wallet close");
         return 1;
     }
@@ -146,18 +147,26 @@ class CApp
 
         var Hash=this.HashProtect(StrPassword);
         var TestPrivKey=this.XORHash(this.KeyXOR,Hash);
-
-        this.KeyPair.setPrivateKey(Buffer.from(TestPrivKey));
-        var TestPubKey=this.KeyPair.getPublicKey('','compressed');
-        if(CompareArr(TestPubKey,this.PubKeyArr)!==0)
+        if(!IsZeroArr(TestPrivKey))
         {
-            ToLogClient("Wrong password");
-            return 0;
+            this.KeyPair.setPrivateKey(Buffer.from(TestPrivKey));
+            var TestPubKey=this.KeyPair.getPublicKey('','compressed');
+            if(CompareArr(TestPubKey,this.PubKeyArr)!==0)
+            {
+                ToLogClient("Wrong password");
+                return 0;
+            }
+            this.Password=StrPassword;
+            this.WalletOpen=true;
+            this.SetPrivateKey(GetHexFromArr(TestPrivKey),false);
+        }
+        else
+        {
+            this.Password=StrPassword;
+            this.WalletOpen=true;
+            this.SetPrivateKey(GetHexFromArr(this.PubKeyArr),false);
         }
 
-        this.Password=StrPassword;
-        this.WalletOpen=true;
-        this.SetPrivateKey(GetHexFromArr(TestPrivKey),false);
 
         ToLogClient("Wallet open");
         return 1;
@@ -212,10 +221,15 @@ class CApp
         if(this.Password)
         {
             Params.Protect=true;
+            var Hash=this.HashProtect(this.Password);
             if(this.KeyPair.WasInit)
             {
-                var Hash=this.HashProtect(this.Password);
                 Params.KeyXOR=GetHexFromArr(this.XORHash(this.KeyPair.getPrivateKey(),Hash));
+            }
+            else
+            {
+                var Key2=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+                Params.KeyXOR=GetHexFromArr(this.XORHash(Key2,Hash));
             }
             Params.PubKey=GetHexFromArr(this.PubKeyArr);
             this.KeyXOR=GetArrFromHex(Params.KeyXOR);

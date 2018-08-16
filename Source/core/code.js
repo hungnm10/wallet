@@ -196,15 +196,6 @@ module.exports = class CCode extends require("./base")
         var Arr2=Arr.slice(0,Arr.length-64);
         Data.Sign=GetArrFromHex(WALLET.GetSignFromArr(Arr2,0));
 
-        // var Arr3=BufLib.GetBufferFromObject(Data,FORMAT_EVAL_SEND,65000,{});
-        // var Arr4=Arr3.slice(0,Arr3.length-64);
-        // if(!CheckDevelopSign(Arr4,Data.Sign))
-        // {
-        //     ToLog("ERR DEVELOPSIGN");
-        //     return;
-        // }
-
-
         this.SendF(Node,
             {
                 "Method":"EVAL",

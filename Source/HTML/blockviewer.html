@@ -60,6 +60,12 @@
             DefTr.Param3=BlockNum;
             ViewCurrent(DefTr);
         }
+
+
+        function SaveValues()
+        {
+        }
+
     </script>
 </head>
 <body>
@@ -81,13 +87,14 @@
 
     <table id="grid_transaction_all" class="grid">
         <tr>
-            <th id="Item.Num" class="num">Num</th>
+            <th id="Item.Num" class="num">TrNum</th>
             <th id="Item.Type" class="num">Type</th>
             <th id="GetHexFromArr(Item.Body)" class="code">Body</th>
             <th id="(escapeHtml(Item.Script))" class="code">JSON</th>
             <th id="GetHexFromArr(Item.HASH)" class="code">HASH</th>
             <th id="Item.Length" class="num">Bytes</th>
-            <th id="Item.power" class="num">power</th>
+            <th id="Item.power" class="num">Power</th>
+            <th id="(Item.VerifyHTML)" class="verify">Verify</th>
         </tr>
     </table>
 

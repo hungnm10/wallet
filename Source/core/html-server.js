@@ -394,6 +394,7 @@ HTTPCaller.GetSignFromHEX=function (ValueHex,Param2,Param3)
 
 
 var AddTrMap={};
+AddTrMap[-4]="Bad type transaction";
 AddTrMap[-3]="Bad time";
 AddTrMap[-2]="Bad PoW";
 AddTrMap[-1]="Bad length";
@@ -460,19 +461,6 @@ HTTPCaller.SetMining=function (MiningAccount,Param2,Param3)
     return {result:1};
 }
 
-HTTPCaller.TruncateBlockChain=function (BlockNum,Param2,Param3)
-{
-    BlockNum=parseInt(BlockNum);
-
-    if(!BlockNum)
-    {
-        return {result:0};
-    }
-
-    //SERVER.BlockNumDB=BlockNum;
-    SERVER.TruncateBlockDB(BlockNum);
-    return {result:1,text:"Truncate after BlockNum="+BlockNum};
-}
 
 function CheckCorrectDevKey()
 {
@@ -675,7 +663,7 @@ function RunAutoCorrTime()
     if(WALLET.WalletOpen===false)
         return;
 
-    if(GetCurrentBlockNumByTime()>StartCheckTimeNum && Math.abs(global.DELTA_CURRENT_TIME)>150)
+    if(GetCurrentBlockNumByTime()>StartCheckTimeNum && Math.abs(global.DELTA_CURRENT_TIME)>=120)
     {
         var AutoDelta=-Math.trunc(global.DELTA_CURRENT_TIME);
         var Data={Num:GetCurrentBlockNumByTime(),bUse:1,bAddTime:1};
@@ -684,7 +672,7 @@ function RunAutoCorrTime()
             AutoDelta=-AutoDelta;
             Data.bAddTime=0;
         }
-        Data.DeltaTime=50;
+        Data.DeltaTime=40;
         Data.StartBlockNum=Data.Num+5;
         Data.EndBlockNum=Data.StartBlockNum+Math.trunc(AutoDelta/Data.DeltaTime);
 
@@ -785,12 +773,47 @@ HTTPCaller.GetAccountKey=function (Num)
 }
 
 //HOT TREE
-HTTPCaller.GetHotArray=function ()
+HTTPCaller.GetHotArray=function (Param)
 {
     //Hot
-    var ArrTree=SERVER.TransferTree;
+    var ArrTree=SERVER.GetTransferTree();
     if(!ArrTree)
         return {result:0};
+
+    for(var Level=0;Level<ArrTree.length;Level++)
+    {
+        var arr=ArrTree[Level];
+        if(arr)
+        for(var n=0;n<arr.length;n++)
+        {
+            arr[n].GetTiming=0;
+        }
+    }
+
+
+    var BlockCounts=0;
+    if(Param)
+    for(var i=SERVER.CurrentBlockNum-Param.CountBlock; i<=SERVER.CurrentBlockNum-Param.CountBlock; i++)
+    {
+        var Block=SERVER.GetBlock(i);
+        if(!Block || !Block.Active || !Block.LevelsTransfer)
+        {
+            continue;
+        }
+        BlockCounts++;
+        for(var n=0;n<Block.LevelsTransfer.length;n++)
+        {
+            var Transfer=Block.LevelsTransfer[n];
+            for(var Addr in Transfer.TransferNodes)
+            {
+                var Item=Transfer.TransferNodes[Addr];
+                Item.Node.GetTiming+=Item.GetTiming;
+            }
+
+        }
+    }
+
+
 
     for(var Level=0;Level<ArrTree.length;Level++)
     {
@@ -801,7 +824,7 @@ HTTPCaller.GetHotArray=function ()
         arr.sort(SortNodeHot);
         for(var n=0;n<arr.length;n++)
         {
-            arr[n]=GetCopyNode(arr[n]);
+            arr[n]=GetCopyNode(arr[n],BlockCounts);
         }
     }
 
@@ -821,9 +844,10 @@ HTTPCaller.GetHotArray=function ()
     }
 
 
-    return {result:1,ArrTree:ArrTree};
+
+    return {result:1,ArrTree:ArrTree};//,ArrBlock:ArrBlock
 }
-function GetCopyNode(Node)
+function GetCopyNode(Node,BlockCounts)
 {
     if(!Node)
         return;
@@ -836,24 +860,40 @@ function GetCopyNode(Node)
     if(!Node.PrevInfo)
         Node.PrevInfo="";
 
+    var GetTiming=0;
+    if(BlockCounts!==0)
+        GetTiming=Math.trunc(Node.GetTiming/BlockCounts)/1000;
+
     var Item=
         {
-            Level:Node.Level,
-            VersionNum:Node.VersionNum,
+            TransferCount:Node.TransferCount,
+            GetTiming:GetTiming,
+            ErrCountAll:Node.ErrCountAll,
             LevelCount:Node.LevelCount,
+            LevelEnum:Node.LevelEnum,
+            TimeTransfer:GetStrOnlyTimeUTC(new Date(Node.LastTimeTransfer)),
+
+            BlockProcessCount:Node.BlockProcessCount,
+            DeltaTime:Node.DeltaTime,
+            DeltaGlobTime:Node.DeltaGlobTime,
+            PingNumber:Node.PingNumber,
+            NextConnectDelta:Node.NextConnectDelta,
+            NextGetNodesDelta:Node.NextGetNodesDelta,
+            NextHotDelta:Node.NextHotDelta,
+
+            id:Node.id,
             ip:Node.ip,
             port:Node.port,
             Name:Node.Name,
+            VersionNum:Node.VersionNum,
             addrStr:Node.addrStr,
-            BlockProcessCount:Node.BlockProcessCount,
-            Delta:Node.DeltaTime,
             CanHot:Node.CanHot,
             Active:Node.Active,
             Hot:Node.Hot,
-            Stage:Node.Stage,
-            id:Node.id,
             Info:Node.PrevInfo+Node.Info,
             InConnectArr:Node.WasAddToConnect,
+            Level:Node.Level,
+
         };
 
     return Item;
@@ -864,7 +904,7 @@ function GetCopyNode(Node)
 
 HTTPCaller.GetBlockchainStat=function (Param)
 {
-    var Result=SERVER.GetStatBlockchainPeriod(Param.BlockNum,Param.Count,Param.Miner,Param.Adviser);
+    var Result=SERVER.GetStatBlockchainPeriod(Param.BlockNum,Param.Count,Param.Miner,Param.Adviser,Param.bNonce);
     Result.result=1;
     Result.sessionid=sessionid;
     return Result;
@@ -895,33 +935,40 @@ HTTPCaller.ClearStat=function (flag)
 
 
 
-HTTPCaller.CleanChain=function (StartNum)
-{
-    global.SendLogToClient=1;
-    if(global.CleanChain)
-        global.CleanChain(StartNum);
-    global.SendLogToClient=0;
-    return {result:1,sessionid:sessionid};
-}
 
 HTTPCaller.RewriteTransactions=function (Param)
 {
-    global.SendLogToClient=1;
-    SERVER.ReWriteDAppTransactions(Param.StartNum,Param.EndNum);
-    global.SendLogToClient=0;
+    var Ret=SERVER.ReWriteDAppTransactions(Param.BlockCount);
+    return {result:Ret,sessionid:sessionid};
+}
+HTTPCaller.TruncateBlockChain=function (Param)
+{
+    var StartNum=SERVER.BlockNumDB-Param.BlockCount
+    var MinBlock=DApps.Accounts.GetMinBlockAct();
+    if(MinBlock>StartNum)
+    {
+        ToLog("Cant Truncate BlockChain. Very long length. Max length="+(SERVER.BlockNumDB-MinBlock));
+        return {result:0,sessionid:sessionid};
+    }
+
+    SERVER.TruncateBlockDB(StartNum);
     return {result:1,sessionid:sessionid};
 }
 
-
-
-HTTPCaller.CheckBlocks=function (StartNum)
+HTTPCaller.ClearDataBase=function (Param)
 {
-    if(!StartNum)
-        StartNum=0;
-    global.SendLogToClient=1;
-    SERVER.CheckBlocksOnStartFoward(StartNum,0);
-    global.SendLogToClient=0;
+    SERVER.ClearDataBase();
     return {result:1,sessionid:sessionid};
+}
+
+HTTPCaller.CleanChain=function (Param)
+{
+    if(global.CleanChain)
+    {
+        global.CleanChain(Param.BlockCount);
+        return {result:1,sessionid:sessionid};
+    }
+    return {result:0,sessionid:sessionid};
 }
 
 
@@ -1480,9 +1527,11 @@ function SendFileHTML(response,name,StrCookie)
 //     return array;
 // }
 //**********************************************************************************************************************
-function GetStrTime()
+function GetStrTime(now)
 {
-    var now = GetCurrentTime(0);
+    if(!now)
+        now = GetCurrentTime(0);
+
     var Str=""+now.getHours().toStringZ(2);
     Str=Str+":"+now.getMinutes().toStringZ(2);
     Str=Str+":"+now.getSeconds().toStringZ(2);

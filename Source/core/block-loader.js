@@ -20,6 +20,10 @@ const STAT_BLOCK_LOAD_PERIOD=CONSENSUS_PERIOD_TIME/5;
 global.COUNT_BLOCKS_FOR_LOAD=600;
 global.PERIOD_GET_BLOCK=300;//ms
 
+if(global.LOCAL_RUN)
+{
+    global.COUNT_BLOCKS_FOR_LOAD=global.DELTA_BLOCK_ACCOUNT_HASH/2;
+}
 
 global.COUNT_HISTORY_BLOCKS_FOR_LOAD=3000;
 global.COUNT_BLOCKS_FOR_CHECK_POW=100;
@@ -1964,7 +1968,7 @@ module.exports = class CBlock extends require("./db/block-db")
 
 
             //if(!this.LoadHistoryMode)// arrContent.length>0)
-            if(arrContent.length>0)
+            if(arrContent.length>0 && Data.BlockNum%PERIOD_ACCOUNT_HASH===0)
             {
                 var TR=arrContent[0];
                 if(TR[0]===TYPE_TRANSACTION_ACC_HASH)

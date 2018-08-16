@@ -23,7 +23,6 @@ module.exports = class CDB extends require("../code")
         this.StartOneProcess();
 
         this.BlockNumDB=0;
-
         this.MapHeader={};
 
     }
@@ -69,16 +68,17 @@ module.exports = class CDB extends require("../code")
 
         //BlockNum=0;
         BlockNum=this.CheckBlocksOnStartReverse(BlockNum);
+
         this.BlockNumDB=this.CheckBlocksOnStartFoward(BlockNum-10000,0);
         this.BlockNumDB=this.CheckBlocksOnStartFoward(this.BlockNumDB-100,1);
         if(this.BlockNumDB>=BLOCK_PROCESSING_LENGTH2)
         {
             this.TruncateBlockDB(this.BlockNumDB);
-         }
+        }
 
         //Rewrite some transactions
         if(this.BlockNumDB>100)
-            this.ReWriteDAppTransactions(this.BlockNumDB-100);
+            this.ReWriteDAppTransactions(100);
 
 
         ToLog("START_BLOCK_NUM:"+this.BlockNumDB);
@@ -126,9 +126,16 @@ module.exports = class CDB extends require("../code")
         var PrevBlock;
         if(StartNum<BLOCK_PROCESSING_LENGTH2)
             StartNum=BLOCK_PROCESSING_LENGTH2;
-        //StartNum=BLOCK_PROCESSING_LENGTH2;
+
+
+        var MaxNum=DApps.Accounts.GetHashedMaxBlockNum();
+        var BlockNumTime=GetCurrentBlockNumByTime();
+        if(BlockNumTime<MaxNum)
+            MaxNum=BlockNumTime;
+
+
         var arr=[];
-        for(var num=StartNum;true;num++)
+        for(var num=StartNum;num<=MaxNum;num++)
         {
             var Block;
             if(bCheckBody)
@@ -187,6 +194,7 @@ module.exports = class CDB extends require("../code")
             }
             PrevBlock=Block;
         }
+        return num>0?num-1:0;
     }
 
     GetChainFileNum(chain)
@@ -616,12 +624,6 @@ module.exports = class CDB extends require("../code")
     TruncateBlockDB(LastBlockNum)
     {
         this.UseTruncateBlockDB=undefined;
-        if(LastBlockNum<BLOCK_PROCESSING_LENGTH2)
-        {
-            LastBlockNum=BLOCK_PROCESSING_LENGTH2-1;
-            this.TruncateBlockBodyDBInner();
-            //TODO - delete all tables
-        }
 
         var Block=this.ReadBlockDB(LastBlockNum);
         if(!Block)
@@ -635,14 +637,13 @@ module.exports = class CDB extends require("../code")
     //Truncate
     TruncateBlockDBInner(LastBlock)
     {
-        var startTime = process.hrtime();
         var FItem1=BlockDB.OpenDBFile(FILE_NAME_HEADER);
         var size=(LastBlock.BlockNum+1)*BLOCK_HEADER_SIZE;
         if(size<0)
             size=0;
         if(FItem1.size>size)
         {
-            ToLog("Truncate header after BlockNum="+LastBlock.BlockNum)
+            //ToLog("Truncate header after BlockNum="+LastBlock.BlockNum)
             FItem1.size=size;
             fs.ftruncateSync(FItem1.fd,FItem1.size);
         }
@@ -679,6 +680,31 @@ module.exports = class CDB extends require("../code")
                 break;
             }
         }
+    }
+
+    ClearDataBase()
+    {
+        //файлы
+        var FItem1=BlockDB.OpenDBFile(FILE_NAME_HEADER);
+        FItem1.size=0;
+        fs.ftruncateSync(FItem1.fd,FItem1.size);
+        var FItem2=BlockDB.OpenDBFile(FILE_NAME_BODY);
+        FItem2.size=0;
+        fs.ftruncateSync(FItem2.fd,FItem2.size);
+
+        //Дапы
+        for(var key in DApps)
+        {
+            DApps[key].ClearDataBase();
+        }
+
+
+        //переменные
+        this.BlockNumDB=0;
+        this.MapHeader={};
+        this.ClearStat();
+        this.CreateGenesisBlocks();
+
     }
 
 
@@ -830,6 +856,14 @@ module.exports = class CDB extends require("../code")
             if(App)
             {
                 Tr.Script=App.GetScriptTransaction(Tr.body);
+                Tr.Verify=App.GetVerifyTransaction(BlockNum,Tr.Num,Tr.body);
+                if(Tr.Verify==1)
+                    Tr.VerifyHTML="<B style='color:green'>✔</B>";
+                else
+                if(Tr.Verify==-1)
+                    Tr.VerifyHTML="<B style='color:red'>✘</B>";
+                else
+                    Tr.VerifyHTML="";
             }
             else
             {
@@ -977,7 +1011,7 @@ module.exports = class CDB extends require("../code")
     }
 
 
-    GetStatBlockchainPeriod(StartNum,Count,MinerID,AdviserID)
+    GetStatBlockchainPeriod(StartNum,Count,MinerID,AdviserID,bNonce)
     {
         if(!Count || Count<0)
             Count=1000;
@@ -988,7 +1022,7 @@ module.exports = class CDB extends require("../code")
         var i=0;
         for(var num=StartNum;num<StartNum+Count;num++)
         {
-            var Power=0,PowerMy=0;
+            var Power=0,PowerMy=0, Nonce=0;
             if(num<=this.BlockNumDB)
             {
                 var Block=this.ReadBlockHeaderDB(num);
@@ -996,6 +1030,7 @@ module.exports = class CDB extends require("../code")
                 {
                     Power=GetPowPower(Block.Hash);
                     var Miner=ReadUintFromArr(Block.AddrHash,0);
+                    var Nonce=ReadUintFromArr(Block.AddrHash,6);
                     if(!MinerID)
                     {
                         if(AdviserID)
@@ -1018,6 +1053,9 @@ module.exports = class CDB extends require("../code")
             }
 
             arr[i]=PowerMy;
+            if(bNonce && PowerMy)
+                    arr[i]=Nonce;
+
             //arr[i]=(Math.pow(2,PowerMy)-1)/1000000;
             i++;
         }
@@ -1038,7 +1076,10 @@ module.exports = class CDB extends require("../code")
         var StepTime=1;
         while(arr.length>=MaxSizeArr)
         {
-            arr=ResizeArrAvg(arr);
+            if(bNonce)
+                arr=ResizeArrMax(arr);
+            else
+                arr=ResizeArrAvg(arr);
             StepTime=StepTime*2;
         }
 

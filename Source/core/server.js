@@ -33,6 +33,7 @@ global.STAT_PERIOD=CONSENSUS_PERIOD_TIME/5;
 const TRAFIC_LIMIT_SEND=TRAFIC_LIMIT_1S*STAT_PERIOD/1000;
 const TRAFIC_LIMIT_NODE=TRAFIC_LIMIT_NODE_1S*STAT_PERIOD/1000;
 const BUF_PACKET_SIZE=16*1024;
+//const BUF_PACKET_SIZE=64*1024;
 
 
 global.MAX_PACKET_LENGTH=320*1024;
@@ -85,7 +86,6 @@ module.exports = class CTransport extends require("./connect")
 
         this.UseRNDHeader=UseRNDHeader;
 
-        this.AnotherHostsFlood={Count:0, MaxCount:MAX_CONNECTION_ANOTHER, Time:GetCurrentTime()};
         this.BAN_IP={};    //ip
 
         this.ip=RunIP.trim();
@@ -450,39 +450,6 @@ module.exports = class CTransport extends require("./connect")
 
 
 
-    CheckMaxCount(Node)//per 5 sec
-    {
-        var CurTime=GetCurrentTime(0);
-
-        var item;
-        var name;
-        if(Node && Node.Active)
-        {
-            name="Active";
-            item=Node.Flood;
-        }
-        else
-        {
-            name="Another";
-            item=this.AnotherHostsFlood;
-        }
-
-
-        item.Count++;
-
-        if(item.Count<=item.MaxCount)
-            return true;
-
-        if(CurTime-item.Time > 1000)//ms
-        {
-            item.Time=CurTime;
-            item.Count=1;
-            return true;
-        }
-
-        ADD_TO_STAT("TRANSPORT:Flood:"+name);
-        return false;
-    }
 
     AddToBanIP(ip,Str)
     {
@@ -1132,7 +1099,7 @@ module.exports = class CTransport extends require("./connect")
 
 
 
-            //Node.Socket.write(Node.BufWrite.slice(0,CountSend));
+
             Node.write(Node.BufWrite.slice(0,CountSend));
 
             Node.SendTrafficCurrent+=CountSend;
@@ -1232,10 +1199,9 @@ module.exports = class CTransport extends require("./connect")
 
 
 
-            Node.Delete=1;
-            ToLog("ERROR_RECONNECT "+NodeName(Node)+" wait="+Node.WaitConnectFromServer+" ip:"+Node.WaitConnectIP+" RA:"+Socket.remoteAddress);
-
-            this.AddToBanIP(Socket.remoteAddress,"ERROR_RECONNECT");
+            //Node.Delete=1;
+            //ToLog("ERROR_RECONNECT "+NodeName(Node)+" wait="+Node.WaitConnectFromServer+" ip:"+Node.WaitConnectIP+" RA:"+Socket.remoteAddress);
+            //this.AddToBanIP(Socket.remoteAddress,"ERROR_RECONNECT");
             Socket.end(this.GetBufFromData("POW_CONNEC11","ERROR_RECONNECT",2));
             CloseSocket(Socket,"ERROR_RECONNECT");
             return;
@@ -1566,6 +1532,8 @@ module.exports = class CTransport extends require("./connect")
 
 
 
+
+        Node.ErrCountAll+=Count;
         Node.ErrCount+=Count;
         if(Node.ErrCount>=5)
         {

@@ -64,7 +64,7 @@ module.exports = class CConsensus extends require("./block-loader")
         if(!global.ADDRLIST_MODE && !this.VirtualMode)
         {
 
-            this.idBlockChainTimer=setInterval(this.StartBlockChain.bind(this),CONSENSUS_PERIOD_TIME-10);
+            this.idBlockChainTimer=setInterval(this.StartBlockChain.bind(this),CONSENSUS_PERIOD_TIME-5);
 
             setInterval(this.DoTransfer.bind(this),CONSENSUS_CHECK_TIME);
         }
@@ -74,13 +74,15 @@ module.exports = class CConsensus extends require("./block-loader")
     {
         this.OnStartSecond();
 
-        var CurTimeNum=GetCurrentTime()-CONSENSUS_PERIOD_TIME/2;
-        var StartTimeNum=Math.floor((CurTimeNum+CONSENSUS_PERIOD_TIME)/CONSENSUS_PERIOD_TIME)*CONSENSUS_PERIOD_TIME;
-        var DeltaForStart=StartTimeNum-CurTimeNum;
+        var CurTime=(GetCurrentTime()-0)
+        var NextTime=CurTime+CONSENSUS_PERIOD_TIME;
+        NextTime=Math.trunc(NextTime/CONSENSUS_PERIOD_TIME)*CONSENSUS_PERIOD_TIME+50;
+
+        var DeltaForStart=NextTime-CurTime;
 
         if(DeltaForStart<(CONSENSUS_PERIOD_TIME-5))//корректировка времени запуска
         {
-            //ToLog("DeltaForStart="+DeltaForStart)
+            //ToLog("DeltaForStart="+DeltaForStart+"  CurTime="+CurTime+"  NextTime="+NextTime)
             var self=this;
 
             if(self.idBlockChainTimer)
@@ -89,7 +91,7 @@ module.exports = class CConsensus extends require("./block-loader")
 
             setTimeout(function ()
             {
-                self.idBlockChainTimer=setInterval(self.StartBlockChain.bind(self),CONSENSUS_PERIOD_TIME);
+                self.idBlockChainTimer=setInterval(self.StartBlockChain.bind(self),CONSENSUS_PERIOD_TIME-5);
                 self.OnStartSecond();
             },DeltaForStart)
         }
@@ -97,10 +99,11 @@ module.exports = class CConsensus extends require("./block-loader")
 
     }
 
+
     OnStartSecond()
     {
+        //ToLog("Start")
         PrepareStatEverySecond();
-
         this.AddStatOnTimer();
         this.DoBlockChain();
     }
@@ -131,9 +134,7 @@ module.exports = class CConsensus extends require("./block-loader")
         Context.TrCount=0;
         Context.TrDataPos=0;
         Context.TrDataLen=0;
-        Context.Info="Create at:"+GetTimeOnlyStr();
-        // Context.SumHash=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-        // Context.Hash=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        Context.Info="Create at:"+GetStrOnlyTimeUTC();
 
 
 
@@ -142,7 +143,6 @@ module.exports = class CConsensus extends require("./block-loader")
 
         var LocalLevel=0;
         var Levels=this.LevelNodes;
-        var PrevStage=-1;
         for(let L=0;L<Levels.length;L++)
         {
             var arr=Levels[L];
@@ -178,7 +178,8 @@ module.exports = class CConsensus extends require("./block-loader")
                                 SendCount:0,
                                 GetCount:0,
                                 addrStr:Addr,
-                                TreeLevel:L
+                                TreeLevel:L,
+                                GetTiming:3*CONSENSUS_PERIOD_TIME,
                             };
                         Transfer.TransferNodes[Addr]=Item;
                     }
@@ -323,13 +324,17 @@ module.exports = class CConsensus extends require("./block-loader")
 
         var Block=this.GetBlockContext(Data.BlockNum);
         if(!Block || Block.StartLevel===undefined)
+        {
+            this.AddCheckErrCount(Info.Node,1,"Err GetBlockContext");
             return;
+        }
 
 
         var Key=Info.Node.addrStr;
         var Transfer=Block.TransferFromAddr[Key];
         if(!Transfer)
         {
+            this.AddCheckErrCount(Info.Node,1,"Err Transfer");
             return;
         }
 
@@ -349,13 +354,18 @@ module.exports = class CConsensus extends require("./block-loader")
         ADD_TO_STAT_TIME("TRANSFER_MS", startTime);
 
         var Delta=(new Date())-this.StartLoadBlockTime;
-        if(Delta>10*1000)
+        if(Delta>10*1000 && Info.Node.TransferCount>10)
         {
-            Info.Node.Stage=0;
             Info.Node.BlockProcessCount++;
+            Info.Node.NextHotDelta=3000;
         }
+        Info.Node.TransferCount++;
 
         Info.Node.LastTimeTransfer=GetCurrentTime()-0;
+
+
+        var Item=Transfer.TransferNodes[Key];
+        Item.GetTiming=GetCurrentTime(Block.DELTA_CURRENT_TIME)-Block.StartTimeNum;
     }
 
     TrToInfo(Block,Array,StrInfo)
@@ -383,10 +393,6 @@ module.exports = class CConsensus extends require("./block-loader")
 
 
 
-        if(USE_CHECK_SEND)
-        {
-            this.CheckSendPacket();
-        }
 
         var MaxPOWList=this.GetMaxPOWList();
         var MaxSumList=this.GetMaxSumList();
@@ -420,7 +426,7 @@ module.exports = class CConsensus extends require("./block-loader")
                 this.SendData(Transfer,BufData,1);
 
                 //цикл контроля данных
-                //TODO if(Block.MLevelSend<Block.StartLevel)
+
                 if(Block.MLevelSend===0 && Block.MLevelSend<Block.StartLevel)
                 {
                     var TreeHash=this.CalcTreeHashFromArrTr(arrTr);
@@ -436,15 +442,12 @@ module.exports = class CConsensus extends require("./block-loader")
             }
             Transfer.WasSend=true;
             var bNext=Transfer.WasGet;
-            //bNext=false;
-
-
-
-
             if(!bNext)//check timeout
             {
                 var CurTimeNum=GetCurrentTime(Block.DELTA_CURRENT_TIME)-0;
                 var DeltaTime=CurTimeNum-Block.StartTimeNum;
+
+
                 if(DeltaTime>Transfer.MustDeltaTime)
                 {
                     bNext=true;
@@ -453,8 +456,11 @@ module.exports = class CConsensus extends require("./block-loader")
                     for(var Addr in Transfer.TransferNodes)
                     {
                         var Item=Transfer.TransferNodes[Addr];
-                        Item.Node.BlockProcessCount--;
+                        //Item.Node.BlockProcessCount--;
+
                         ADD_TO_STAT("TRANSFER_TIME_OUT");
+                        this.AddCheckErrCount(Item.Node,1,"TRANSFER_TIME_OUT");
+
                     }
 
 
@@ -526,7 +532,7 @@ module.exports = class CConsensus extends require("./block-loader")
     }
     CONTROLHASH(Info,CurTime)
     {
-        //var Data=Info.Data;
+
         var Data=this.DataFromF(Info);
         var Block=this.GetBlockContext(Data.BlockNum);
         if(!Block || Block.StartLevel===undefined)
@@ -608,49 +614,7 @@ module.exports = class CConsensus extends require("./block-loader")
     SendCheck(Node,DATA,typeData)
     {
         this.Send(Node,DATA,typeData);
-
-        if(USE_CHECK_SEND)
-        {
-            var CurTime=new Date;
-            var Item={hash:DATA.Context.PacketID, DATA:DATA, typeData:typeData, Node:Node, Time:CurTime, Count:1};
-            this.TreeSendPacket.insert(Item);
-        }
     }
-    CheckSendPacket()
-    {
-        var arr=[];
-
-        var CurTime=new Date;
-        var it=this.TreeSendPacket.iterator(), Item;
-        while((Item = it.next()) !== null)
-        {
-            var Delta=CurTime-Item.Time;
-            if(Delta>PERIOD_FOR_NEXT_SEND)
-            {
-                if(Item.Count<2)
-                {
-                    Item.Count++;
-                    Item.DATA.Data.SendNumber=Item.Count;
-                    this.Send(Item.Node,Item.DATA,Item.typeData);
-                    Item.Time=CurTime;
-                    //ToLog("Long time for send to "+Item.Node.port)
-
-                    ADD_TO_STAT("DoubleSendPacket");
-
-                }
-                else
-                {
-                    arr.push(Item)
-                }
-            }
-        };
-
-
-        for(var i=0;i<arr.length;i++)
-            this.TreeSendPacket.remove(arr[i]);
-
-    }
-
 
 
     //MAX POW
@@ -995,20 +959,18 @@ module.exports = class CConsensus extends require("./block-loader")
             return undefined;
 
         var Context=this.GetBlock(BlockNum);
-        if(!Context)
+        if(!Context || !Context.StartTimeNum)
         {
             Context=this.CreateBlockContext();
             Context.BlockNum=BlockNum;
-
-            // Context.PROF="NewB##:"+Math.floor(BlockNum/BLOCK_COUNT_IN_MEMORY);
-            // Context.PROF2="NewB##="+BlockNum;
+            Context.DELTA_CURRENT_TIME=GetDeltaCurrentTime();
+            Context.StartTimeNum=BlockNum*CONSENSUS_PERIOD_TIME+START_NETWORK_DATE;
 
 
             this.BlockChain[BlockNum]=Context;
         }
         if(!Context.TransferFromAddr)
         {
-            //ToLog("!Context.TransferFromAddr")
             Context.TransferFromAddr={};
             Context.LevelsTransfer=[];
         }
@@ -1017,13 +979,18 @@ module.exports = class CConsensus extends require("./block-loader")
         return Context;
     }
 
-    StartBlock(Block,MapFilter)
+    StartBlock(Block)
+    {
+        Block.Active=true;
+    }
+
+    StartBlock0(Block,MapFilter)
     {
         if(!Block.Active)
         {
             Block.DELTA_CURRENT_TIME=GetDeltaCurrentTime();
-            Block.StartTimeNum=GetCurrentTime(Block.DELTA_CURRENT_TIME)-0;//<------- start
-
+            //Block.StartTimeNum=GetCurrentTime(Block.DELTA_CURRENT_TIME)-0;//<------- start
+            Block.StartTimeNum=Block.BlockNum*CONSENSUS_PERIOD_TIME+START_NETWORK_DATE;
         }
 
         Block.Active=true;
@@ -1066,6 +1033,7 @@ module.exports = class CConsensus extends require("./block-loader")
 
     STARTBLOCK(Info,CurTime)
     {
+        return;
 
         var Data=this.DataFromF(Info);
         var BlockNum=Data.BlockNum;
@@ -1462,26 +1430,20 @@ module.exports = class CConsensus extends require("./block-loader")
                 //this.AddToMaxPOW(Block);
             }
 
-            // if(i===this.CurrentBlockNum+TIME_START_POW_EXCHANGE && Block.StartMining)
-            // {
-            //     var Num=ReadUintFromArr(Block.AddrHash,0);
-            //     if(Num===GENERATE_BLOCK_ACCOUNT)
-            //         ADD_TO_STAT("MAX:WIN:POWER_MY2",GetPowPower(Block.Hash));
-            // }
 
 
             //Обмен POW
             if(i>=this.CurrentBlockNum+TIME_END_EXCHANGE_POW)
             {
                 AddInfoBlock(Block,"WAIT EXCHANGE POW");
-                continue;
+                //continue;
             }
 
 
 
 
 
-            if(i<=start_save)
+            //if(i<=start_save)
             {
                 //Пересчитываем предыдуший хеш
                 //Сравниваем предудущий хеш нашего блокчейна с лидерами, находим текущий и "другой" лидер
@@ -1536,6 +1498,9 @@ module.exports = class CConsensus extends require("./block-loader")
                     this.CheckMaxPowOther(Block);
                 }
 
+
+                if(i>start_save)
+                    continue;
 
                 if(PrevBlock.bSave && this.BlockNumDB+1 >= Block.BlockNum)
                 {

@@ -27,10 +27,10 @@ module.exports = class CSmartContract extends require("./block-exchange")
 
 
 
-        if(!global.ADDRLIST_MODE && !this.VirtualMode)
-        {
-            setInterval(this.StartRewriteTransaction.bind(this),500);
-        }
+        // if(!global.ADDRLIST_MODE && !this.VirtualMode)
+        // {
+        //     setInterval(this.StartRewriteTransaction.bind(this),500);
+        // }
 
 
     }
@@ -179,32 +179,46 @@ module.exports = class CSmartContract extends require("./block-exchange")
 
     IsValidTransaction(Tr,BlockNum)
     {
-        //0. Минимальный размер
+        //1. Минимальный размер
         if(!Tr.body || Tr.body.length<MIN_TRANSACTION_SIZE || Tr.body.length>MAX_TRANSACTION_SIZE)
             return -1;
 
         this.CheckCreateTransactionHASH(Tr);
 
 
-        //1. Минимальный PoW
+
+        //2. Минимальный PoW
         if(Tr.power-Math.log2(Tr.body.length/128)<MIN_POWER_POW_TR)
             return -2;
 
-        //2. Валидное время (не из будущего)
+        //3. Валидное время (не из будущего)
         if(Tr.num>BlockNum)
             return -3;
+
+        //4. Не системная транзакция
+        if(Tr.body[0]===TYPE_TRANSACTION_ACC_HASH)
+            return -4;
 
         return 1;
     }
 
-    ReWriteDAppTransactions(StartNum,EndNum)
+    ReWriteDAppTransactions(Length)
     {
-        if(StartNum===undefined)
-            return;
-        if(!EndNum)
-            EndNum=this.BlockNumDB;
+        if(!Length)
+            return 0;
+
+        var StartNum=this.BlockNumDB-Length;
         if(StartNum<0)
             StartNum=0;
+        var EndNum=this.BlockNumDB;
+
+        var MinBlock=DApps.Accounts.GetMinBlockAct();
+        if(MinBlock>StartNum)
+        {
+            ToLog("Cant rewrite transactions. Very long length of the rewriting chain. Max length="+(this.BlockNumDB-MinBlock));
+            return 0;
+        }
+
 
         var startTime = process.hrtime();
         ToLog("Rewrite from: "+StartNum+" to "+EndNum);
@@ -221,32 +235,33 @@ module.exports = class CSmartContract extends require("./block-exchange")
         var deltaTime=(Time[0]*1000 + Time[1]/1e6)/1000;//s
 
         ToLog("Rewriting complete: "+deltaTime+" sec");
+        return 1;
     }
 
-    StartRewriteTransaction()
-    {
-        if(this.StartNumRewriteTransactions)
-        {
-            this.ReWriteDAppTransactions(this.StartNumRewriteTransactions,this.BlockNumDB);
-        }
-
-        this.StartNumRewriteTransactions=undefined;
-    }
-    SetRewriteBlockDB()
-    {
-        if(!this.NexdDeltaAccountNum)//init
-        {
-            this.NexdDeltaAccountNum=DELTA_BLOCK_ACCOUNT_HASH;
-            this.LastNumAccountHashOK=this.BlockNumDB;
-        }
-        this.StartNumRewriteTransactions=Math.trunc(this.LastNumAccountHashOK-this.NexdDeltaAccountNum);
-
-        this.NexdDeltaAccountNum=this.NexdDeltaAccountNum*1.5;
-        if(this.StartNumRewriteTransactions<=0)
-        {
-            this.NexdDeltaAccountNum=DELTA_BLOCK_ACCOUNT_HASH;
-        }
-    }
+    // StartRewriteTransaction()
+    // {
+    //     if(this.StartNumRewriteTransactions)
+    //     {
+    //         this.ReWriteDAppTransactions(this.StartNumRewriteTransactions,this.BlockNumDB);
+    //     }
+    //
+    //     this.StartNumRewriteTransactions=undefined;
+    // }
+    // SetRewriteBlockDB()
+    // {
+    //     if(!this.NexdDeltaAccountNum)//init
+    //     {
+    //         this.NexdDeltaAccountNum=DELTA_BLOCK_ACCOUNT_HASH;
+    //         this.LastNumAccountHashOK=this.BlockNumDB;
+    //     }
+    //     this.StartNumRewriteTransactions=Math.trunc(this.LastNumAccountHashOK-this.NexdDeltaAccountNum);
+    //
+    //     this.NexdDeltaAccountNum=this.NexdDeltaAccountNum*1.5;
+    //     if(this.StartNumRewriteTransactions<=0)
+    //     {
+    //         this.NexdDeltaAccountNum=DELTA_BLOCK_ACCOUNT_HASH;
+    //     }
+    // }
 
     AddDAppTransactions(BlockNum,Arr)
     {
