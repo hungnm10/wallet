@@ -32,8 +32,8 @@ const TRAFIC_LIMIT_1S=8*TRAFIC_LIMIT_NODE_1S; //+1 for block channel
 global.STAT_PERIOD=CONSENSUS_PERIOD_TIME/5;
 const TRAFIC_LIMIT_SEND=TRAFIC_LIMIT_1S*STAT_PERIOD/1000;
 const TRAFIC_LIMIT_NODE=TRAFIC_LIMIT_NODE_1S*STAT_PERIOD/1000;
-const BUF_PACKET_SIZE=16*1024;
-//const BUF_PACKET_SIZE=64*1024;
+//const BUF_PACKET_SIZE=16*1024;
+const BUF_PACKET_SIZE=32*1024;
 
 
 global.MAX_PACKET_LENGTH=320*1024;
@@ -145,7 +145,7 @@ module.exports = class CTransport extends require("./connect")
         this.MethodTiming=Map;
         MethodTiming:
         {
-            Map["STARTBLOCK"]=  {Period:1000, Hot:1};
+
             Map["TRANSFER"]=    {Period:700,  Hot:1};
             Map["GETTRANSFER"]= {Period:1000, Hot:1};
             Map["CONTROLHASH"]= {Period:500,  Hot:1};
@@ -986,73 +986,84 @@ module.exports = class CTransport extends require("./connect")
     }
 
 
+    DoSendPacketNodeAll(Node)
+    {
+        while(this.DoSendPacketNode(Node)===1);
+    }
+
+    DoSendPacketNode(Node)
+    {
+        var TimeNum=(new Date)-0;
+        var Info=Node.SendPacket.max();
+        if(Info && TimeNum-Info.TimeNum>PACKET_ALIVE_PERIOD)
+        while(Info=Node.SendPacket.max())
+        {
+            var DeltaTime=TimeNum-Info.TimeNum;
+            if(DeltaTime>PACKET_ALIVE_PERIOD/2)//trigger
+            {
+                //ToLog("Delete OLD TIME "+Info.Method+" DeltaTime="+DeltaTime+" for:"+Node.port)
+                Node.SendPacket.remove(Info);
+
+                ADD_TO_STAT("DELETE_OLD_PACKET");
+            }
+            else
+                break;
+        }
+
+        Info=Node.SendPacket.min();
+        if(!Info)
+            return 0;
+
+
+
+        //ToLog("Send to "+Node.port+" PacketNum="+Info.PacketNum)
+
+        ADD_TO_STAT("MAX:NODE_BUF_WRITE:"+NodeName(Node),Node.BufWrite.length/1024,1);
+        ADD_TO_STAT("MAX:NODE_SEND_BUF_PACKET_COUNT:"+NodeName(Node),Node.SendPacket.size,1);
+
+        if(Node.BufWrite.length>2*TRAFIC_LIMIT_1S)
+        {
+            return 2;
+        }
+
+        Node.SendPacket.remove(Info);
+
+
+        if(Info.Context)
+        {
+            if(!Info.Context.SendCount)
+                Info.Context.SendCount=0;
+            Info.Context.SendCount++;
+        }
+        var BufWrite=this.GetBufFromData(Info.Method,Info.Data,Info.TypeData,Info.ContextID);
+
+
+        Node.BufWriteLength+=BufWrite.length;
+
+        if(Node.BufWrite.length===0)
+            Node.BufWrite=BufWrite;
+        else
+            Node.BufWrite=Buffer.concat([Node.BufWrite,BufWrite]);
+
+        ADD_TO_STAT("SEND:"+Info.Method);
+        ADD_TO_STAT("SEND:(KB)"+Info.Method,BufWrite.length/1024);
+
+        ADD_TO_STAT("SEND:"+Info.Method+":"+NodeName(Node),1,1);
+        TO_DEBUG_LOG("SEND "+Info.Method+" to "+NodeInfo(Node)+" LENGTH="+BufWrite.length);
+
+        //ToLog("SEND "+Info.Method+"  ContextID="+GetHexFromAddres(Info.ContextID))
+        return 1;
+    }
 
     DoSendPacket()
     {
 
-        var TimeNum=(new Date)-0;
         var it=this.ActualNodes.iterator(), Node;
         while((Node = it.next()) !== null)
         if(Node.ConnectStatus()===100)
         {
-            var Info=Node.SendPacket.max();
-            if(Info && TimeNum-Info.TimeNum>PACKET_ALIVE_PERIOD)
-            while(Info=Node.SendPacket.max())
-            {
-                var DeltaTime=TimeNum-Info.TimeNum;
-                if(DeltaTime>PACKET_ALIVE_PERIOD/2)//trigger
-                {
-                    //ToLog("Delete OLD TIME "+Info.Method+" DeltaTime="+DeltaTime+" for:"+Node.port)
-                    Node.SendPacket.remove(Info);
+            this.DoSendPacketNode(Node);
 
-                    ADD_TO_STAT("DELETE_OLD_PACKET");
-                }
-                else
-                    break;
-            }
-
-            Info=Node.SendPacket.min();
-            if(!Info)
-                continue;
-
-
-
-            //ToLog("Send to "+Node.port+" PacketNum="+Info.PacketNum)
-
-            ADD_TO_STAT("MAX:NODE_BUF_WRITE:"+NodeName(Node),Node.BufWrite.length/1024,1);
-            ADD_TO_STAT("MAX:NODE_SEND_BUF_PACKET_COUNT:"+NodeName(Node),Node.SendPacket.size,1);
-
-            if(Node.BufWrite.length>2*TRAFIC_LIMIT_1S)
-            {
-                continue;
-            }
-
-            Node.SendPacket.remove(Info);
-
-
-            if(Info.Context)
-            {
-                if(!Info.Context.SendCount)
-                    Info.Context.SendCount=0;
-                Info.Context.SendCount++;
-            }
-            var BufWrite=this.GetBufFromData(Info.Method,Info.Data,Info.TypeData,Info.ContextID);
-
-
-            Node.BufWriteLength+=BufWrite.length;
-
-            if(Node.BufWrite.length===0)
-                Node.BufWrite=BufWrite;
-            else
-                Node.BufWrite=Buffer.concat([Node.BufWrite,BufWrite]);
-
-            ADD_TO_STAT("SEND:"+Info.Method);
-            ADD_TO_STAT("SEND:(KB)"+Info.Method,BufWrite.length/1024);
-
-            ADD_TO_STAT("SEND:"+Info.Method+":"+NodeName(Node),1,1);
-            TO_DEBUG_LOG("SEND "+Info.Method+" to "+NodeInfo(Node)+" LENGTH="+BufWrite.length);
-
-            //ToLog("SEND "+Info.Method+"  ContextID="+GetHexFromAddres(Info.ContextID))
         }
         else
         {
@@ -1179,7 +1190,7 @@ module.exports = class CTransport extends require("./connect")
         {
             Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
 
-            if(Node.SecretForReconnect && Node.WaitConnectFromServer && CompareArr(Node.SecretForReconnect,Info.SecretForReconnect)===0)//Node.WaitConnectIP===Socket.remoteAddress)
+            if(Node.SecretForReconnect && Node.WaitConnectFromServer && CompareArr(Node.SecretForReconnect,Info.SecretForReconnect)===0)
             {
                 Node.NextConnectDelta=1000;
                 Node.WaitConnectFromServer=0;

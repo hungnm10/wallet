@@ -217,6 +217,76 @@ module.exports = class CDBState extends require("./db")
         this.Truncate(-1);
     }
 
+    FastFindBlockNum(BlockNum)
+    {
+        //must be field BlockNum in def struct
+
+        var MaxNum=this.GetMaxNum();
+        if(MaxNum===-1)
+            return;
+
+        var StartNum=0;
+        var EndNum=MaxNum;
+        var CurNum=Math.trunc(MaxNum/2);
+        while(true)
+        {
+            var Item=this.Read(CurNum);
+            if(Item)
+            {
+                if(Item.BlockNum>BlockNum)
+                {
+                    EndNum=CurNum-1;
+                    var Delta=CurNum-StartNum;
+                    if(Delta===0)
+                        return;//не нашли
+                    Delta=Math.trunc((1+Delta)/2);
+                    CurNum=CurNum-Delta;
+                }
+                else
+                if(Item.BlockNum<BlockNum)
+                {
+                    StartNum=CurNum+1;
+                    var Delta=EndNum-CurNum;
+                    if(Delta===0)
+                        return;//не нашли
+                    Delta=Math.trunc((1+Delta)/2);
+                    CurNum=CurNum+Delta;
+                }
+                else
+                if(Item.BlockNum===BlockNum)
+                    break;//нашли
+            }
+            else
+            {
+                throw "Error read num";
+                return;
+            }
+
+        }
+
+        //отматываем до начала блока
+        var num=CurNum;
+        while(true)
+        {
+            num--;
+            if(num<0)
+                return CurNum;
+            var Item=this.Read(num);
+            if(Item)
+            {
+                if(Item.BlockNum===BlockNum)
+                    CurNum=num;
+                else
+                    return CurNum;
+            }
+            else
+            {
+                throw "Error read num";
+                return;
+            }
+        }
+    }
+
 
 }
 

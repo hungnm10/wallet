@@ -12,11 +12,7 @@ const MAX_SUM_CENT=1e9;
 
 
 
-var code_base=' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\u0402\u0403\u201a\u0453\u201e\u2026\u2020\u2021\u20ac\u2030\u0409\u2039\u040a\u040c\u040b\u040f\u0452\u2018\u2019\u201c\u201d\u2022\u2013\u2014\ufffd\u2122\u0459\u203a\u045a\u045c\u045b\u045f\xa0\u040e\u045e\u0408\xa4\u0490\xa6\xa7\u0401\xa9\u0404\xab\xac\xad\xae\u0407\xb0\xb1\u0406\u0456\u0491\xb5\xb6\xb7\u0451\u2116\u0454\xbb\u0458\u0405\u0455\u0457\u0410\u0411\u0412\u0413\u0414\u0415\u0416\u0417\u0418\u0419\u041a\u041b\u041c\u041d\u041e\u041f\u0420\u0421\u0422\u0423\u0424\u0425\u0426\u0427\u0428\u0429\u042a\u042b\u042c\u042d\u042e\u042f\u0430\u0431\u0432\u0433\u0434\u0435\u0436\u0437\u0438\u0439\u043a\u043b\u043c\u043d\u043e\u043f\u0440\u0441\u0442\u0443\u0444\u0445\u0446\u0447\u0448\u0449\u044a\u044b\u044c\u044d\u044e\u044f';
-
-
 const TYPE_TRANSACTION_CREATE=100;
-//const TYPE_TRANSACTION_CHANGE=102;
 const TYPE_TRANSACTION_TRANSFER=105;
 const TYPE_TRANSACTION_TRANSFER2=110;
 global.TYPE_TRANSACTION_ACC_HASH=117;
@@ -158,7 +154,6 @@ class AccountApp extends require("./dapp")
 
         setInterval(this.ControlActSize.bind(this),60*1000);
 
-        //TODO NET TRANSFER
     }
 
 
@@ -301,12 +296,6 @@ class AccountApp extends require("./dapp")
                 Result=this.TRCreateAccount(Body,BlockNum,TrNum);
                 break;
             }
-
-            // case TYPE_TRANSACTION_CHANGE:
-            // {
-            //     Result=this.TRChangeAccount(Body,BlockNum,TrNum);
-            //     break;
-            // }
 
             case TYPE_TRANSACTION_TRANSFER:
             {
@@ -493,12 +482,6 @@ class AccountApp extends require("./dapp")
                 break;
             }
 
-            // case TYPE_TRANSACTION_CHANGE:
-            // {
-            //     Result=this.TRChangeAccount(Body,BlockNum);
-            //     break;
-            // }
-
             case TYPE_TRANSACTION_TRANSFER:
             {
                 format=FORMAT_MONEY_TRANSFER;
@@ -614,60 +597,6 @@ class AccountApp extends require("./dapp")
         }
 
         return true;
-    }
-
-    TRChangeAccount(Body,BlockNum)
-    {
-
-        if(Body.length<150)
-            return "Error length transaction (retry transaction)";
-
-        const FORMAT_CHANGE=
-            "{\
-            Type:byte,\
-            ID:uint,\
-            PubKey:arr33,\
-            Description:str40,\
-            OperationID:uint,\
-            Sign:arr64,\
-            }";//1+6+33+40+1+6+64=87+64=151
-
-
-        try
-        {
-            var TR=BufLib.GetObjectFromBuffer(Body,FORMAT_CHANGE,{});
-        }
-        catch (e)
-        {
-            return "Error transaction format (retry transaction)";
-        }
-
-        //find account db
-        var Data=this.ReadValue(TR.ID);
-        if(!Data)
-            return;
-
-
-        //check sign
-        var hash=shabuf(Body.slice(0,Body.length-64-12));
-        var Result=0;
-        if(Data.PubKey[0]===2 || Data.PubKey[0]===3)
-        try{Result=secp256k1.verify(hash, TR.Sign, Data.PubKey);}catch (e){};
-        if(!Result)
-        {
-            return "Error sign";
-        }
-
-
-        var Act={ID:Data.Num,BlockNum:BlockNum};
-        Data.PrevValue=CopyObjValue(Data.Value);
-
-        Data.Description=TR.Description;
-        Data.PubKey=TR.PubKey;
-        //Data.Value.AdviserID=TR.AdviserID;
-
-        this.DBState.Write(Data);
-        this.DBAct.Write(Act);
     }
 
 
@@ -1036,70 +965,7 @@ class AccountApp extends require("./dapp")
 
     FindBlockInAct(DBAct,BlockNum)
     {
-        var MaxNum=DBAct.GetMaxNum();
-        if(MaxNum===-1)
-            return;
-
-        var StartNum=0;
-        var EndNum=MaxNum;
-        var CurNum=Math.trunc(MaxNum/2);
-        while(true)
-        {
-            var Item=DBAct.Read(CurNum);
-            if(Item)
-            {
-                if(Item.BlockNum>BlockNum)
-                {
-                    EndNum=CurNum-1;
-                    var Delta=CurNum-StartNum;
-                    if(Delta===0)
-                        return;//не нашли
-                    Delta=Math.trunc((1+Delta)/2);
-                    CurNum=CurNum-Delta;
-                }
-                else
-                if(Item.BlockNum<BlockNum)
-                {
-                    StartNum=CurNum+1;
-                    var Delta=EndNum-CurNum;
-                    if(Delta===0)
-                        return;//не нашли
-                    Delta=Math.trunc((1+Delta)/2);
-                    CurNum=CurNum+Delta;
-                }
-                else
-                if(Item.BlockNum===BlockNum)
-                    break;//нашли
-            }
-            else
-            {
-                throw "Error read num";
-                return;
-            }
-
-        }
-
-        //отматываем до начала блока
-        var num=CurNum;
-        while(true)
-        {
-            num--;
-            if(num<0)
-                return CurNum;
-            var Item=DBAct.Read(num);
-            if(Item)
-            {
-                if(Item.BlockNum===BlockNum)
-                    CurNum=num;
-                else
-                    return CurNum;
-            }
-            else
-            {
-                throw "Error read num";
-                return;
-            }
-        }
+        return DBAct.FastFindBlockNum(BlockNum);
     }
 
 
@@ -1135,7 +1001,7 @@ class AccountApp extends require("./dapp")
                     Data.PubKeyStr=GetHexFromArr(Data.PubKey);
                 arr.push(Data);
                 Data.WN=map[key];
-                Data.Description=this.NormalizeName(Data.Description);
+                Data.Description=NormalizeName(Data.Description);
             }
         }
         return arr;
@@ -1166,7 +1032,7 @@ class AccountApp extends require("./dapp")
             if(!Data.PubKeyStr)
                 Data.PubKeyStr=GetHexFromArr(Data.PubKey);
 
-            Data.Description=this.NormalizeName(Data.Description);
+            Data.Description=NormalizeName(Data.Description);
 
             if(Filter)
             {
@@ -1198,17 +1064,6 @@ class AccountApp extends require("./dapp")
 
 
         return arr;
-    }
-    NormalizeName(Name)
-    {
-        var Str="";
-        for(var i=0;i<Name.length;i++)
-        {
-            var code=Name.charCodeAt(i);
-            if(code>=32)
-                Str+=code_base.charAt(code-32);
-        }
-        return Str;
     }
 
 

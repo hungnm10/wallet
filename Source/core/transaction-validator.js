@@ -5,7 +5,7 @@
 
 require("../dapp/dapp");
 require("../dapp/accounts");
-//require("../dapp/codes");
+require("../dapp/smart");
 require("../dapp/messager");
 require("../dapp/names");
 

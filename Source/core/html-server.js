@@ -540,7 +540,7 @@ global.SetCheckPointOnBlock=SetCheckPointOnBlock;
 
 
 var idSetTimeSetCheckPoint;
-HTTPCaller.SetAutoCheckPoint=function (bSet)
+HTTPCaller.SetAutoCheckPoint=function (Param)
 {
     var Ret=CheckCorrectDevKey();
     if(Ret!==true)
@@ -550,11 +550,11 @@ HTTPCaller.SetAutoCheckPoint=function (bSet)
     if(idSetTimeSetCheckPoint)
         clearInterval(idSetTimeSetCheckPoint);
     idSetTimeSetCheckPoint=undefined;
-    if(bSet)
-        idSetTimeSetCheckPoint=setInterval(RunSetCheckPoint,2000);
+    if(Param.Set)
+        idSetTimeSetCheckPoint=setInterval(RunSetCheckPoint,Param.Period*1000);
 
 
-    return {result:1,text:"AutoCheck: "+bSet};
+    return {result:1,text:"AutoCheck: "+Param.Set+" each "+Param.Period+" sec"};
 }
 
 
@@ -1337,6 +1337,8 @@ function CopyBlockDraw(Block,MainChains)
             Power:GetPowPower(Block.Hash),
             CheckPoint:CheckPoint,
             Mining:Mining,
+            StartPOW:Block.StartPOW,
+            HasErr:Block.HasErr,
 
         };
     if(Block.chain)

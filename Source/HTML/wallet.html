@@ -60,7 +60,7 @@
     var SaveIdArr=["idAccount","idTo","idSumTER","idDescription","idSelStyle",
         "idViewAccountNum","idViewBlockNum","idViewHistoryNum","idViewActNum","idViewHashNum","idWalletPow",
         "idRunText","idViewAccountFilter","idViewHistoryFilter","idUseSoundHistory",
-        "idBlockCount"];
+        "idBlockCount","idPeriodAutoCheckPoint"];
     var LoadMapAfter={};
 
 
@@ -1800,7 +1800,9 @@
 
     function UseAutoCheckPoint()
     {
-        GetData("/SetAutoCheckPoint/",document.getElementById("idUseAutoCheckPoint").checked,function (Data)
+        var Set=$("idUseAutoCheckPoint").checked;
+        var Period=ParseNum($("idPeriodAutoCheckPoint").value);
+        GetData("/SetAutoCheckPoint/",{Set:Set,Period:Period},function (Data)
         {
             if(Data)
             {
@@ -1874,7 +1876,9 @@
             Data.bAddTime=0;
         }
         Data.DeltaTime=40;
-        Data.StartBlockNum=(ServerCurBlockNum+100)-ServerCurBlockNum%100;
+
+        Data.StartBlockNum=ServerCurBlockNum+10;
+
         Data.EndBlockNum=Data.StartBlockNum+Math.trunc(AutoDelta/Data.DeltaTime);
 
         var Str=JSON.stringify(Data,"",2);
@@ -2205,7 +2209,11 @@
 
 
                 <input type="checkbox" class="checkbox" id="idUseAutoCheckPoint" onchange = "UseAutoCheckPoint()"/>
-                <label for="idUseAutoCheckPoint">Auto check point</label>
+                <label for="idUseAutoCheckPoint">Auto check point each :</label>
+                <INPUT type="number" id="idPeriodAutoCheckPoint" style="width: 60px" value="10"> sec<BR>
+
+
+
                 <input type="checkbox" class="checkbox" id="idUseAutoCorrTime" onchange = "UseAutoCorrTime()"/>
                 <label for="idUseAutoCorrTime">Auto corr time</label><BR>
 
@@ -2485,9 +2493,9 @@
 
     <DIV id="TabExplorer" style="display: none">
 
-        <INPUT type="button" onclick="window.Open('./HTML/stat.html','counters')" class="btdoit btopen bt" id="idCounters" value="Counters">
-        <INPUT type="button" onclick="window.Open('./HTML/chains.html','chains',1200,600)" class="btdoit btopen bt" id="idChains" value="Chains">
-        <INPUT type="button" onclick="window.Open('./HTML/console.html','console',1200)" class="btdoit btopen bt" id="idConsole" value="Console">
+        <INPUT type="button" onclick="window.Open('./HTML/stat.html','counters',920)" class="btdoit btopen bt" id="idCounters" value="Counters">
+        <INPUT type="button" onclick="window.Open('./HTML/chains.html','chains',1240,600)" class="btdoit btopen bt" id="idChains" value="Chains">
+        <INPUT type="button" onclick="window.Open('./HTML/console.html','console',1240)" class="btdoit btopen bt" id="idConsole" value="Console">
         <INPUT type="button" onclick="window.Open('./HTML/monitor.html','monitor',1200)" class="btdoit btopen bt" id="idMonitor" value="Monitor">
         <INPUT type="button" onclick="window.Open('./HTML/network.html','network',1200)" class="btdoit btopen bt" id="idNetwork" value="Network">
 

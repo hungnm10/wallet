@@ -75,7 +75,7 @@ module.exports = class CCommon
         var BufMap={},BufMap2={};
         var arr=SERVER.GetActualNodes();
         var Count=0,CountHot=0,CountHotOK=0,CountActualOK=0,SumDeltaHot=0,SumDeltaActual=0,CountCP=0,CountLH=0,CountHash=0,CountVer=0,CountStop=0;
-        var CountActive=0,SumAvgDeltaTime=0;
+        var SumAvgDeltaTime=0;
         for(var i=0;i<arr.length;i++)
         {
             var Node=arr[i];
@@ -98,14 +98,8 @@ module.exports = class CCommon
 
 
 
-            if(Node.Active)
-            {
-                CountActive++;
-                SumAvgDeltaTime+=Node.DeltaGlobTime;
-            }
-
-
             Count++;
+            SumAvgDeltaTime+=Node.DeltaGlobTime;
 
 
             if(Node.VersionNum>=MinVer)
@@ -139,6 +133,8 @@ module.exports = class CCommon
             }
         }
 
+
+
         var CountAll=SERVER.NodesArr.length;
 
         ADD_TO_STAT("MAX:ALL_NODES",CountAll);
@@ -154,21 +150,55 @@ module.exports = class CCommon
 
         ADD_TO_STAT("MAX:TIME_DELTA",DELTA_CURRENT_TIME);
 
-
-        if(!CountActive)
-            CountActive=1;
-        ADD_TO_STAT("MAX:DELTA_GLOB_TIME",SumAvgDeltaTime/CountActive);
-
-
-
-
-
-
-
-        if(!CountHot)
-            CountHot=0;
         if(!Count)
-            Count=0;
+            Count=1;
+        if(!CountHot)
+            CountHot=1;
+
+        if(Count>1)
+        {
+            //дисперсия
+            var SumDeltaAvg=0;
+            var AvgGlobTime=SumAvgDeltaTime/Count;
+            for(var i=0;i<arr.length;i++)
+            {
+                var Node=arr[i];
+                if(!Node || Node.IsAddrList)
+                    continue;
+
+                var Delta=AvgGlobTime-Node.DeltaGlobTime;
+                SumDeltaAvg+=Delta*Delta;
+            }
+            SumDeltaAvg=Math.sqrt(SumDeltaAvg/Count);
+
+            ADD_TO_STAT("MAX:DELTA_GLOB_TIME",100+AvgGlobTime);
+            ADD_TO_STAT("MAX:DISP_DELTA_GLOB_TIME",SumDeltaAvg);
+
+            //среднемедианное время
+            arr.sort(function (a,b)
+            {
+                return a.DeltaGlobTime-b.DeltaGlobTime;
+            })
+            var SumDeltaAvgM=0;
+            var AvgGlobTimeM=arr[Math.trunc(arr.length/2)].DeltaGlobTime;
+            for(var i=0;i<arr.length;i++)
+            {
+                var Node=arr[i];
+                if(!Node || Node.IsAddrList)
+                    continue;
+
+                var Delta=AvgGlobTimeM-Node.DeltaGlobTime;
+                SumDeltaAvgM+=Delta*Delta;
+            }
+            SumDeltaAvgM=Math.sqrt(SumDeltaAvgM/Count);
+
+            ADD_TO_STAT("MAX:MEDIAN_GLOB_TIME",100+AvgGlobTimeM);
+            ADD_TO_STAT("MAX:DISP_MEDIAN_GLOB_TIME",SumDeltaAvgM);
+        }
+
+
+
+
         ADD_TO_STAT("MAX:DELTA_TIME_HOT",SumDeltaHot/CountHot);
         ADD_TO_STAT("MAX:DELTA_TIME_ACTUAL",SumDeltaActual/Count);
 

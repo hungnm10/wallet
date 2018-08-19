@@ -157,6 +157,7 @@
         var StartServer=Item.starttime;
         var mouseX=Item.mouseX;
 
+
         if(!arr)
             return;
 
@@ -172,35 +173,59 @@
         if(arr.length<=0)
             return;
 
-        var MaxValue=1;//GreenValue;
+        var MaxValue=arr[0];
+        var MinValue=arr[0];
         var AvgValue=0;
         for(var i=0;i<arr.length;i++)
         {
             if(arr[i]>MaxValue)
                 MaxValue=arr[i];
+            if(arr[i]<MinValue)
+                MinValue=arr[i];
+
             if(arr[i])
                 AvgValue+=arr[i];
         }
         //среднее значение
-        if(!Item.AvgValue)
-            AvgValue=0;
+        if(Item.name.substr(0,4)!=="MAX:" || !Item.AvgValue)
+            AvgValue=AvgValue/arr.length;
         else
-        if(Item.AvgValue<50)
-            AvgValue=Item.AvgValue.toFixed(1);
+            AvgValue=Item.AvgValue;
+
+        if(AvgValue<50)
+            AvgValue=AvgValue.toFixed(1);
         else
-            AvgValue=Math.trunc(Item.AvgValue);
+            AvgValue=Math.trunc(AvgValue);
 
 
         if(Item.MaxValue!==undefined)
             MaxValue=Item.MaxValue;
 
 
+        var HValue=MaxValue;
+
+        if(HValue<=0)
+            HValue=1;
 
         var KX=(obj.width-Left-Right)/arr.length;
-        var KY=(obj.height-Top-Button)/MaxValue;
+        var KY=(obj.height-Top-Button)/HValue;
+
+        var DeltaY=0;
+        var bLine=Item.line;
+        if(Item.zero)
+        {
+            bLine=1;
+            DeltaY-=Item.zero*KY;
+            MaxValue-=Item.zero;
+            AvgValue-=Item.zero;
+        }
+
 
         MaxValue=Math.floor(MaxValue+0.5);
 
+        if(bLine)
+            ctx.lineWidth=3;
+        else
         if(KX>1)
             ctx.lineWidth=KX;
         else
@@ -248,9 +273,17 @@
                 var x=StartX+ctx.lineWidth/2+(i)*KX;
 
 
+                if(bLine)
+                {
+                    //ctx.moveTo(x,StartY-VX1);
+                    ctx.lineTo(x,StartY-VX2);
+                }
+                else
+                {
+                    ctx.moveTo(x,StartY-VX1);
+                    ctx.lineTo(x,StartY-VX2);
+                }
 
-                ctx.moveTo(x,StartY-VX1);
-                ctx.lineTo(x,StartY-VX2);
 
                 if(mouseX)
                 {
@@ -260,6 +293,9 @@
                     {
                         mouseValueX=x;
                         mouseValue=Value;
+
+                        if(Item.zero)
+                            mouseValue-=Item.zero;
                         mouseColor=color;
                      }
                 }
@@ -268,8 +304,16 @@
         }
         if(!Item.red)
             Item.red="#A00";
-        DrawLines(arr,"red",Item.red);
-        DrawLines(arr,"green","#0A0");
+        if(bLine)
+        {
+            DrawLines(arr,"line",Item.red);
+        }
+        else
+        {
+            DrawLines(arr,"red",Item.red);
+            if(GreenValue>0)
+                DrawLines(arr,"green","#0A0");
+        }
 
 
 
@@ -281,7 +325,8 @@
         Left--;StartX--; StartY+=2;
         ctx.moveTo(Left,Top);
         ctx.lineTo(StartX,StartY);
-        ctx.lineTo(obj.width-10,StartY);
+        ctx.moveTo(StartX,StartY+DeltaY);
+        ctx.lineTo(obj.width-10,StartY+DeltaY);
         ctx.stroke();
 
 
@@ -316,22 +361,19 @@
         {
             var heigh=StartY-Top;
             var KKY=AvgValue/MaxValue;
-            //if(KKY<0.95)
+            var y=(heigh-Math.floor(KKY*heigh));
+            var yT=y;
+            if(yT<10)
             {
-                var dTop=0;
-                if(KKY>0.8)
-                {
-                    dTop=25;
-                }
-
-                var y=(heigh-Math.floor(KKY*heigh));
-                ctx.beginPath();
-                ctx.moveTo(Left-2,y+Top);
-                ctx.lineTo(Left+2,y+Top);
-                ctx.stroke();
-                ctx.strokeStyle = "#00F";
-                ctx.fillText(Rigth("          "+AvgValue,8),0,y+Top+dTop);
+                yT=10;
             }
+
+            ctx.beginPath();
+            ctx.moveTo(Left-2,y+Top);
+            ctx.lineTo(Left+2,y+Top);
+            ctx.stroke();
+            ctx.strokeStyle = "#00F";
+            ctx.fillText(Rigth("          "+AvgValue,8),0,yT+Top);
         }
 
         var CountNameX=10;
@@ -444,6 +486,8 @@
 
             {name:"MAX:HOT_NODES",text:"TRANSFER nodes, count",value:0,red:"#063c8a"},
 
+            {name:"MAX:MEDIAN_GLOB_TIME",text:"MEDIAN_GLOB_TIME",value:0,red:"#5e729b",zero:100},
+            {name:"MAX:DISP_MEDIAN_GLOB_TIME",text:"DISP_MEDIAN_GLOB_TIME",value:0,red:"#4a809b"},
 
 
 //            {name:"MAX:HOT_OK",text:"TRANSFER Accounts Hash - OK",value:0,red:"#2b6311"},
@@ -459,9 +503,19 @@
 
     var DiagramArrD=
         [
+//            {name:"TIME_USE_PACKET",text:"Время выполнения пакета, мс",value:100},
 
-            {name:"MAX:DELTA_GLOB_TIME",text:"DELTA_GLOB_TIME",value:0,red:"#8b7a9b"},
-            {name:"MAX:TIME_DELTA",text:"TIME_DELTA",value:0,red:"#4d989b"},
+            {name:"MAX:DELTA_GLOB_TIME",text:"DELTA_GLOB_TIME",value:0,red:"#8b7a9b",zero:100},
+            {name:"MAX:DISP_DELTA_GLOB_TIME",text:"DISP_DELTA_GLOB_TIME",value:0,red:"#9b747f"},
+
+            {name:"MAX:MEDIAN_GLOB_TIME",text:"MEDIAN_GLOB_TIME",value:0,red:"#5e729b",zero:100},
+            {name:"MAX:DISP_MEDIAN_GLOB_TIME",text:"DISP_MEDIAN_GLOB_TIME",value:0,red:"#4a809b"},
+
+            {name:"CORRECT_TIME_UP",text:"CORRECT_TIME_UP",value:0,red:"#449b7e"},
+            {name:"CORRECT_TIME_DOWN",text:"CORRECT_TIME_DOWN",value:0,red:"#9b8a3a"},
+
+
+//            {name:"MAX:TIME_DELTA",text:"TIME_DELTA",value:0,red:"#4d989b",line:1},
 
             {name:"MAX:BUSY_LEVEL",text:"BUSY_LEVEL",value:0,red:"#ff353b"},
             {name:"STOP_METHOD",text:"STOP_METHOD",value:0,red:"#8a3c40"},
@@ -595,8 +649,8 @@
 //            {name:"SKIPFRAGMENTUSE",text:"SKIPFRAGMENTUSE",value:0},
 
 
-            {name:"TIMEDOGETDATA",text:"Время получения пакетов, мс",value:100},
-            {name:"TIME_USE_PACKET",text:"Время выполнения пакета, мс",value:100},
+            //{name:"TIMEDOGETDATA",text:"Время получения пакетов, мс",value:100},
+            //{name:"TIME_USE_PACKET",text:"Время выполнения пакета, мс",value:100},
 
             //{name:"TRANSFER",text:"Обработка пакета TRANSFER, мс",value:90},
             //{name:"MAX:TimeDoGetData",text:"Макс время обработки полученного пакета, мс",value:25},

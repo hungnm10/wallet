@@ -291,7 +291,10 @@
         if(!Block)
             return ""
         if(Block.bSave)//Block.BlockNum<MaxNum-8
-            return GetStrFromHash(Block.SumHash);
+        {
+            var Name=GetStrFromHash(Block.SumHash);
+            return Name;
+        }
         else
         if(Block.BlockNum<MaxNum-4)
             return "S:"+GetStrFromHash(Block.SeqHash);
@@ -633,9 +636,11 @@
 
         var header=GetHName(Block,Block.MaxBlockNum)
 
+//        if(Block.bSave && !Block.StartPOW)
+//            Block.HasErr=1;
 
         ctx.fillStyle = "#000";
-        if(Block.Type==="H" && Block.HashCountErr)
+        if(Block.Type==="H" && Block.HasErr)
         {
             ctx.fillStyle="#F00";
         }
@@ -1174,7 +1179,7 @@
             }
 
             nWork++;
-            PrepareDrawResult(ResDataArr,MaxNum)
+            //PrepareDrawResult(ResDataArr,MaxNum)
             InitDrawPaper();
 
             var StrInfo="";
@@ -1309,8 +1314,8 @@
         top: 0px;
         width:190px;
         border: 1px solid #000;
-        background2: #DEE1AE;
-        height2:150px;
+        font-size: small;
+
     }
     div.nodestatus
     {

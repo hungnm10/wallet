@@ -1684,7 +1684,7 @@ module.exports = class CBlock extends require("./db/block-db")
                 {
                     BlockMem.bSave=false;
                     this.ReloadTrTable(BlockMem);
-                    BlockMem.Info+="\n--delete old--"
+                    BlockMem.Info+="\n--reload old table--"
                 }
 
                 if(!BlockMem)
@@ -2375,7 +2375,7 @@ module.exports = class CBlock extends require("./db/block-db")
     {
         var Str=GetHexFromArr(Hash);
         if(typeof Str==="string")
-            return Str.substr(0,4);
+            return Str.substr(0,6);
         else
             return "";
     }
@@ -2429,7 +2429,15 @@ function AddInfo(Block,Str,BlockNumStart)
 {
     if(Block.Info.length<2000)
     {
-        var timesend=GetCurrentBlockNumByTime()-BlockNumStart;
+        //var timesend=GetCurrentBlockNumByTime()-BlockNumStart;
+        var timesend=""+SERVER.CurrentBlockNum-BlockNumStart;
+
+
+        var now=GetCurrentTime();
+        timesend+=".["+now.getSeconds().toStringZ(2)+"."+now.getMilliseconds().toStringZ(3)+"]";
+        //timesend+=".["+now.getSeconds().toStringZ(2)+"."+now.getMilliseconds().toStringZ(3)+global.StrWarn+"="+Math.trunc(global.DELTA_CURRENT_TIME)+"]";
+        //timesend+=".["+now.getSeconds().toStringZ(2)+"."+now.getMilliseconds().toStringZ(3)+global.StrWarn+"]";
+
         Str=timesend+": "+Str;
         Block.Info+="\n"+Str;
     }

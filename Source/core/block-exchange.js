@@ -13,7 +13,7 @@ const RBTree = require('bintrees').RBTree;
 
 //global.FIRST_TIME_BLOCK=0;
 global.CAN_START=false;
-
+global.StrWarn="";
 
 
 global.CONSENSUS_TIK_TIME=CONSENSUS_PERIOD_TIME/10;//ms
@@ -22,7 +22,7 @@ const PERIOD_FOR_NEXT_SEND=CONSENSUS_TIK_TIME*3
 
 
 //timing:
-global.BLOCK_DELTA_ACTIVATE=1;
+global.BLOCK_DELTA_ACTIVATE=0;//было 1
 global.TIME_END_EXCHANGE=-3;
 global.TIME_START_POW=-4;
 global.TIME_START_POW_EXCHANGE=-5;
@@ -70,13 +70,14 @@ module.exports = class CConsensus extends require("./block-loader")
         }
     }
 
-    StartBlockChain()
+    StartBlockChain2()
     {
         this.OnStartSecond();
 
-        var CurTime=(GetCurrentTime()-0)
+        var CurTime=GetCurrentTime()-CONSENSUS_PERIOD_TIME/2;
+        //var CurTime=(GetCurrentTime()-0)
         var NextTime=CurTime+CONSENSUS_PERIOD_TIME;
-        NextTime=Math.trunc(NextTime/CONSENSUS_PERIOD_TIME)*CONSENSUS_PERIOD_TIME+50;
+        NextTime=Math.trunc(NextTime/CONSENSUS_PERIOD_TIME)*CONSENSUS_PERIOD_TIME;//+CONSENSUS_PERIOD_TIME/2;
 
         var DeltaForStart=NextTime-CurTime;
 
@@ -92,6 +93,33 @@ module.exports = class CConsensus extends require("./block-loader")
             setTimeout(function ()
             {
                 self.idBlockChainTimer=setInterval(self.StartBlockChain.bind(self),CONSENSUS_PERIOD_TIME-5);
+                self.OnStartSecond();
+            },DeltaForStart)
+        }
+
+
+    }
+
+    StartBlockChain()
+    {
+        this.OnStartSecond();
+
+        var CurTimeNum=GetCurrentTime()-CONSENSUS_PERIOD_TIME/2;
+        var StartTimeNum=Math.floor((CurTimeNum+CONSENSUS_PERIOD_TIME)/CONSENSUS_PERIOD_TIME)*CONSENSUS_PERIOD_TIME;
+        var DeltaForStart=StartTimeNum-CurTimeNum;
+
+        if(DeltaForStart<(CONSENSUS_PERIOD_TIME-5))//корректировка времени запуска
+        {
+            //ToLog("DeltaForStart="+DeltaForStart)
+            var self=this;
+
+            if(self.idBlockChainTimer)
+                clearInterval(self.idBlockChainTimer);
+            self.idBlockChainTimer=0;
+
+            setTimeout(function ()
+            {
+                self.idBlockChainTimer=setInterval(self.StartBlockChain.bind(self),CONSENSUS_PERIOD_TIME);
                 self.OnStartSecond();
             },DeltaForStart)
         }
@@ -212,7 +240,7 @@ module.exports = class CConsensus extends require("./block-loader")
         if(!Block0.Active)
         {
             AddInfoBlock(Block0,"Activate");
-            this.StartBlock(Block0,{});
+            this.StartBlock(Block0);
         }
         else
         {
@@ -964,7 +992,7 @@ module.exports = class CConsensus extends require("./block-loader")
             Context=this.CreateBlockContext();
             Context.BlockNum=BlockNum;
             Context.DELTA_CURRENT_TIME=GetDeltaCurrentTime();
-            Context.StartTimeNum=BlockNum*CONSENSUS_PERIOD_TIME+START_NETWORK_DATE;
+            Context.StartTimeNum=(BlockNum-1+BLOCK_DELTA_ACTIVATE)*CONSENSUS_PERIOD_TIME+START_NETWORK_DATE;
 
 
             this.BlockChain[BlockNum]=Context;
@@ -984,73 +1012,6 @@ module.exports = class CConsensus extends require("./block-loader")
         Block.Active=true;
     }
 
-    StartBlock0(Block,MapFilter)
-    {
-        if(!Block.Active)
-        {
-            Block.DELTA_CURRENT_TIME=GetDeltaCurrentTime();
-            //Block.StartTimeNum=GetCurrentTime(Block.DELTA_CURRENT_TIME)-0;//<------- start
-            Block.StartTimeNum=Block.BlockNum*CONSENSUS_PERIOD_TIME+START_NETWORK_DATE;
-        }
-
-        Block.Active=true;
-
-        var Arr=[];
-        for(var Addr in Block.TransferFromAddr)
-        {
-            Arr.push(Addr);
-        }
-
-        var Str="";
-        for(var Addr in Block.TransferFromAddr)
-        {
-            if(MapFilter[Addr])
-                continue;
-
-            var Node=this.NodesMap[Addr];
-            if(Node && Node.Active)
-            {
-                Str=Str+" "+Node.port;
-                this.SendF(Node,
-                    {
-                        "Method":"STARTBLOCK",
-                        "Data":
-                            {
-                                BlockNum:Block.BlockNum,
-                                AddrArr:Arr
-                            }
-                    }
-                );
-            }
-        }
-        //ToLog("STARTBLOCK: "+Block.BlockNum+" TO:"+Str)
-    }
-    static STARTBLOCK_F()
-    {
-        return "{BlockNum:uint,AddrArr:[str64]}"
-    }
-
-
-    STARTBLOCK(Info,CurTime)
-    {
-        return;
-
-        var Data=this.DataFromF(Info);
-        var BlockNum=Data.BlockNum;
-        var Arr=Data.AddrArr;
-
-        var Block=this.GetBlockContext(BlockNum);
-        if(Block && !Block.Active)
-        {
-            var Map={};
-            Map[Info.Node.addrStr]=true;
-            for(var i=0;i<Arr.length;i++)
-                Map[Arr[i]]=true;
-
-            //ToLog("OK STARTBLOCK: "+BlockNum)
-            this.StartBlock(Block,Map);
-        }
-    }
 
     IsCorrectBlockNum(BlockNum)
     {
@@ -1338,13 +1299,13 @@ module.exports = class CConsensus extends require("./block-loader")
             return;
 
         this.StartConsensus();
-
+        var CURRENTBLOCKNUM=this.CurrentBlockNum;
 
         var bWasSave=false;
         var LoadBlockNum;
         var LoadHash;
-        var start_save=this.CurrentBlockNum+TIME_START_SAVE;
-        for(var i=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH2; i>BLOCK_PROCESSING_LENGTH2 && i<this.CurrentBlockNum; i++)
+        var start_save=CURRENTBLOCKNUM+TIME_START_SAVE;
+        for(var i=CURRENTBLOCKNUM-BLOCK_PROCESSING_LENGTH2; i>BLOCK_PROCESSING_LENGTH2 && i<CURRENTBLOCKNUM; i++)
         {
             var Block=this.GetBlock(i);
             if(!Block)
@@ -1360,13 +1321,13 @@ module.exports = class CConsensus extends require("./block-loader")
             {
                 bWasSave=true;
                 //check pow Total Hash
-                if(i>=this.CurrentBlockNum+TIME_START_LOAD && Block.MaxSum && !Block.CheckMaxSum)
+                if(i>=CURRENTBLOCKNUM+TIME_START_LOAD && Block.MaxSum && !Block.CheckMaxSum)
                 {
                     AddInfoBlock(Block,"CheckMaxSum");
                     this.CheckMaxSum(Block);
                 }
 
-                if(i<=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH*4)
+                if(i<=CURRENTBLOCKNUM-BLOCK_PROCESSING_LENGTH*4)
                 {
                     Block.TransferFromAddr=undefined;
                     Block.LevelsTransfer=undefined;
@@ -1387,14 +1348,18 @@ module.exports = class CConsensus extends require("./block-loader")
             var PrevBlock=this.GetBlock(i-1);
             if(!PrevBlock)
             {
+                Block.HasErr=1;
                 AddInfoBlock(Block,"!PrevBlock");
                 continue;
             }
 
 
             //Обмен
-            if(i>=this.CurrentBlockNum+TIME_END_EXCHANGE)
+            if(i>=CURRENTBLOCKNUM+TIME_END_EXCHANGE)
             {
+                if(Block.EndExchange)
+                    AddInfoBlock(Block,"WAIT");
+                else
                 if(Block.Active)
                     AddInfoBlock(Block,"WAIT EXCHANGE");
                 else
@@ -1410,12 +1375,12 @@ module.exports = class CConsensus extends require("./block-loader")
             }
 
             //POW
-            if(i===this.CurrentBlockNum+TIME_START_POW)
+            if(i===CURRENTBLOCKNUM+TIME_START_POW)
             {
                 if(!Block.EndExchange)
                     this.CreateTreeHash(Block);
-
-                AddInfoBlock(Block,"Start POW!!!");
+                Block.StartPOW=1;
+                AddInfoBlock(Block,"Start POW");
 
                 this.PreparePOWHash(Block);//start POW
                 if(!Block.Prepared)
@@ -1425,15 +1390,16 @@ module.exports = class CConsensus extends require("./block-loader")
 
             if(!Block.Prepared)//Прошли тайминги расчета POW, но он не рассчитан. Рассчитываем упрощенно вручную
             {
-                //AddInfoBlock(Block,"!Prepared");
+                Block.HasErr=1;
+                AddInfoBlock(Block,"Not was Prepared");
                 this.PreparePOWHash(Block,true);//not start POW
-                //this.AddToMaxPOW(Block);
+
             }
 
 
 
             //Обмен POW
-            if(i>=this.CurrentBlockNum+TIME_END_EXCHANGE_POW)
+            if(i>=CURRENTBLOCKNUM+TIME_END_EXCHANGE_POW)
             {
                 AddInfoBlock(Block,"WAIT EXCHANGE POW");
                 //continue;
@@ -1469,6 +1435,7 @@ module.exports = class CConsensus extends require("./block-loader")
                 var SeqHash=this.GetSeqHash(Block.BlockNum,PrevHash,Block.TreeHash);
                 if(CompareArr(SeqHash,Block.SeqHash)!==0)
                 {
+                    Block.HasErr=1;
                     AddInfoBlock(Block,"New simple pow");
                     this.PreparePOWHash(Block,true);//not start POW
                     this.AddToMaxPOW(Block);
@@ -1505,7 +1472,7 @@ module.exports = class CConsensus extends require("./block-loader")
                 if(PrevBlock.bSave && this.BlockNumDB+1 >= Block.BlockNum)
                 {
 
-                    // var TimeDelta=this.CurrentBlockNum-Block.BlockNum;
+                    // var TimeDelta=CURRENTBLOCKNUM-Block.BlockNum;
                     // ADD_TO_STAT("MAX:BlockConfirmation",TimeDelta);
                     this.AddToStatBlockConfirmation(Block);
 
@@ -1524,6 +1491,7 @@ module.exports = class CConsensus extends require("./block-loader")
                     }
                     else
                     {
+                        Block.HasErr=1;
                         AddInfoBlock(Block,"ERROR WRITE DB");
                     }
 
@@ -1538,14 +1506,15 @@ module.exports = class CConsensus extends require("./block-loader")
                 }
                 else
                 {
-                     AddInfoBlock(Block,"Prev block not saved");
+                    Block.HasErr=1;
+                    AddInfoBlock(Block,"Prev block not saved");
                 }
 
             }
 
         }
 
-        for(var i=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH2; i>BLOCK_PROCESSING_LENGTH2 && i<start_save; i++)
+        for(var i=CURRENTBLOCKNUM-BLOCK_PROCESSING_LENGTH2; i>BLOCK_PROCESSING_LENGTH2 && i<start_save; i++)
         {
             var Block=this.GetBlock(i);
             if(Block && !Block.bSave && Block.TrCount && Block.TreeHash && !IsZeroArr(Block.TreeHash) && !Block.WasSaveDataTree)
@@ -1559,7 +1528,7 @@ module.exports = class CConsensus extends require("./block-loader")
 
 
         this.RelayMode=!bWasSave;
-        this.FREE_MEM_BLOCKS(this.CurrentBlockNum-BLOCK_COUNT_IN_MEMORY);
+        this.FREE_MEM_BLOCKS(CURRENTBLOCKNUM-BLOCK_COUNT_IN_MEMORY);
 
 
     }
@@ -1568,8 +1537,8 @@ module.exports = class CConsensus extends require("./block-loader")
 
 global.GetCurrentBlockNumByTime=function GetCurrentBlockNumByTime()
 {
-    var CurTimeNum=GetCurrentTime()-FIRST_TIME_BLOCK-CONSENSUS_PERIOD_TIME/2;
-    var StartBlockNum=Math.floor((CurTimeNum+CONSENSUS_PERIOD_TIME)/CONSENSUS_PERIOD_TIME);
+    var CurTimeNum=GetCurrentTime()-FIRST_TIME_BLOCK;
+    var StartBlockNum=Math.trunc((CurTimeNum+CONSENSUS_PERIOD_TIME)/CONSENSUS_PERIOD_TIME);
     return StartBlockNum;
 }
 

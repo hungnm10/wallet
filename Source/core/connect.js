@@ -1238,6 +1238,23 @@ module.exports = class CConnect extends require("./transfer-msg")
         global.DELTA_CURRENT_TIME=NewTime-(GetCurrentTime(0)-0);
         SAVE_CONST(true);
     }
+    ConnectToAll()
+    {
+        var Count=0;
+        for(var i=0;i<this.NodesArr.length;i++)
+        {
+            var Node=this.NodesArr[i];
+            if(!Node.Active && this.IsCanConnect(Node) && !Node.WasAddToConnect)
+            {
+                AddNodeInfo(Node,"To connect all");
+                Node.NextConnectDelta=1000;
+                Node.WasAddToConnect=1;
+                ArrConnect.push(Node);
+                Count++;
+            }
+        }
+        return Count;
+    }
 
     GetHotTimeNodes()
     {
@@ -1310,7 +1327,7 @@ module.exports = class CConnect extends require("./transfer-msg")
             Count++;
         }
 
-        var AvgDelta=Math.floor(Sum/Count+0.5);
+        var AvgDelta=Sum/Count;
 
 
         if(this.PerioadAfterCanStart<PERIOD_FOR_START_CHECK_TIME)
@@ -1322,6 +1339,8 @@ module.exports = class CConnect extends require("./transfer-msg")
         else
         {
             MAX_TIME_CORRECT=25;
+            //TODO: 1/N - т.к. другие ноды тоже корректируют свое время
+            //AvgDelta=AvgDelta/DeltaArr.length;
         }
 
         if(AvgDelta < (-MAX_TIME_CORRECT))
@@ -1332,17 +1351,18 @@ module.exports = class CConnect extends require("./transfer-msg")
 
 
 
+        AvgDelta=Math.trunc(AvgDelta);
         if(Math.abs(AvgDelta)<15)
         {
             return;
         }
         //ToLog("Correct time: Delta="+AvgDelta+"  DELTA_CURRENT_TIME="+DELTA_CURRENT_TIME);
         if(AvgDelta>0)
-            ADD_TO_STAT("CORRECT_TIME_UP")
+            ADD_TO_STAT("CORRECT_TIME_UP",AvgDelta)
         else
-            ADD_TO_STAT("CORRECT_TIME_DOWN")
+            ADD_TO_STAT("CORRECT_TIME_DOWN",AvgDelta)
 
-        global.DELTA_CURRENT_TIME += AvgDelta;
+        global.DELTA_CURRENT_TIME=Math.trunc(global.DELTA_CURRENT_TIME+AvgDelta);
 
 
         //reset times
@@ -1385,18 +1405,6 @@ module.exports = class CConnect extends require("./transfer-msg")
         }
     }
 
-    // StartSendTime()
-    // {
-    //     var SetTime={Time:GetCurrentTime()-0,Sign:[]};
-    // }
-    // static SETTIME_F()
-    // {
-    //     return "{BlockNum:uint,AddrArr:[str64]}"
-    // }
-    // SETTIME(Info,CurTime)
-    // {
-    //
-    // }
 
 
 

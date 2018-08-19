@@ -146,7 +146,7 @@ sudo git pull
 ## Refs:
 * Btt: https://bitcointalk.org/index.php?topic=4573801.0
 * Twitter: https://twitter.com/terafoundation
-* Telegram: https://t.me/Terafoundation
+* Telegram: https://web.telegram.org/#/im?p=@terafoundation
 * Discord: https://discord.gg/CvwrbeG
 * [Документация на русском](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
 

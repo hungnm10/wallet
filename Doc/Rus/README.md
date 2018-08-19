@@ -222,7 +222,7 @@ Version = 2 - цифровая подпись содержимого транз�
 # Ссылки:
 * Btt: https://bitcointalk.org/index.php?topic=4573801.0
 * Twitter: https://twitter.com/terafoundation
-* Telegram: https://t.me/Terafoundation
+* Telegram: https://web.telegram.org/#/im?p=@terafoundation
 * Discord [RUS]: https://discord.gg/dzSGKyR
 
 
