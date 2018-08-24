@@ -868,6 +868,7 @@ module.exports = class CDB extends require("../code")
             else
             {
                 Tr.Script="";
+                Tr.VerifyHTML="";
             }
 
             arr.push(Tr);

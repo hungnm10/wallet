@@ -162,12 +162,32 @@
             SendHEXTransaction(Value);
         }
         else
+        if(Type==="ServerCode")
         {
-            SendDirectCode(Value);
+            SendServerCode(Value);
+        }
+        else
+        {
+            RunClientCode(Value);
         }
     }
 
-    function SendDirectCode(Value)
+    function RunClientCode(Value)
+    {
+        SetStatus("");
+        var Result;
+        try
+        {
+            Result=eval(Value);
+        }
+        catch (e)
+        {
+            Result=e;
+        }
+        ToResult(Result);
+    }
+
+    function SendServerCode(Value)
     {
         SetStatus("");
         GetData("/SendDirectCode",Value, function (Data)
@@ -181,7 +201,7 @@
     function SendHEXTransaction(Value)
     {
         var Body=GetArrFromHex(Value);
-        if(Body.length<64)
+        if(Body.length<32)
         {
             SetStatus("Error length HEX transaction");
             return;
@@ -242,6 +262,30 @@
     }
 
     //***********************************************
+    var idSendRandom=undefined;
+    function StartSendRandom(Period)
+    {
+        if(idSendRandom)
+            clearInterval(idSendRandom);
+        if(Period)
+        {
+            idSendRandom=setInterval(SendRandom,Period);
+            return "Set period="+Period;
+        }
+        return "Clear";
+    }
+    var glNumSend=0;
+    function SendRandom()
+    {
+        glNumSend++;
+        var Body=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        Body[6]=glNumSend&0xFF;
+        Body[7]=(glNumSend>>>8) & 0xFF;
+        Body[8]=(glNumSend>>>16) & 0xFF;
+        Body[9]=(glNumSend>>>24) & 0xFF;
+
+        SendHEXTransaction(GetHexFromArr(Body));
+    }
 
 
     var glTrSendNum=0;
@@ -364,6 +408,8 @@
         $("idNode").value=localStorage["idConsoleNode"];
         if(localStorage["ConsoleCodeList2"])
             CodeList=JSON.parse(localStorage["ConsoleCodeList2"]);
+        if(localStorage["idConsolePow"])
+            $("idPow").value=localStorage["idConsolePow"];
     }
     function SaveValues()
     {
@@ -373,6 +419,8 @@
         localStorage["idConsoleDeltaBlockNum"]=$("idConsoleDeltaBlockNum").value;
         localStorage["idConsoleNode"]=$("idNode").value;
         localStorage["ConsoleCodeList2"]=JSON.stringify(CodeList);
+        localStorage["idConsolePow"]=$("idPow").value;
+
     }
 
 
@@ -397,12 +445,13 @@
 
     Mode:
     <select size="1" id="idConsoleSend" onkeyup="OnSelectTypeCode();SaveValues()" onchange="OnSelectTypeCode();SaveValues()">
-        <option value="DirectCode">Direct code</option>
+        <option value="ServerCode">Server code</option>
+        <option value="ClientCode">Client code</option>
         <option value="ECode" style="color:red;">Eval code !!</option>
         <option value="HEX">HEX Transaction</option>
     </select>
 
-    POW:<INPUT type="number" id="idPow" style="width: 50px;" value="16"> Delta BlockNum:<INPUT type="number" id="idConsoleDeltaBlockNum" style="width: 50px;" value="10">
+    POW:<INPUT type="number" id="idPow" style="width: 50px;" onchange="SaveValues();" value="14"> Delta BlockNum:<INPUT type="number" id="idConsoleDeltaBlockNum" style="width: 50px;" value="10">
 
     <BR>
 

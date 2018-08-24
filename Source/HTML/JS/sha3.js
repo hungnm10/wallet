@@ -716,6 +716,7 @@ function meshhash(hash)
 
     var WasGoto=0;
     var L=0;
+
     for(var i=0;i<64;i++)
     {
         var c=hash[L&31];

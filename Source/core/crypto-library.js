@@ -468,7 +468,7 @@ global.CreateAddrPOW=function (SeqHash,AddrArr,MaxHash,Start,CountNonce)
     }
 
 
-    return {MaxHash:MaxHash,LastNonce:nonce,bFind:bFind};
+    return {MaxHash:MaxHash,LastNonce:nonce,MaxNonce:MaxNonce,bFind:bFind};
 }
 
 

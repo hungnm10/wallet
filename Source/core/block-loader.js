@@ -150,8 +150,6 @@ module.exports = class CBlock extends require("./db/block-db")
         var CurNum=GetCurrentBlockNumByTime();
         if(CurNum<=this.BlockNumDB)
         {
-            // var Block=this.ReadBlockHeaderDB(CurNum);
-            // if(Block)
             this.TruncateBlockDB(CurNum);
         }
 
@@ -194,12 +192,6 @@ module.exports = class CBlock extends require("./db/block-db")
         Block.Power=GetPowPower(Block.Hash);
         ADD_TO_STAT("MAX:POWER",Block.Power);
 
-        // var testHash=this.GetHashFromSeq(Block);
-        // if(CompareArr(testHash,Ret.MaxHash)!==0)
-        // {
-        //     ToLogTrace("#1 NO CompareArr");
-        //     throw "NO CompareArr!";
-        // }
         this.AddToMaxPOW(Block,
             {
                 SeqHash:Block.SeqHash,
@@ -225,12 +217,6 @@ module.exports = class CBlock extends require("./db/block-db")
             Block.Power=GetPowPower(Block.Hash);
             ADD_TO_STAT("MAX:POWER",Block.Power);
 
-            // var testHash=this.GetHashFromSeq(Block);
-            // if(CompareArr(testHash,Ret.MaxHash)!==0)
-            // {
-            //     ToLogTrace("#2 NO CompareArr");
-            //     throw "NO CompareArr!";
-            // }
             this.AddToMaxPOW(Block,
                 {
                     SeqHash:Block.SeqHash,
@@ -1411,6 +1397,7 @@ module.exports = class CBlock extends require("./db/block-db")
     {
         var BlockMem=this.BlockChain[Block.BlockNum];
         this.BlockChain[Block.BlockNum]=Block;
+        //if(BlockMem && BlockMem.MaxPOW && BlockMem.MaxPOW.Hash && CompareArr(BlockMem.MaxPOW.Hash,Block.Hash)===0)
         if(BlockMem)
         {
             Block.MaxPOW=BlockMem.MaxPOW;
@@ -1420,27 +1407,16 @@ module.exports = class CBlock extends require("./db/block-db")
         }
         else
         {
-            Block.MaxPOW={};
-            var POW=Block.MaxPOW;
-            POW.SeqHash=Block.SeqHash;
-            POW.AddrHash=Block.AddrHash;
-            POW.PrevHash=Block.PrevHash;
-            POW.TreeHash=Block.TreeHash;
-            POW.Hash=Block.Hash;
-            POW.SumPow=Block.SumPow;
-            POW.port=0;
-
-            Block.MaxSum={};
-            POW=Block.MaxSum;
-            POW.SeqHash=Block.SeqHash;
-            POW.AddrHash=Block.AddrHash;
-            POW.PrevHash=Block.PrevHash;
-            POW.TreeHash=Block.TreeHash;
-            POW.Hash=Block.Hash;
-            POW.SumHash=Block.SumHash;
-            POW.SumPow=Block.SumPow;
-            POW.port=0;
-            Block.Info+="\n--create mem--"
+            this.ClearMaxInBlock(Block);
+            if(BlockMem)
+            {
+                Block.Info=BlockMem.Info;
+                Block.Info+="\n--clear max--"
+            }
+            else
+            {
+                Block.Info+="\n--create mem--"
+            }
         }
         Block.Prepared=true;
         Block.MinTrPow=undefined;
@@ -1449,6 +1425,32 @@ module.exports = class CBlock extends require("./db/block-db")
         AddInfoBlock(Block,"LOAD:"+this.GetStrFromHashShort(Block.SumHash)+"  id:"+chain.id);
         this.AddToStatBlockConfirmation(Block);
     }
+
+    ClearMaxInBlock(Block)
+    {
+        Block.MaxPOW={};
+        var POW=Block.MaxPOW;
+        POW.SeqHash=Block.SeqHash;
+        POW.AddrHash=Block.AddrHash;
+        POW.PrevHash=Block.PrevHash;
+        POW.TreeHash=Block.TreeHash;
+        POW.Hash=Block.Hash;
+        POW.SumPow=Block.SumPow;
+        POW.port=0;
+
+        Block.MaxSum={};
+        POW=Block.MaxSum;
+        POW.SeqHash=Block.SeqHash;
+        POW.AddrHash=Block.AddrHash;
+        POW.PrevHash=Block.PrevHash;
+        POW.TreeHash=Block.TreeHash;
+        POW.Hash=Block.Hash;
+        POW.SumHash=Block.SumHash;
+        POW.SumPow=Block.SumPow;
+        POW.port=0;
+
+    }
+
     AddToStatBlockConfirmation(Block)
     {
         if(Block.BlockNum>START_BLOCK_RUN+BLOCK_PROCESSING_LENGTH2)
@@ -1561,10 +1563,9 @@ module.exports = class CBlock extends require("./db/block-db")
             //условие завершения цикла загрузки цепочек:
             var Block=chain.arr[chain.arr.length-1];
 
-            //var Hight=GetCurrentBlockNumByTime()-Block.BlockNum;
-            //ADD_TO_STAT("MAX:HIGHT",Hight)
 
-            if(chain.WriteToDBAfterLoad || Block.BlockNum>=this.CurrentBlockNum+TIME_START_LOAD)
+            //if(chain.WriteToDBAfterLoad || Block.BlockNum>=this.CurrentBlockNum+TIME_START_LOAD)
+            if(chain.WriteToDBAfterLoad || Block.BlockNum>=this.CurrentBlockNum+TIME_START_SAVE-1)//TODO
             {
                 //проверяем загрузки предыдущих цепочек
                 var bAllLoaded=true;
@@ -1983,15 +1984,14 @@ module.exports = class CBlock extends require("./db/block-db")
                             //this.FREE_ALL_MEM_CHAINS();
                             //this.ReWriteDAppTransactions(Block.BlockNum-2*DELTA_BLOCK_ACCOUNT_HASH);
                             //this.SetTruncateBlockDB(Block.BlockNum-2*DELTA_BLOCK_ACCOUNT_HASH);
-                            return;
                         }
                         else
                         {
                             // ToLog("May be need Rewrite transacrions from: "+(Block.BlockNum-2*DELTA_BLOCK_ACCOUNT_HASH))
                             //this.DeleteNodeFromActive(Info.Node);
                             //this.AddToBan(Info.Node);
-                            return;
                         }
+                        return;
                     }
                 }
             }
@@ -2435,8 +2435,6 @@ function AddInfo(Block,Str,BlockNumStart)
 
         var now=GetCurrentTime();
         timesend+=".["+now.getSeconds().toStringZ(2)+"."+now.getMilliseconds().toStringZ(3)+"]";
-        //timesend+=".["+now.getSeconds().toStringZ(2)+"."+now.getMilliseconds().toStringZ(3)+global.StrWarn+"="+Math.trunc(global.DELTA_CURRENT_TIME)+"]";
-        //timesend+=".["+now.getSeconds().toStringZ(2)+"."+now.getMilliseconds().toStringZ(3)+global.StrWarn+"]";
 
         Str=timesend+": "+Str;
         Block.Info+="\n"+Str;

@@ -121,6 +121,9 @@ module.exports = class CConnect extends require("./transfer-msg")
             if(!Node)
             {
                 Node=this.GetNewNode(addrStr,ip,port)
+                //AddNodeInfo(Node,"New node item!");
+                // ToLog("find node by ip key = "+key+"  addrStr="+addrStr)
+                // ToLog("new !!!")
             }
         }
 
@@ -143,6 +146,15 @@ module.exports = class CConnect extends require("./transfer-msg")
         if(Node.addrStrTemp && Node.addrStrTemp!==Node.addrStr)
         {
             delete this.NodesMap[Node.addrStrTemp];
+
+            var Node2=this.NodesMap[Node.addrStr];
+            if(Node2 && Node2!==Node)
+            {
+                Node2.Delete=1;
+                AddNodeInfo(Node2,"FIND DOUBLE!!")
+                delete this.NodesMap[Node.addrStr];
+            }
+
             this.NodesMap[Node.addrStr]=Node;
             Node.addrStrTemp=undefined;
         }

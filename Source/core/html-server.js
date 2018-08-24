@@ -965,7 +965,8 @@ HTTPCaller.CleanChain=function (Param)
 {
     if(global.CleanChain)
     {
-        global.CleanChain(Param.BlockCount);
+        var StartNum=GetCurrentBlockNumByTime()-Param.BlockCount;
+        global.CleanChain(StartNum);
         return {result:1,sessionid:sessionid};
     }
     return {result:0,sessionid:sessionid};

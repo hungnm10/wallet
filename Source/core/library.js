@@ -2,6 +2,16 @@
 
 var fs = require('fs');
 require("./constant.js");
+
+if(global.USE_PARAM_JS)
+{
+    var PathParams=GetCodePath("../extern-run.js");
+    if(fs.existsSync(PathParams))
+        try{require(PathParams)}catch(e) {console.log(e)};
+}
+
+
+
 require("./log.js");
 
 global.BufLib=require("../core/buffer");
@@ -628,6 +638,7 @@ global.NormalizeName=function(Name)
     }
     return Str;
 }
+
 
 
 

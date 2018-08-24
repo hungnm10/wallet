@@ -697,6 +697,7 @@ module.exports = class CTransport extends require("./connect")
         var Buf=this.GetDataFromBuf(buf);
         if(!Buf)
         {
+            this.AddCheckErrCount(Node,1,"Err GetDataFromBuf");
             this.SendCloseSocket(Socket,"FORMAT_PACKET_SEND_TCP");
             return 0;
         }
@@ -816,12 +817,12 @@ module.exports = class CTransport extends require("./connect")
         {
             ADD_TO_STAT("STOP_METHOD");
             ADD_TO_STAT("STOP_METHOD:"+Name);
-            var StrErr="STOP_METHOD: "+Name+" from "+NodeName(Node)+"  delta: "+Delta;
 
-            for(var i=1;i<ArrTime.length;i++)
-                StrErr+=","+(CurTime-ArrTime[i]);
+            // var StrErr="STOP_METHOD: "+Name+" from "+NodeName(Node)+"  delta: "+Delta;
+            // for(var i=1;i<ArrTime.length;i++)
+            //     StrErr+=","+(CurTime-ArrTime[i]);
+            // ToLog(StrErr+" ms")
 
-            ToLog(StrErr+" ms")
             this.AddCheckErrCount(Node,1);
             return 1;
         }
@@ -1167,20 +1168,25 @@ module.exports = class CTransport extends require("./connect")
             return;
         }
 
-        if(CompareArr(Info.addrArr,this.addrArr)===0)
-        {
-            this.SendCloseSocket(Socket,"SELF");
-            return;
-        }
 
         if(Info.DEF_NETWORK!==GetNetworkName())
         {
+            //AddNodeInfo(Node,"SERV: ERR DEF_NETWORK="+Info.DEF_NETWORK);
+            //ToLog("SERV: ERR DEF_NETWORK="+Info.DEF_NETWORK)
             this.SendCloseSocket(Socket,"DEF_NETWORK="+Info.DEF_NETWORK+" MUST:"+GetNetworkName());
             //this.AddToBanIP(Socket.remoteAddress);
             return;
         }
 
-        var Node;
+        var Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
+        if(CompareArr(Info.addrArr,this.addrArr)===0)
+        {
+            AddNodeInfo(Node,"SERV: GET SELF");
+            this.SendCloseSocket(Socket,"SELF");
+            return;
+        }
+
+        //var Node;
         var Hash=shaarr2(this.addrArr,Socket.HashRND);
         var hashInfo=GetHashWithValues(Hash,Info.nonce,0);
         var power=GetPowPower(hashInfo);
@@ -1188,7 +1194,7 @@ module.exports = class CTransport extends require("./connect")
 
         if(Info.Reconnect)
         {
-            Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
+            //Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
 
             if(Node.SecretForReconnect && Node.WaitConnectFromServer && CompareArr(Node.SecretForReconnect,Info.SecretForReconnect)===0)
             {
@@ -1213,6 +1219,7 @@ module.exports = class CTransport extends require("./connect")
             //Node.Delete=1;
             //ToLog("ERROR_RECONNECT "+NodeName(Node)+" wait="+Node.WaitConnectFromServer+" ip:"+Node.WaitConnectIP+" RA:"+Socket.remoteAddress);
             //this.AddToBanIP(Socket.remoteAddress,"ERROR_RECONNECT");
+            AddNodeInfo(Node,"SERV: ERROR_RECONNECT");
             Socket.end(this.GetBufFromData("POW_CONNEC11","ERROR_RECONNECT",2));
             CloseSocket(Socket,"ERROR_RECONNECT");
             return;
@@ -1222,6 +1229,7 @@ module.exports = class CTransport extends require("./connect")
             if(power<MIN_POWER_POW_HANDSHAKE)
             {
                 ToLog("END: MIN_POWER_POW_HANDSHAKE")
+                AddNodeInfo(Node,"SERV: ERR MIN_POWER_POW_HANDSHAKE");
                 Socket.end(this.GetBufFromData("POW_CONNECT2","MIN_POWER_POW_HANDSHAKE",2));
                 CloseSocket(Socket,"MIN_POWER_POW_HANDSHAKE");
                 return;
@@ -1234,12 +1242,13 @@ module.exports = class CTransport extends require("./connect")
                 if(!Result)
                 {
                     //ToLog("END: ERROR_SIGN_HANDSHAKE ADDR: "+GetHexFromArr(Info.addrArr).substr(0,16)+" from ip: "+Socket.remoteAddress);
+                    AddNodeInfo(Node,"SERV: ERROR_SIGN_CLIENT");
                     Socket.end(this.GetBufFromData("POW_CONNECT8","ERROR_SIGN_CLIENT",2));
                     CloseSocket(Socket,"ERROR_SIGN_CLIENT");
                     this.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_CLIENT");
                     return;
                 }
-                Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
+                //Node=this.FindRunNodeContext(Info.addrArr,Info.FromIP,Info.FromPort,true);
 
 
                 //ToLogNet("1. -------------------- SERVER OK POW for client node: "+NodeInfo(Node)+" "+SocketInfo(Socket));
@@ -1447,6 +1456,7 @@ module.exports = class CTransport extends require("./connect")
             SELF.CanSend++;
 
             var Hash=shaarr(SELF.addrStr+"-"+SELF.ip+":"+SELF.port);
+            //var Hash=shaarr(SELF.addrStr);
             SELF.ServerSign=secp256k1.sign(Buffer.from(Hash), SERVER.KeyPair.getPrivateKey('')).signature;
 
         });

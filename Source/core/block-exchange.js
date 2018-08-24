@@ -5,6 +5,9 @@
  * Copyright: Yuriy Ivanov, 2017 e-mail: progr76@gmail.com
  * Created by vtools on 18.12.2017.
  */
+
+
+
 require('./library');
 require('./crypto-library');
 const RBTree = require('bintrees').RBTree;
@@ -255,8 +258,6 @@ module.exports = class CConsensus extends require("./block-loader")
 
         var Block=this.GetBlockContext(StartBlockNum);
         Block.MLevelSend=Block.StartLevel;
-        // if(Block.StartLevel===undefined)
-        //     return;
         if(!Block.bSave)
             this.MemPoolToTransfer(Block);
         else
@@ -339,20 +340,24 @@ module.exports = class CConsensus extends require("./block-loader")
     TRANSFER(Info,CurTime)
     {
         var startTime = process.hrtime();
-        try
-        {
-            var Data=BufLib.GetObjectFromBuffer(Info.Data,FORMAT_DATA_TRANSFER,WorkStructSend);
-        }
-        catch (e)
-        {
-            TO_ERROR_LOG("TRANSFER",125,"Error parsing Buffer");
-            this.AddCheckErrCount(Info.Node,1,"Error parsing Buffer");
-            return;
-        }
+        var Data=this.DataFromF(Info);
+        //
+        // try
+        // {
+        //     var Data=BufLib.GetObjectFromBuffer(Info.Data,FORMAT_DATA_TRANSFER,WorkStructSend);
+        // }
+        // catch (e)
+        // {
+        //     ADD_TO_STAT("TRANSFER_ERR_PARSING");
+        //     TO_ERROR_LOG("TRANSFER",125,"Error parsing Buffer");
+        //     this.AddCheckErrCount(Info.Node,1,"Error parsing Buffer");
+        //     return;
+        // }
 
         var Block=this.GetBlockContext(Data.BlockNum);
         if(!Block || Block.StartLevel===undefined)
         {
+            ADD_TO_STAT("TRANSFER_ERR_STARTLEVEL");
             this.AddCheckErrCount(Info.Node,1,"Err GetBlockContext");
             return;
         }
@@ -362,6 +367,7 @@ module.exports = class CConsensus extends require("./block-loader")
         var Transfer=Block.TransferFromAddr[Key];
         if(!Transfer)
         {
+            ADD_TO_STAT("NO_TRANSFER");
             this.AddCheckErrCount(Info.Node,1,"Err Transfer");
             return;
         }
@@ -450,7 +456,7 @@ module.exports = class CConsensus extends require("./block-loader")
                 //вот тут точно начало...
 
                 var arrTr=this.GetArrayFromTree(Block,"DoTransfer");
-                var BufData=this.CreateDataBuffer(arrTr,MaxPOWList,MaxSumList,Block.BlockNum);
+                var BufData=this.CreateTransferBuffer(arrTr,MaxPOWList,MaxSumList,Block.BlockNum);
                 this.SendData(Transfer,BufData,1);
 
                 //цикл контроля данных
@@ -529,12 +535,14 @@ module.exports = class CConsensus extends require("./block-loader")
                     "Method":"TRANSFER",
                     "Data":BufData
                 };
-            this.SendCheck(Item.Node,SendData,typedata);
+            this.Send(Item.Node,SendData,typedata);
         }
     }
 
     SendControlData(Transfer,BufData,BlockNum,TreeHash,typedata)
     {
+        return;
+
         for(var Addr in Transfer.TransferNodes)
         {
             var Item=Transfer.TransferNodes[Addr];
@@ -560,6 +568,7 @@ module.exports = class CConsensus extends require("./block-loader")
     }
     CONTROLHASH(Info,CurTime)
     {
+        return;
 
         var Data=this.DataFromF(Info);
         var Block=this.GetBlockContext(Data.BlockNum);
@@ -612,7 +621,7 @@ module.exports = class CConsensus extends require("./block-loader")
         var MaxPOWList=this.GetMaxPOWList();
         var MaxSumList=this.GetMaxSumList();
         var arrTr=this.GetArrayFromTree(Block);
-        var BufData=this.CreateDataBuffer(arrTr,MaxPOWList,MaxSumList,Block.BlockNum);
+        var BufData=this.CreateTransferBuffer(arrTr,MaxPOWList,MaxSumList,Block.BlockNum);
         var SendData=
             {
                 "Method":"TRANSFER",
@@ -622,7 +631,7 @@ module.exports = class CConsensus extends require("./block-loader")
 
     }
 
-    CreateDataBuffer(arrTr,MaxPOWList,MaxSumList,BlockNum)
+    CreateTransferBuffer(arrTr,MaxPOWList,MaxSumList,BlockNum)
     {
         var Data=
             {
@@ -637,12 +646,13 @@ module.exports = class CConsensus extends require("./block-loader")
         return BufWrite;
     }
 
-
-
-    SendCheck(Node,DATA,typeData)
+    static TRANSFER_F()
     {
-        this.Send(Node,DATA,typeData);
+        return FORMAT_DATA_TRANSFER;
     }
+
+
+
 
 
     //MAX POW
@@ -661,21 +671,59 @@ module.exports = class CConsensus extends require("./block-loader")
                 Block.MaxPOW={};
             var POW=Block.MaxPOW;
 
-            var SeqHash=this.GetSeqHash(Block.BlockNum,item.PrevHash,item.TreeHash)
-            var hashItem=CalcHashFromArray([SeqHash,item.AddrHash],true)
 
-            if(POW.SeqHash===undefined || CompareArr(hashItem,POW.Hash)<0)
+            item.SeqHash=this.GetSeqHash(Block.BlockNum,item.PrevHash,item.TreeHash);
+            item.Hash=CalcHashFromArray([item.SeqHash,item.AddrHash],true);
+
+            if(POW.SeqHash===undefined || CompareArr(item.Hash,POW.Hash)<0)
             {
                 POW.AddrHash=item.AddrHash;
-                POW.Hash=hashItem;
-                //POW.port=item.port;
+                POW.Hash=item.Hash;
+
 
                 POW.PrevHash=item.PrevHash;
                 POW.TreeHash=item.TreeHash;
-                POW.SeqHash=SeqHash;
+                POW.SeqHash=item.SeqHash;
+            }
+
+            //Local lider
+            if(Block.SeqHash && CompareArr(item.SeqHash,Block.SeqHash)===0)
+            {
+                if(POW.LocalSeqHash===undefined || CompareArr(POW.LocalSeqHash,Block.SeqHash)!==0 || CompareArr(item.Hash,POW.LocalHash)<0)
+                {
+                    POW.LocalAddrHash=item.AddrHash;
+                    POW.LocalHash=item.Hash;
+                    POW.LocalSeqHash=Block.SeqHash;
+                }
+            }
+
+            //Array of lider (global)
+            this.AddPOWToMaxTree(POW,item);
+        }
+    }
+
+    AddPOWToMaxTree(POW,item)
+    {
+        if(!POW.MaxTree)
+        {
+            POW.MaxTree = new RBTree(function (a,b)
+            {
+                return CompareArr(a.Hash,b.Hash);
+            });
+        }
+
+
+        if(!POW.MaxTree.find(item))
+        {
+            POW.MaxTree.insert(item);
+            if(POW.MaxTree.size>16)
+            {
+                var maxitem=POW.MaxTree.max();
+                POW.MaxTree.remove(maxitem);
             }
         }
     }
+
 
     GetMaxPOWList()
     {
@@ -687,16 +735,25 @@ module.exports = class CConsensus extends require("./block-loader")
             var Block=this.GetBlock(b);
             if(Block && Block.Prepared && Block.MaxPOW)
             {
-                var item=
-                    {
-                        BlockNum:Block.BlockNum,
-                        AddrHash:Block.MaxPOW.AddrHash,
-                        PrevHash:Block.MaxPOW.PrevHash,
-                        TreeHash:Block.MaxPOW.TreeHash,
-                        //port:    Block.MaxPOW.port,
-                    };
+                // var item=
+                //     {
+                //         BlockNum:Block.BlockNum,
+                //         AddrHash:Block.MaxPOW.AddrHash,
+                //         PrevHash:Block.MaxPOW.PrevHash,
+                //         TreeHash:Block.MaxPOW.TreeHash,
+                //     };
+                //
+                // arr.push(item);
 
-                arr.push(item);
+                if(Block.MaxPOW && Block.MaxPOW.MaxTree)
+                {
+                    var it=Block.MaxPOW.MaxTree.iterator(), Item;
+                    while((Item = it.next()) !== null)
+                    {
+                        Item.BlockNum=Block.BlockNum;
+                        arr.push(Item);
+                    }
+                }
             }
         }
         return arr;
@@ -722,6 +779,9 @@ module.exports = class CConsensus extends require("./block-loader")
     CheckMaxPowOther(Block)
     {
         var POW=Block.MaxPOW;
+
+
+
 
         if(POW && POW.Hash && CompareArr(POW.Hash,Block.Hash)<0)
         {
@@ -897,12 +957,8 @@ module.exports = class CConsensus extends require("./block-loader")
         if(!Block.PowTree)
             return [];
 
-
         var BufLength=0;
-
         var MaxSize=MAX_BLOCK_SIZE;
-
-
         var arr=[];
         var it=Block.PowTree.iterator(), Item;
         while((Item = it.next()) !== null)
@@ -916,11 +972,6 @@ module.exports = class CConsensus extends require("./block-loader")
                 break;
 
         };
-
-
-
-
-
         return arr;
     }
 
@@ -1204,6 +1255,13 @@ module.exports = class CConsensus extends require("./block-loader")
         if(!Block.TreeHash || CompareArr(Block.TreeHash,Tree.Root)!==0)
         {
             Block.Prepared=false;
+            AddInfoBlock(Block,"Set not Prepared");
+
+            if(Block.MaxPOW && Block.MaxPOW.Hash && CompareArr(Block.MaxPOW.Hash,Block.Hash)!==0)
+            {
+                this.ClearMaxInBlock(Block);
+                Block.Info+="\n--clear max2--"
+            }
 
 
 
@@ -1327,6 +1385,8 @@ module.exports = class CConsensus extends require("./block-loader")
                     this.CheckMaxSum(Block);
                 }
 
+                //ОЧИСТКА ПАМЯТИ
+
                 if(i<=CURRENTBLOCKNUM-BLOCK_PROCESSING_LENGTH*4)
                 {
                     Block.TransferFromAddr=undefined;
@@ -1388,12 +1448,11 @@ module.exports = class CConsensus extends require("./block-loader")
                 continue;
             }
 
-            if(!Block.Prepared)//Прошли тайминги расчета POW, но он не рассчитан. Рассчитываем упрощенно вручную
+            if(!Block.Prepared)//Прошли тайминги расчета POW, но (из-за загрузки другой цепочки) он не рассчитан. Рассчитываем упрощенно вручную
             {
                 Block.HasErr=1;
                 AddInfoBlock(Block,"Not was Prepared");
                 this.PreparePOWHash(Block,true);//not start POW
-
             }
 
 
@@ -1401,7 +1460,7 @@ module.exports = class CConsensus extends require("./block-loader")
             //Обмен POW
             if(i>=CURRENTBLOCKNUM+TIME_END_EXCHANGE_POW)
             {
-                AddInfoBlock(Block,"WAIT EXCHANGE POW");
+                AddInfoBlock(Block,"WAIT EXCH.POW");
                 //continue;
             }
 
@@ -1411,11 +1470,8 @@ module.exports = class CConsensus extends require("./block-loader")
 
             //if(i<=start_save)
             {
+                //ПРОВЕРКИ
                 //Пересчитываем предыдуший хеш
-                //Сравниваем предудущий хеш нашего блокчейна с лидерами, находим текущий и "другой" лидер
-                //Если "другой" лидер имеет сильнее Pow, то загружаем новую цепочку
-
-
                 //проверяем - может предыдущие блоки были изменены путем загрузки из другой цепочки
                 var PrevHash=this.GetPrevHash(Block);
                 if(!PrevHash)
@@ -1431,7 +1487,6 @@ module.exports = class CConsensus extends require("./block-loader")
                     }
                     continue;
                 }
-
                 var SeqHash=this.GetSeqHash(Block.BlockNum,PrevHash,Block.TreeHash);
                 if(CompareArr(SeqHash,Block.SeqHash)!==0)
                 {
@@ -1442,19 +1497,34 @@ module.exports = class CConsensus extends require("./block-loader")
                 }
 
 
+                //ПОИСК ЛИДЕРА
+                //Сравниваем предудущий хеш нашего блокчейна с лидерами, находим текущий и "другой" лидер
+                //Если "другой" лидер имеет сильнее Pow, то загружаем новую цепочку
 
 
-
-
-                if(Block.MaxPOW
-                    && CompareArr(Block.SeqHash,Block.MaxPOW.SeqHash)===0
-                    && CompareArr(Block.AddrHash,Block.MaxPOW.AddrHash)!==0)
+                if(Block.MaxPOW)
                 {
-                    Block.AddrHash=Block.MaxPOW.AddrHash;
-                    Block.Hash=CalcHashFromArray([Block.SeqHash,Block.AddrHash],true);
+                    if(CompareArr(Block.SeqHash,Block.MaxPOW.SeqHash)===0
+                        && CompareArr(Block.AddrHash,Block.MaxPOW.AddrHash)!==0)
+                    {
+                        Block.AddrHash=Block.MaxPOW.AddrHash;
+                        Block.Hash=CalcHashFromArray([Block.SeqHash,Block.AddrHash],true);
+                        AddInfoBlock(Block,"->Max lider");
+                    }
+
+                    if(CompareArr(Block.SeqHash,Block.MaxPOW.LocalSeqHash)===0
+                        && CompareArr(Block.MaxPOW.LocalHash,Block.Hash)<0)
+                    {
+                        Block.AddrHash=Block.MaxPOW.LocalAddrHash;
+                        Block.Hash=CalcHashFromArray([Block.SeqHash,Block.AddrHash],true);
+                        AddInfoBlock(Block,"->Local lider");
+                    }
+
                 }
-
-
+                else
+                {
+                    AddInfoBlock(Block,"NO MaxPOW");
+                }
 
 
                 //check pow Hash
@@ -1466,23 +1536,17 @@ module.exports = class CConsensus extends require("./block-loader")
                 }
 
 
+                //ЗАПИСЬ
+
                 if(i>start_save)
                     continue;
 
                 if(PrevBlock.bSave && this.BlockNumDB+1 >= Block.BlockNum)
                 {
-
-                    // var TimeDelta=CURRENTBLOCKNUM-Block.BlockNum;
-                    // ADD_TO_STAT("MAX:BlockConfirmation",TimeDelta);
                     this.AddToStatBlockConfirmation(Block);
 
                     if(this.WriteBlockDB(Block))
                     {
-                        // var Miner=ReadUintFromArr(Block.AddrHash,0);
-                        // if(Miner===GENERATE_BLOCK_ACCOUNT)
-                        //     ADD_TO_STAT("MAX:WIN:POWER_MY",GetPowPower(Block.Hash));
-                        // ADD_TO_STAT("MAX:POWER_BLOCKCHAIN",GetPowPower(Block.Hash));
-
 
                         if(Block.arrContent && Block.arrContent.length)
                             ADD_TO_STAT("MAX:TRANSACTION_COUNT",Block.arrContent.length);

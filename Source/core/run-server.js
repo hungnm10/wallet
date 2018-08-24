@@ -12,17 +12,6 @@ global.CODE_PATH=GetNormalPathString(global.CODE_PATH);
 
 console.log("DATA DIR: "+global.DATA_PATH);
 console.log("PROGRAM DIR: "+global.CODE_PATH);
-console.log("USE_AUTO_UPDATE: "+USE_AUTO_UPDATE);
-console.log("USE_PARAM_JS: "+USE_PARAM_JS);
-
-if(USE_PARAM_JS)
-{
-    var PathParams=GetCodePath("../extern-run.js");
-    if(fs.existsSync(PathParams))
-        try{require(PathParams)}catch(e) {console.log(e)};
-    if(global.ReturnServeJS)
-        return;
-}
 
 
 
@@ -33,13 +22,15 @@ global.glCurNumFindArr=0;
 global.ArrReconnect=[];
 global.ArrConnect=[];
 
+
+//Serv1->Serv2
 var FindList=[
-    {"ip":"194.1.237.94","port":30000},//3
-    {"ip":"91.235.136.81","port":30005},//5
-    {"ip":"194.87.162.33","port":30000},//9
-    //{"ip":"209.58.140.250","port":30000},//16
-    // {"ip":"103.102.45.224","port":30000},//12
-    // {"ip":"185.17.122.149","port":30000},//20
+    {"ip":"91.235.136.81","port":30005},//5->
+    {"ip":"91.235.136.173","port":30000},//8->
+    {"ip":"194.87.162.33","port":30000},//9->
+    {"ip":"195.133.75.9","port":30000},//3->5
+    {"ip":"82.146.34.153","port":30000},//5->2
+    {"ip":"185.244.173.211","port":30000},//5->4
     ];
 
 

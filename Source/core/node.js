@@ -428,33 +428,26 @@ module.exports = class CNode
             return 0;
         }
 
+        if(CompareArr(Buf.addrArr,SERVER.addrArr)===0)
+        {
+            Node.Self=true;
+            AddNodeInfo(Node,"END: SELF");
+            SERVER.SendCloseSocket(Socket,"SELF");
+            return;
+        }
+
         var addrStr=GetHexFromAddres(Buf.addrArr);
+
 
         if(!Node.StartFindList && addrStr!==Node.addrStr)
         {
-            //Node.Delete=1;
-            ToLog("END: CHANGED ADDR: "+Node.addrStr.substr(0,16)+"->"+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+             //Node.Delete=1;
+            AddNodeInfo(Node,"END: CHANGED ADDR: "+Node.addrStr.substr(0,16)+"->"+addrStr.substr(0,16));
+            //ToLog("END: CHANGED ADDR: "+Node.addrStr.substr(0,16)+"->"+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
             SERVER.SendCloseSocket(Socket,"ADDRESS_HAS_BEEN_CHANGED");
             return;
         }
 
-
-
-        var Result=false;
-        var Hash=shaarr(addrStr+"-"+Node.ip+":"+Node.port);
-
-
-        if(Buf.PubKeyType===2 || Buf.PubKeyType===3)
-            Result=secp256k1.verify(Buffer.from(Hash), Buffer.from(Buf.Sign), Buffer.from([Buf.PubKeyType].concat(Buf.addrArr)));
-        if(!Result)
-        {
-            //ToLogNet("END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
-            AddNodeInfo(Node,"END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
-
-            SERVER.SendCloseSocket(Socket,"ERROR_SIGN_SERVER");
-            SERVER.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_SERVER");
-            return;
-        }
 
         if(Node.addrStrTemp)
         {
@@ -463,6 +456,22 @@ module.exports = class CNode
             Node.addrStr=addrStr;
             SERVER.CheckNodeMap(Node);
         }
+
+        // var Result=false;
+        //var Hash=shaarr(addrStr+"-"+Node.ip+":"+Node.port);
+        // var Hash=shaarr(addrStr);
+        // if(Buf.PubKeyType===2 || Buf.PubKeyType===3)
+        //     Result=secp256k1.verify(Buffer.from(Hash), Buffer.from(Buf.Sign), Buffer.from([Buf.PubKeyType].concat(Buf.addrArr)));
+        // if(!Result)
+        // {
+        //     ToLog("END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+        //     AddNodeInfo(Node,"END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+        //
+        //     SERVER.SendCloseSocket(Socket,"ERROR_SIGN_SERVER");
+        //     //SERVER.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_SERVER");
+        //     return;
+        // }
+
 
 
 

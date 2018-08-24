@@ -352,13 +352,14 @@ global.RestartNode=function RestartNode()
     }
     SERVER.StopServer();
     SERVER.StopNode();
-    //global.USE_MINING=0;
     RunStopPOWProcess("STOP");
 
     ToLog("****************************************** RESTART!!!");
+    console.log("EXIT 1");
 
     setTimeout(function ()
     {
+        console.log("EXIT 2");
         if(global.nw)
         {
             ToLog("RESTART NW");
@@ -374,6 +375,7 @@ global.RestartNode=function RestartNode()
             // child_process.unref();
         }
 
+        console.log("EXIT 3");
         process.exit(0);
     },5000)
 }

@@ -155,7 +155,7 @@ module.exports = class CCommon
         if(!CountHot)
             CountHot=1;
 
-        if(Count>1)
+        if(Count>=20)
         {
             //дисперсия
             var SumDeltaAvg=0;
@@ -181,16 +181,25 @@ module.exports = class CCommon
             })
             var SumDeltaAvgM=0;
             var AvgGlobTimeM=arr[Math.trunc(arr.length/2)].DeltaGlobTime;
-            for(var i=0;i<arr.length;i++)
+
+            //use 90% nodes
+            var Length=arr.length;
+            var Start=Math.trunc(Length*0.05);
+            var End=Math.trunc(Length*0.95);
+            var NodesCount=0;
+            for(var i=Start;i<End;i++)
             {
                 var Node=arr[i];
                 if(!Node || Node.IsAddrList)
                     continue;
 
+                NodesCount++;
                 var Delta=AvgGlobTimeM-Node.DeltaGlobTime;
                 SumDeltaAvgM+=Delta*Delta;
             }
-            SumDeltaAvgM=Math.sqrt(SumDeltaAvgM/Count);
+            if(!NodesCount)
+                NodesCount=1;
+            SumDeltaAvgM=Math.sqrt(SumDeltaAvgM/NodesCount);
 
             ADD_TO_STAT("MAX:MEDIAN_GLOB_TIME",100+AvgGlobTimeM);
             ADD_TO_STAT("MAX:DISP_MEDIAN_GLOB_TIME",SumDeltaAvgM);
