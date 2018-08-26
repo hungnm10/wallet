@@ -267,6 +267,7 @@
     {
         if(idSendRandom)
             clearInterval(idSendRandom);
+        idSendRandom=0;
         if(Period)
         {
             idSendRandom=setInterval(SendRandom,Period);
@@ -283,6 +284,12 @@
         Body[7]=(glNumSend>>>8) & 0xFF;
         Body[8]=(glNumSend>>>16) & 0xFF;
         Body[9]=(glNumSend>>>24) & 0xFF;
+
+        var rnd=Math.trunc(Math.random()*1000000000);
+        Body[10]=rnd&0xFF;
+        Body[11]=(rnd>>>8) & 0xFF;
+        Body[12]=(rnd>>>16) & 0xFF;
+        Body[13]=(rnd>>>24) & 0xFF;
 
         SendHEXTransaction(GetHexFromArr(Body));
     }

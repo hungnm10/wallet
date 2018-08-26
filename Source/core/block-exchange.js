@@ -19,6 +19,10 @@ global.CAN_START=false;
 global.StrWarn="";
 
 
+global.SUM_LIST_LENGTH=2*BLOCK_PROCESSING_LENGTH;
+//global.SUM_LIST_LENGTH=3*BLOCK_PROCESSING_LENGTH/2;
+
+
 global.CONSENSUS_TIK_TIME=CONSENSUS_PERIOD_TIME/10;//ms
 global.CONSENSUS_CHECK_TIME=CONSENSUS_PERIOD_TIME/20;//ms
 const PERIOD_FOR_NEXT_SEND=CONSENSUS_TIK_TIME*3
@@ -38,14 +42,25 @@ global.TIME_START_LOAD=-12;
 
 //Array:[{body:tr,nonce:uint32,num:byte}],
 
-const FORMAT_DATA_TRANSFER=
+
+const FORMAT_DATA_TRANSFER0=
     "{\
     SendNumber:uint16,\
     BlockNum:uint,\
     Array:[{body:tr}],\
     MaxPOW:[{BlockNum:uint,AddrHash:hash,PrevHash:hash,TreeHash:hash}],\
-    MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,TreeHash:hash,PrevHash:hash}]}]\
+    MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,SeqHash:hash}]}]\
     }";
+
+const FORMAT_DATA_TRANSFER=
+    "{\
+    SendNumber:uint16,\
+    BlockNum:uint,\
+    Array:[{body:tr}],\
+    MaxPOW:[{BlockNum:uint,AddrHash:hash,SeqHash:hash}],\
+    MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,SeqHash:hash}]}]\
+    }";
+
 const WorkStructSend={};
 
 
@@ -341,18 +356,6 @@ module.exports = class CConsensus extends require("./block-loader")
     {
         var startTime = process.hrtime();
         var Data=this.DataFromF(Info);
-        //
-        // try
-        // {
-        //     var Data=BufLib.GetObjectFromBuffer(Info.Data,FORMAT_DATA_TRANSFER,WorkStructSend);
-        // }
-        // catch (e)
-        // {
-        //     ADD_TO_STAT("TRANSFER_ERR_PARSING");
-        //     TO_ERROR_LOG("TRANSFER",125,"Error parsing Buffer");
-        //     this.AddCheckErrCount(Info.Node,1,"Error parsing Buffer");
-        //     return;
-        // }
 
         var Block=this.GetBlockContext(Data.BlockNum);
         if(!Block || Block.StartLevel===undefined)
@@ -672,7 +675,7 @@ module.exports = class CConsensus extends require("./block-loader")
             var POW=Block.MaxPOW;
 
 
-            item.SeqHash=this.GetSeqHash(Block.BlockNum,item.PrevHash,item.TreeHash);
+            //item.SeqHash=this.GetSeqHash(Block.BlockNum,item.PrevHash,item.TreeHash);
             item.Hash=CalcHashFromArray([item.SeqHash,item.AddrHash],true);
 
             if(POW.SeqHash===undefined || CompareArr(item.Hash,POW.Hash)<0)
@@ -716,7 +719,7 @@ module.exports = class CConsensus extends require("./block-loader")
         if(!POW.MaxTree.find(item))
         {
             POW.MaxTree.insert(item);
-            if(POW.MaxTree.size>16)
+            if(POW.MaxTree.size>12)//16
             {
                 var maxitem=POW.MaxTree.max();
                 POW.MaxTree.remove(maxitem);
@@ -728,23 +731,16 @@ module.exports = class CConsensus extends require("./block-loader")
     GetMaxPOWList()
     {
         var arr=[];
-        var start=this.CurrentBlockNum+TIME_START_SAVE;
-        var finish=this.CurrentBlockNum+TIME_START_POW;
+        //var start=this.CurrentBlockNum+TIME_START_SAVE;
+        //var start=this.CurrentBlockNum+TIME_START_POW-3;//2
+        //var finish=this.CurrentBlockNum+TIME_START_POW;
+        var start=this.CurrentBlockNum+TIME_START_POW-2;// (2- стабильно, 1 не стабильно даже на нулевых блоках)
+        var finish=this.CurrentBlockNum+TIME_START_POW-0;//(0- стабильно, 1 не стабильно даже на нулевых блоках)
         for(var b=start;b<finish;b++)
         {
             var Block=this.GetBlock(b);
             if(Block && Block.Prepared && Block.MaxPOW)
             {
-                // var item=
-                //     {
-                //         BlockNum:Block.BlockNum,
-                //         AddrHash:Block.MaxPOW.AddrHash,
-                //         PrevHash:Block.MaxPOW.PrevHash,
-                //         TreeHash:Block.MaxPOW.TreeHash,
-                //     };
-                //
-                // arr.push(item);
-
                 if(Block.MaxPOW && Block.MaxPOW.MaxTree)
                 {
                     var it=Block.MaxPOW.MaxTree.iterator(), Item;
@@ -813,7 +809,7 @@ module.exports = class CConsensus extends require("./block-loader")
             var SumPow=this.GetSumFromList(item.SumList,Block.BlockNum);
             if(POW.SumHash===undefined || SumPow>POW.SumPow)
             {
-                //POW.port=item.port;
+
                 POW.SumPow=SumPow;
                 POW.SumHash=item.SumHash;
                 POW.SumList=item.SumList;
@@ -826,10 +822,9 @@ module.exports = class CConsensus extends require("./block-loader")
     {
         var arr=[];
 
-        var start=this.CurrentBlockNum+TIME_START_SAVE-2;
-        //var start=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH*2;
+
+        var start=this.CurrentBlockNum+TIME_START_SAVE-0;//0
         var finish=this.CurrentBlockNum+TIME_START_SAVE;
-        // var finish=this.CurrentBlockNum+TIME_START_POW;
 
         for(var b=start;b<=finish;b++)
         {
@@ -842,7 +837,6 @@ module.exports = class CConsensus extends require("./block-loader")
                         BlockNum:Block.BlockNum,
                         SumHash: POW.SumHash,
                         SumList: POW.SumList,
-                        //port:    POW.port,
                     };
 
                 arr.push(item);
@@ -853,15 +847,13 @@ module.exports = class CConsensus extends require("./block-loader")
 
     ToMaxSumList(Arr)
     {
-        var start=this.CurrentBlockNum+TIME_START_SAVE-2;
-        //var start=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH*2;
+
+        var start=this.CurrentBlockNum+TIME_START_SAVE-4;
         var finish=this.CurrentBlockNum+TIME_START_SAVE;
-        // var finish=this.CurrentBlockNum+TIME_START_POW;
 
         for(var i=0;i<Arr.length;i++)
         {
             var item=Arr[i];
-            //if(item && item.BlockNum>=this.CurrentBlockNum+TIME_START_SAVE-1 && item.BlockNum<=this.CurrentBlockNum+TIME_START_SAVE)
             if(item && item.BlockNum>=start && item.BlockNum<=finish)
             {
                 var Block=this.GetBlock(item.BlockNum);
@@ -902,8 +894,9 @@ module.exports = class CConsensus extends require("./block-loader")
     GetBlockList(CurBlockNum)
     {
         var arr=[];
-        //for(var b=CurBlockNum-1*BLOCK_PROCESSING_LENGTH; b<=CurBlockNum; b++)
-        for(var b=CurBlockNum-2*BLOCK_PROCESSING_LENGTH; b<=CurBlockNum; b++)
+
+
+        for(var b=CurBlockNum-SUM_LIST_LENGTH+1; b<=CurBlockNum; b++)
         {
             var Block=this.GetBlock(b);
             if(Block && Block.bSave)
@@ -911,8 +904,9 @@ module.exports = class CConsensus extends require("./block-loader")
                 var item=
                     {
                         AddrHash:Block.AddrHash,
-                        TreeHash:Block.TreeHash,
-                        PrevHash:Block.PrevHash,
+                        // TreeHash:Block.TreeHash,
+                        // PrevHash:Block.PrevHash,
+                        SeqHash:Block.SeqHash,
                     };
                 arr.push(item);
             }
@@ -927,15 +921,20 @@ module.exports = class CConsensus extends require("./block-loader")
     GetSumFromList(arr,CurBlockNum)
     {
         var SumPow=0;
+        if(arr.length!==SUM_LIST_LENGTH)
+            return SumPow;
+
         var CountLoad=0;
         var BlockNumStart=CurBlockNum-arr.length+1;
+
         for(var i=0;i<arr.length;i++)
         {
             var Block=arr[i];
             if(Block)
             {
-                var SeqHash=this.GetSeqHash(BlockNumStart+i,Block.PrevHash,Block.TreeHash)
-                var Hash=CalcHashFromArray([SeqHash,Block.AddrHash],true);
+                //var SeqHash=this.GetSeqHash(BlockNumStart+i,Block.PrevHash,Block.TreeHash)
+                //var Hash=CalcHashFromArray([SeqHash,Block.AddrHash],true);
+                var Hash=CalcHashFromArray([Block.SeqHash,Block.AddrHash],true);
                 SumPow += GetPowPower(Hash);
             }
             else
@@ -1562,7 +1561,6 @@ module.exports = class CConsensus extends require("./block-loader")
 
                     this.AddToMaxSum(Block,
                         {
-                            //port:    this.port,
                             SumHash: Block.SumHash,
                             SumList: this.GetBlockList(Block.BlockNum),
                         });

@@ -1,6 +1,6 @@
 //Copyright: Yuriy Ivanov, 2017-2018 e-mail: progr76@gmail.com
-global.UPDATE_CODE_VERSION_NUM=418;
-global.MIN_CODE_VERSION_NUM=416;
+global.UPDATE_CODE_VERSION_NUM=450;
+global.MIN_CODE_VERSION_NUM=447;
 
 
 global.InitParamsArg=InitParamsArg;
@@ -89,7 +89,7 @@ global.MAX_TRANSACTION_COUNT=2000;
 global.AVG_TRANSACTION_COUNT=Math.floor(MAX_TRANSACTION_COUNT/2);
 //global.MIN_TRANSACTION_COUNT=global.AVG_TRANSACTION_COUNT*4;
 
-global.MIN_POWER_POW_TR=10;//Было 15
+global.MIN_POWER_POW_TR=0;//Было 15
 if(global.MIN_POWER_POW_BL===undefined)
     global.MIN_POWER_POW_BL=5;
 global.GENERATE_BLOCK_ACCOUNT=0;
@@ -138,7 +138,7 @@ if(global.LOCAL_RUN)
     global.START_MINING=60;
     global.REF_PERIOD_MINING=10;
     var Num=(new Date)-0-50*1000;
-    global.START_NETWORK_DATE=1534975671000;//Math.trunc(Num/1000)*1000;
+    global.START_NETWORK_DATE=1535310094000//Math.trunc(Num/1000)*1000;
     global.DELTA_BLOCK_ACCOUNT_HASH=60;
     global.TEST_TRANSACTION_GENERATE=0;
     global.MIN_POWER_POW_TR=0;
