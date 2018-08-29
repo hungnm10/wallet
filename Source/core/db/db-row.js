@@ -220,6 +220,7 @@ module.exports = class CDBState extends require("./db")
     FastFindBlockNum(BlockNum)
     {
         //must be field BlockNum in def struct
+        //TODO: add use Interpolation search
 
         var MaxNum=this.GetMaxNum();
         if(MaxNum===-1)

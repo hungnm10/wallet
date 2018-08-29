@@ -1,6 +1,6 @@
 //Copyright: Yuriy Ivanov, 2017-2018 e-mail: progr76@gmail.com
-global.UPDATE_CODE_VERSION_NUM=450;
-global.MIN_CODE_VERSION_NUM=447;
+global.UPDATE_CODE_VERSION_NUM=456;
+global.MIN_CODE_VERSION_NUM=450;
 
 
 global.InitParamsArg=InitParamsArg;
@@ -144,23 +144,33 @@ if(global.LOCAL_RUN)
     global.MIN_POWER_POW_TR=0;
     global.MIN_POWER_POW_ACC_CREATE=0;
 
-    console.log("--------------------------------------TEST RUN - START_NETWORK_DATE: "+START_NETWORK_DATE);
-    NETWORK="TEST-R3";
-    NETWORK2="TEST-R3";
+    console.log("************************* LOCAL RUN - START_NETWORK_DATE: "+START_NETWORK_DATE);
+    NETWORK="LOCAL-R3";
 }
+else
+if(global.TEST_NETWORK)
+{
+    global.MIN_POWER_POW_TR=8;
+    global.MIN_POWER_POW_ACC_CREATE=8;
+    global.AVG_TRANSACTION_COUNT=10;
+    global.TRANSACTION_PROOF_COUNT=10*1000;
+    global.MAX_SIZE_LOG=20*1024*1024;
 
+    global.PERIOD_ACCOUNT_HASH=100;
+
+    global.WALLET_NAME="TEST";
+
+    NETWORK="TERA-TEST";
+    if(global.START_PORT_NUMBER===undefined)
+        global.START_PORT_NUMBER = 40000;
+}
 
 
 global.GetNetworkName=function()
 {
     return NETWORK+"-"+DEF_MAJOR_VERSION;
-
-    // var Num=GetCurrentBlockNumByTime();
-    // if(Num>=3600000)
-    //     return NETWORK+"-"+DEF_MAJOR_VERSION;
-    // else
-    //     return NETWORK+"-"+DEF_MAJOR_VERSION;
 }
+
 
 global.DEF_VERSION=DEF_MAJOR_VERSION+"."+UPDATE_CODE_VERSION_NUM;//9
 global.DEF_CLIENT="TERA-CORE";//16
@@ -173,8 +183,6 @@ if(global.START_IP===undefined)
     global.START_IP = "";
 if(global.START_PORT_NUMBER===undefined)
     global.START_PORT_NUMBER = 30000;
-// if(global.HTTP_PORT_NUMBER===undefined)
-//     global.HTTP_PORT_NUMBER = 80;
 if(global.HTTP_PORT_PASSWORD===undefined)
     global.HTTP_PORT_PASSWORD="";
 
@@ -211,12 +219,6 @@ if(global.DEBUG_MODE===undefined)
 
 
 
-
-// LIST_PORT_NUMBER=30006;
-
-//try{require("../../params")}catch(e) {};
-//require(GetDataPath("params.js"));
-
 if(typeof window === 'object')
 {
     window.RUN_CLIENT=0;
@@ -232,18 +234,10 @@ global.RUN_SERVER=1;
     //----------------------------------------------------------------------------------------------------------------------
 function InitParamsArg()
 {
-    // if(!global.RUN_NW_SERVER && typeof window === 'object')//client
-    //     return;
-
-
-
     //env
     for(var i=1;i<process.argv.length;i++)
     {
         var str=process.argv[i];
-        // if(str.substr(0,5)=="port:")
-        //     global.START_PORT_NUMBER=parseInt(str.substr(5));
-        // else
         if(str.substr(0,9)=="httpport:")
         {
             global.HTTP_PORT_NUMBER=parseInt(str.substr(9));

@@ -114,6 +114,24 @@ sudo git pull
 ```
 
 
+## TEST NETWORK
+Default values:
+'''
+port:40000
+httpport:8080
+'''
+Lunch: 
+'''
+sudo node set-test httpport:8080 password:SecretWord
+sudo pm2 start run-test.js
+'''
+
+
+
+
+
+
+
 
 ## Specification
 

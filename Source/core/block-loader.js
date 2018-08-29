@@ -374,7 +374,8 @@ module.exports = class CBlock extends require("./db/block-db")
         if(Context.PrevBlockNum===Context.BlockNum)
         {
             var DeltaTime=new Date()-Context.StartTimeHistory;
-            if(DeltaTime>120*1000)
+            //if(DeltaTime>120*1000)
+            if(DeltaTime>20*1000)
             {
                 ToLog("DETECT TIMEOUT LOADHISTORY");
                 this.StartLoadHistory();
@@ -424,6 +425,9 @@ module.exports = class CBlock extends require("./db/block-db")
                     "Data":{Foward:1, BlockNum:Context.BlockNum,Hash:BlockDB.SumHash}
                 }
             );
+
+            //ToLog("SEND GETBLOCKHEADER at: "+Context.BlockNum+" to "+NodeName(Node))
+
         }
     }
 
@@ -596,8 +600,8 @@ module.exports = class CBlock extends require("./db/block-db")
         {
             return b.BlockProcessCount-a.BlockProcessCount;
         });
-        if(arr.length>20)
-            arr.length=20;
+        // if(arr.length>20)
+        //     arr.length=20;
 
 
 
@@ -650,19 +654,7 @@ module.exports = class CBlock extends require("./db/block-db")
                 task.time=CurTime;
 
 
-                //this.TaskNodeIndex=m+1; - не запоминаем, т.к. всегда начинаем с 0-го элемента - с мин. пингом
-                //или:
-                //this.TaskNodeIndex=m+1
-                // if(this.TaskNodeIndex>19)//первым 19
-                //     this.TaskNodeIndex=0;
-
-                //TODO: нужна отправка из Hot списка
-
-
                 return {Result:true,Node:Node,timewait:timewait};
-                //RetFunc(Node);
-
-                //break;
             }
         }
 
@@ -671,10 +663,17 @@ module.exports = class CBlock extends require("./db/block-db")
             task.RestartGetNextNode=0;
         if(!timewait && task.RestartGetNextNode<3)
         {
-            ToLog("RestartGetNextNode : "+task.RestartGetNextNode);
-            task.RestartGetNextNode++;
-            task.MapSend={};
-            return {Result:false,timewait:true};
+            if(!task.LastTimeRestartGetNextNode)
+                task.LastTimeRestartGetNextNode=0;
+            var Delta=new Date()-task.LastTimeRestartGetNextNode;
+            if(Delta>3000)
+            {
+                ToLog("RestartGetNextNode : "+task.RestartGetNextNode);
+                task.RestartGetNextNode++;
+                task.LastTimeRestartGetNextNode=new Date()-0;
+                task.MapSend={};
+                return {Result:false,timewait:true};
+            }
         }
 
         return {Result:false,timewait:timewait};
@@ -1729,7 +1728,7 @@ module.exports = class CBlock extends require("./db/block-db")
                 );
                 Node.SendBlockCount++;
                 SendResult=1;
-                //ToLog("SEND GETBLOCK:"+Block.BlockNum+" to "+Node.port)
+                //ToLog("SEND GETBLOCK:"+Block.BlockNum+" to "+NodeName(Node))
 
                 AddInfoBlock(Block,"SendNext")
 

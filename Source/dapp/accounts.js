@@ -1136,7 +1136,7 @@ class AccountApp extends require("./dapp")
             if(!PrevData || PrevData.BlockNum!==BlockNum-1)
             {
                 ToLogTrace("Error write Account Hash. On BlockNum:"+BlockNum);
-                SERVER.SetTruncateBlockDB(BlockNum-20);
+                //SERVER.SetTruncateBlockDB(BlockNum-20);
                 //throw "Error write Account Hash";
             }
         }

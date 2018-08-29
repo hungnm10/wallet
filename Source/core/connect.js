@@ -1193,17 +1193,6 @@ module.exports = class CConnect extends require("./transfer-msg")
 
             arr.sort(SortNodeBlockProcessCount);
 
-            // var HasLowTransfer=0;
-            // for(var n=0;n<MIN_CONNECT_CHILD;n++)
-            // {
-            //     var Node=arr[n];
-            //     if(Node && Node.TransferCount<60)
-            //     {
-            //         HasLowTransfer=1;
-            //         break;
-            //     }
-            // }
-
 
             //смотрим миним и максим параметры связей
             var ChildCount=arr.length;
@@ -1225,8 +1214,9 @@ module.exports = class CConnect extends require("./transfer-msg")
 
                     //отсоединяем все дочерние узлы, имеющие более MIN_CONNECT_CHILD соединения и имеющие достаточное кол-во уровней
 
-                    //if(ChildCount>(MIN_CONNECT_CHILD+1) && (Node.LevelCount>(MIN_CONNECT_CHILD+1) || HasLowTransfer))
-                    if(ChildCount>(MIN_CONNECT_CHILD+1) && Node.LevelCount>MIN_CONNECT_CHILD)
+
+                    //if(ChildCount>(MIN_CONNECT_CHILD+1) && Node.LevelCount>MIN_CONNECT_CHILD)
+                    if(ChildCount>(MIN_CONNECT_CHILD) && Node.LevelCount>MIN_CONNECT_CHILD)
                     {
                         ChildCount--;
                         Node.CanHot=false;
@@ -1713,7 +1703,7 @@ module.exports = class CConnect extends require("./transfer-msg")
 
 
                 DeltaTime=CurTime-Node.StartTimeHot;
-                if(Node.Active && !Node.Hot && WasDoHot<2 && DeltaTime>Node.NextHotDelta)
+                if(Node.Active && !Node.Hot && WasDoHot<MIN_CONNECT_CHILD && DeltaTime>Node.NextHotDelta)
                 {
 
                     AddNodeInfo(Node,"To hot level");

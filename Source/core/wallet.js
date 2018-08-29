@@ -33,7 +33,15 @@ class CApp
         if(!Params)
         {
             Params={};
-            Params.Key=GetHexFromArr(crypto.randomBytes(32));
+
+            if(global.TEST_NETWORK)
+            {
+                Params.Key=global.ARR_PUB_KEY[0];
+            }
+            else
+            {
+                Params.Key=GetHexFromArr(crypto.randomBytes(32));
+            }
             Params.AccountMap={};
             Params.MiningAccount=0;
         }

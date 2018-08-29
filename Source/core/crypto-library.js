@@ -1154,6 +1154,14 @@ if(LOCAL_RUN)
         global.ARR_PUB_KEY[i]=GetHexFromArr(global.DEVELOP_PUB_KEY);
 
 }
+else
+if(global.TEST_NETWORK)
+{
+    var KeyPair=GetKeyPairTest("TEST_NETWORK");
+    for(var i=0;i<100;i++)
+        //global.ARR_PUB_KEY[i]=GetHexFromArr(KeyPair.PubKeyArr);
+        global.ARR_PUB_KEY[i]=GetHexFromArr(global.DEVELOP_PUB_KEY);
+}
 
 
 // TestMerklTree();
