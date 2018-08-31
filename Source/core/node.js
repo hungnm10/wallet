@@ -457,20 +457,19 @@ module.exports = class CNode
             SERVER.CheckNodeMap(Node);
         }
 
-        // var Result=false;
-        //var Hash=shaarr(addrStr+"-"+Node.ip+":"+Node.port);
-        // var Hash=shaarr(addrStr);
-        // if(Buf.PubKeyType===2 || Buf.PubKeyType===3)
-        //     Result=secp256k1.verify(Buffer.from(Hash), Buffer.from(Buf.Sign), Buffer.from([Buf.PubKeyType].concat(Buf.addrArr)));
-        // if(!Result)
-        // {
-        //     ToLog("END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
-        //     AddNodeInfo(Node,"END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
-        //
-        //     SERVER.SendCloseSocket(Socket,"ERROR_SIGN_SERVER");
-        //     //SERVER.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_SERVER");
-        //     return;
-        // }
+        var Result=false;
+        var Hash=shaarr(addrStr);
+        if(Buf.PubKeyType===2 || Buf.PubKeyType===3)
+            Result=secp256k1.verify(Buffer.from(Hash), Buffer.from(Buf.Sign), Buffer.from([Buf.PubKeyType].concat(Buf.addrArr)));
+        if(!Result)
+        {
+            // ToLog("END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+            // AddNodeInfo(Node,"END: ERROR_SIGN_SERVER ADDR: "+addrStr.substr(0,16)+" from ip: "+Socket.remoteAddress);
+            //
+            // SERVER.SendCloseSocket(Socket,"ERROR_SIGN_SERVER");
+            // //SERVER.AddToBanIP(Socket.remoteAddress,"ERROR_SIGN_SERVER");
+            // return;
+        }
 
 
 
@@ -744,13 +743,13 @@ function AddNodeInfo(Node,Str,bSet)
         }
     }
 
-    if(Node.Info.length>500)
+    if(Node.Info.length>1000)
     {
         Node.PrevInfo=Node.Info;
         Node.Info="";
     }
 
-    if(Node.Info.length<500)
+    //if(Node.Info.length<500)
     {
         var timesend=GetStrOnlyTimeUTC();
         Str=timesend+" "+Str;

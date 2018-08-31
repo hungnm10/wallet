@@ -297,6 +297,9 @@ module.exports = class CBlock extends require("./db/block-db")
     {
         if(this.LoadHistoryMode)
             return;
+        if(global.NO_HISTORY_MODE)
+            return;
+
 
         this.StartLoadBlockTime=(new Date())-0;
 
@@ -600,8 +603,8 @@ module.exports = class CBlock extends require("./db/block-db")
         {
             return b.BlockProcessCount-a.BlockProcessCount;
         });
-        // if(arr.length>20)
-        //     arr.length=20;
+        if(arr.length>40)
+            arr.length=40;
 
 
 
@@ -618,7 +621,8 @@ module.exports = class CBlock extends require("./db/block-db")
                 this.TaskNodeIndex++;
                 Node=arr[this.TaskNodeIndex % arr.length];
             }
-            if(Node.Active && Node.CanHot)
+            //if(Node.Active && Node.CanHot)
+            if(Node.Active)
             {
                 if(!Node.INFO || !Node.INFO.WasPing || Node.StopGetBlock)// || Node.INFO.CheckPointHashDB && CHECK_POINT.BlockNum && CompareArr(CHECK_POINT.Hash,Node.INFO.CheckPointHashDB)!==0)
                 {
@@ -983,6 +987,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var BufRead=BufLib.GetReadBuffer(Info.Data);
         var arr=this.GetBlockArrFromBuffer(BufRead,Info);
 
+        //ToLog("RETBLOCKHEADER_FOWARD Length="+arr.length);
 
         var arr2=[];
         var bFindDB=0;

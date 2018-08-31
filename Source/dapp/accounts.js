@@ -585,9 +585,10 @@ class AccountApp extends require("./dapp")
         Data.BlockNumCreate=BlockNum;
         if(Data.Adviser>this.GetMaxAccount())
             Data.Adviser=0;
-        this.DBState.Write(Data);
+        //this.DBState.Write(Data);
         var Act={ID:Data.Num,BlockNum:BlockNum, PrevValue:{},Mode:1, TrNum:TrNum};
         this.DBAct.Write(Act);
+        this.DBState.Write(Data);//!!!
 
 
 
@@ -847,11 +848,12 @@ class AccountApp extends require("./dapp")
     {
         //остатки
         Data.Value.BlockNum=BlockNum;
-        this.WriteState(Data);
+        //this.WriteState(Data);
 
         //движения
         var Act={Num:undefined, ID:Data.Num, BlockNum:BlockNum, Description:TR.Description, PrevValue:Data.PrevValue, TrNum:TrNum};
         this.DBAct.Write(Act);
+        this.WriteState(Data);//!!!
 
 
         if(WALLET.AccountMap[Act.ID]!==undefined)
@@ -1136,7 +1138,7 @@ class AccountApp extends require("./dapp")
             if(!PrevData || PrevData.BlockNum!==BlockNum-1)
             {
                 ToLogTrace("Error write Account Hash. On BlockNum:"+BlockNum);
-                //SERVER.SetTruncateBlockDB(BlockNum-20);
+                SERVER.SetTruncateBlockDB(BlockNum-20);
                 //throw "Error write Account Hash";
             }
         }
@@ -1149,6 +1151,7 @@ class AccountApp extends require("./dapp")
             this.DBState.WasUpdate=0;
         }
         var Hash=this.DBState.MerkleHash;
+
 
         var Data={Num:BlockNum,BlockNum:BlockNum,Hash:Hash};
         this.DBAccountsHash.Write(Data);

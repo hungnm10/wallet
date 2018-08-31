@@ -207,7 +207,7 @@ module.exports = class CSmartContract extends require("./block-exchange")
         if(!Length)
             return 0;
 
-        var StartNum=this.BlockNumDB-Length;
+        var StartNum=this.BlockNumDB-Length+1;
         if(StartNum<0)
             StartNum=0;
         var EndNum=this.BlockNumDB;
@@ -272,23 +272,23 @@ module.exports = class CSmartContract extends require("./block-exchange")
         if(BlockNumHash<0)
             return;
 
-        //if(Arr.length)
+
+
+        var Hash=DApps.Accounts.GetHashOrUndefined(BlockNumHash);
+        if(Hash)
         {
-            var Hash=DApps.Accounts.GetHashOrUndefined(BlockNumHash);
-            if(Hash)
-            {
-                var Body=[TYPE_TRANSACTION_ACC_HASH];
-                WriteUintToArr(Body,BlockNumHash);
-                WriteArrToArr(Body,Hash,32);
-                var Tr={body:Body};
-                this.CheckCreateTransactionHASH(Tr);
-                Arr.unshift(Tr);
-            }
-            else
-            {
-                //ToLogTrace("!Hash  BlockNum:"+BlockNumHash);
-            }
+            var Body=[TYPE_TRANSACTION_ACC_HASH];
+            WriteUintToArr(Body,BlockNumHash);
+            WriteArrToArr(Body,Hash,32);
+            var Tr={body:Body};
+            this.CheckCreateTransactionHASH(Tr);
+            Arr.unshift(Tr);
         }
+        else
+        {
+            //ToLogTrace("!Hash  BlockNum:"+BlockNumHash);
+        }
+
 
     }
 

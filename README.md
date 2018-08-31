@@ -125,6 +125,10 @@ Lunch:
 sudo node set-test httpport:8080 password:SecretWord
 sudo pm2 start run-test.js
 ```
+### Notes:
+I do not recommend installing the test network on the same computer for the following reasons:
+* If the test network will have a security hole, it will extend to the working node
+* You may experience problems with a remote connection. Due to the peculiarities of storing cookies of the same domain in browsers. However, you can avoid this if you create domain synonyms in a file similar to hosts in windows and use a different alias for the test machine.
 
 
 
