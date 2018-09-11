@@ -1,914 +1,611 @@
-"use strict";
-//Consensus
 /*
- * TERA.FOUNDATION project
- * Copyright: Yuriy Ivanov, 2017 e-mail: progr76@gmail.com
- * Created by vtools on 18.12.2017.
- */
+ * @project: TERA
+ * @version: Development (beta)
+ * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
+ * @license: Not for evil
+ * GitHub: https://github.com/terafoundation/wallet
+ * Twitter: https://twitter.com/terafoundation
+ * Telegram: https://web.telegram.org/#/im?p=@terafoundation
+*/
 
-
-
+"use strict";
 require('./library');
 require('./crypto-library');
 const RBTree = require('bintrees').RBTree;
-//TestTest(); process.exit(0); return;
-
-
-//global.FIRST_TIME_BLOCK=0;
-global.CAN_START=false;
-global.StrWarn="";
-
-
-global.SUM_LIST_LENGTH=2*BLOCK_PROCESSING_LENGTH;
-//global.SUM_LIST_LENGTH=3*BLOCK_PROCESSING_LENGTH/2;
-
-
-global.CONSENSUS_TIK_TIME=CONSENSUS_PERIOD_TIME/10;//ms
-global.CONSENSUS_CHECK_TIME=CONSENSUS_PERIOD_TIME/20;//ms
-const PERIOD_FOR_NEXT_SEND=CONSENSUS_TIK_TIME*3
-
-
-//timing:
-global.BLOCK_DELTA_ACTIVATE=0;//было 1
-global.TIME_END_EXCHANGE=-3;
-global.TIME_START_POW=-4;
-global.TIME_START_POW_EXCHANGE=-5;
-global.TIME_END_EXCHANGE_POW=-7;
-global.TIME_START_SAVE=-8;
-global.TIME_START_LOAD=-12;
-//global.TIME_START_LOAD_NEW_CHAIN=-9;
-
-
-
-//Array:[{body:tr,nonce:uint32,num:byte}],
-
-
-const FORMAT_DATA_TRANSFER0=
-    "{\
+global.CAN_START = false;
+global.StrWarn = "";
+global.SUM_LIST_LENGTH = 2 * BLOCK_PROCESSING_LENGTH;
+global.CONSENSUS_TIK_TIME = CONSENSUS_PERIOD_TIME / 10;
+global.CONSENSUS_CHECK_TIME = CONSENSUS_PERIOD_TIME / 20;
+const PERIOD_FOR_NEXT_SEND = CONSENSUS_TIK_TIME * 3;
+global.BLOCK_DELTA_ACTIVATE = 0;
+global.TIME_END_EXCHANGE =  - 3;
+global.TIME_START_POW =  - 4;
+global.TIME_START_POW_EXCHANGE =  - 5;
+global.TIME_END_EXCHANGE_POW =  - 7;
+global.TIME_START_SAVE =  - 8;
+global.TIME_START_LOAD =  - 12;
+const FORMAT_DATA_TRANSFER0 = "{\
     SendNumber:uint16,\
     BlockNum:uint,\
     Array:[{body:tr}],\
     MaxPOW:[{BlockNum:uint,AddrHash:hash,PrevHash:hash,TreeHash:hash}],\
     MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,SeqHash:hash}]}]\
     }";
-
-const FORMAT_DATA_TRANSFER=
-    "{\
+const FORMAT_DATA_TRANSFER = "{\
     SendNumber:uint16,\
     BlockNum:uint,\
     Array:[{body:tr}],\
     MaxPOW:[{BlockNum:uint,AddrHash:hash,SeqHash:hash}],\
     MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,SeqHash:hash}]}]\
     }";
-
-const WorkStructSend={};
-
-
+const WorkStructSend = {};
 module.exports = class CConsensus extends require("./block-loader")
 {
-    constructor(SetKeyPair,RunIP,RunPort,UseRNDHeader,bVirtual)
+    constructor(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
     {
-        super(SetKeyPair,RunIP,RunPort,UseRNDHeader,bVirtual)
-
-
-        this.CurrentBlockNum=0;
-
-        this.RelayMode=false;
-        this.SendCount=0;
-        this.TreeSendPacket=new RBTree(CompareItemHash);
-
-
-
+        super(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
+        this.CurrentBlockNum = 0
+        this.RelayMode = false
+        this.SendCount = 0
+        this.TreeSendPacket = new RBTree(CompareItemHash)
+        this.KPOWERARR = []
         if(!global.ADDRLIST_MODE && !this.VirtualMode)
         {
-
-            this.idBlockChainTimer=setInterval(this.StartBlockChain.bind(this),CONSENSUS_PERIOD_TIME-5);
-
-            setInterval(this.DoTransfer.bind(this),CONSENSUS_CHECK_TIME);
+            this.idBlockChainTimer = setInterval(this.StartBlockChain.bind(this), CONSENSUS_PERIOD_TIME - 5)
+            setInterval(this.DoTransfer.bind(this), CONSENSUS_CHECK_TIME)
         }
     }
-
     StartBlockChain2()
     {
-        this.OnStartSecond();
-
-        var CurTime=GetCurrentTime()-CONSENSUS_PERIOD_TIME/2;
-        //var CurTime=(GetCurrentTime()-0)
-        var NextTime=CurTime+CONSENSUS_PERIOD_TIME;
-        NextTime=Math.trunc(NextTime/CONSENSUS_PERIOD_TIME)*CONSENSUS_PERIOD_TIME;//+CONSENSUS_PERIOD_TIME/2;
-
-        var DeltaForStart=NextTime-CurTime;
-
-        if(DeltaForStart<(CONSENSUS_PERIOD_TIME-5))//корректировка времени запуска
+        this.OnStartSecond()
+        var CurTime = GetCurrentTime() - CONSENSUS_PERIOD_TIME / 2;
+        var NextTime = CurTime + CONSENSUS_PERIOD_TIME;
+        NextTime = Math.trunc(NextTime / CONSENSUS_PERIOD_TIME) * CONSENSUS_PERIOD_TIME
+        var DeltaForStart = NextTime - CurTime;
+        if(DeltaForStart < (CONSENSUS_PERIOD_TIME - 5))
         {
-            //ToLog("DeltaForStart="+DeltaForStart+"  CurTime="+CurTime+"  NextTime="+NextTime)
-            var self=this;
-
+            var self = this;
             if(self.idBlockChainTimer)
-                clearInterval(self.idBlockChainTimer);
-            self.idBlockChainTimer=0;
-
+                clearInterval(self.idBlockChainTimer)
+            self.idBlockChainTimer = 0
             setTimeout(function ()
             {
-                self.idBlockChainTimer=setInterval(self.StartBlockChain.bind(self),CONSENSUS_PERIOD_TIME-5);
-                self.OnStartSecond();
-            },DeltaForStart)
+                self.idBlockChainTimer = setInterval(self.StartBlockChain.bind(self), CONSENSUS_PERIOD_TIME - 5)
+                self.OnStartSecond()
+            }, DeltaForStart)
         }
-
-
     }
-
     StartBlockChain()
     {
-        this.OnStartSecond();
-
-        var CurTimeNum=GetCurrentTime()-CONSENSUS_PERIOD_TIME/2;
-        var StartTimeNum=Math.floor((CurTimeNum+CONSENSUS_PERIOD_TIME)/CONSENSUS_PERIOD_TIME)*CONSENSUS_PERIOD_TIME;
-        var DeltaForStart=StartTimeNum-CurTimeNum;
-
-        if(DeltaForStart<(CONSENSUS_PERIOD_TIME-5))//корректировка времени запуска
+        this.OnStartSecond()
+        var CurTimeNum = GetCurrentTime() - CONSENSUS_PERIOD_TIME / 2;
+        var StartTimeNum = Math.floor((CurTimeNum + CONSENSUS_PERIOD_TIME) / CONSENSUS_PERIOD_TIME) * CONSENSUS_PERIOD_TIME;
+        var DeltaForStart = StartTimeNum - CurTimeNum;
+        if(DeltaForStart < (CONSENSUS_PERIOD_TIME - 5))
         {
-            //ToLog("DeltaForStart="+DeltaForStart)
-            var self=this;
-
+            var self = this;
             if(self.idBlockChainTimer)
-                clearInterval(self.idBlockChainTimer);
-            self.idBlockChainTimer=0;
-
+                clearInterval(self.idBlockChainTimer)
+            self.idBlockChainTimer = 0
             setTimeout(function ()
             {
-                self.idBlockChainTimer=setInterval(self.StartBlockChain.bind(self),CONSENSUS_PERIOD_TIME);
-                self.OnStartSecond();
-            },DeltaForStart)
+                self.idBlockChainTimer = setInterval(self.StartBlockChain.bind(self), CONSENSUS_PERIOD_TIME)
+                self.OnStartSecond()
+            }, DeltaForStart)
         }
-
-
     }
-
-
     OnStartSecond()
     {
-        //ToLog("Start")
-        PrepareStatEverySecond();
-        this.AddStatOnTimer();
-        this.DoBlockChain();
+        PrepareStatEverySecond()
+        this.AddStatOnTimer()
+        this.DoBlockChain()
     }
-
     CreateBlockContext()
     {
-        var Context={};
-        Context.AddInfo=AddInfoBlock.bind(Context);
-
-        Context.Active=false;
-
-        Context.TransferFromAddr={};
-        Context.LevelsTransfer=[];
-        //Context.StrDebug="";
-        Context.ErrRun="";
-        //Context.PowTree = new RBTree(CompareItemHashPow);
-        Context.PowTree = new RBTree(CompareItemTimePow);
-
-        Context.bSave=false;
-
-        Context.PrevHash=undefined;
-        Context.TreeHash=undefined;
-
-        Context.MaxPOW={};
-        Context.MaxSum={};
-        Context.SumPow=0;
-        Context.Power=0;
-        Context.TrCount=0;
-        Context.TrDataPos=0;
-        Context.TrDataLen=0;
-        Context.Info="Create at:"+GetStrOnlyTimeUTC();
-
-
-
+        var Context = {};
+        Context.AddInfo = AddInfoBlock.bind(Context)
+        Context.Active = false
+        Context.TransferFromAddr = {}
+        Context.LevelsTransfer = []
+        Context.ErrRun = ""
+        Context.PowTree = new RBTree(CompareItemTimePow)
+        Context.bSave = false
+        Context.PrevHash = undefined
+        Context.TreeHash = undefined
+        Context.MaxPOW = {}
+        Context.MaxSum = {}
+        Context.SumPow = 0
+        Context.Power = 0
+        Context.TrCount = 0
+        Context.TrDataPos = 0
+        Context.TrDataLen = 0
+        Context.Info = "Create at:" + GetStrOnlyTimeUTC()
         var Transfer;
         var TransferM2;
-
-        var LocalLevel=0;
-        var Levels=this.LevelNodes;
-        for(let L=0;L<Levels.length;L++)
+        var LocalLevel = 0;
+        var Levels = this.LevelNodes;
+        for(let L = 0; L < Levels.length; L++)
         {
-            var arr=Levels[L];
-            if(arr && arr.length>0)
+            var arr = Levels[L];
+            if(arr && arr.length > 0)
             {
-                Transfer=
-                    {
-                        LocalLevel:LocalLevel,
-                        TreeLevel:L,
-                        SendCount:0,
-                        GetCount:0,
-                        TransferNodes:{},
-                        WasGet:false,
-                        WasSend:false,
-                        MustDeltaTime:CONSENSUS_TIK_TIME*(2+MAX_LEVEL_SPECIALIZATION - L),
-                    };
-                LocalLevel++;
-                Context.LevelsTransfer.push(Transfer);
-                Context.StartLevel=Context.LevelsTransfer.length-1;
-
-
-                for(let j=0;j<arr.length;j++)
+                Transfer = {LocalLevel:LocalLevel, TreeLevel:L, SendCount:0, GetCount:0, TransferNodes:{}, WasGet:false, WasSend:false, MustDeltaTime:CONSENSUS_TIK_TIME * (2 + MAX_LEVEL_SPECIALIZATION - L),
+                }
+                LocalLevel++
+                Context.LevelsTransfer.push(Transfer)
+                Context.StartLevel = Context.LevelsTransfer.length - 1
+                for(let j = 0; j < arr.length; j++)
                 {
-                    var Node=arr[j];
-
-
-                    var Addr=Node.addrStr;
+                    var Node = arr[j];
+                    var Addr = Node.addrStr;
                     if(!Transfer.TransferNodes[Addr])
                     {
-                        let Item=
-                            {
-                                Node:Node,
-                                SendCount:0,
-                                GetCount:0,
-                                addrStr:Addr,
-                                TreeLevel:L,
-                                GetTiming:3*CONSENSUS_PERIOD_TIME,
-                            };
-                        Transfer.TransferNodes[Addr]=Item;
+                        let Item = {Node:Node, SendCount:0, GetCount:0, addrStr:Addr, TreeLevel:L, GetTiming:3 * CONSENSUS_PERIOD_TIME, };
+                        Transfer.TransferNodes[Addr] = Item
                     }
-                    Context.TransferFromAddr[Addr]=Transfer;
-
-                    //Context.StrDebug+=" "+L+"-"+Node.port;
+                    Context.TransferFromAddr[Addr] = Transfer
                 }
             }
         }
-        Context.MLevelSend=Context.StartLevel;
-
+        Context.MLevelSend = Context.StartLevel
         return Context;
     }
-
     StartConsensus()
     {
-         if(!CAN_START)
-            return;
-
-
-        var StartBlockNum=GetCurrentBlockNumByTime();
-
-        if(StartBlockNum<BLOCK_PROCESSING_LENGTH2)
-            return;
-
-        this.CurrentBlockNum=StartBlockNum;
-
-        //делаем один из предыдущих блоков активным
-        var Block0=this.GetBlockContext(StartBlockNum-BLOCK_DELTA_ACTIVATE);
+        if(!CAN_START)
+            return ;
+        var StartBlockNum = GetCurrentBlockNumByTime();
+        if(StartBlockNum < BLOCK_PROCESSING_LENGTH2)
+            return ;
+        this.CurrentBlockNum = StartBlockNum
+        var Block0 = this.GetBlockContext(StartBlockNum - BLOCK_DELTA_ACTIVATE);
         if(!Block0.Active)
         {
-            AddInfoBlock(Block0,"Activate");
-            this.StartBlock(Block0);
+            AddInfoBlock(Block0, "Activate")
+            this.StartBlock(Block0)
         }
         else
         {
-            AddInfoBlock(Block0,"Was Active");
+            AddInfoBlock(Block0, "Was Active")
         }
-
-
-
-        this.ToStrBlocks("");
-
-
-
-        var Block=this.GetBlockContext(StartBlockNum);
-        Block.MLevelSend=Block.StartLevel;
+        this.ToStrBlocks("")
+        var Block = this.GetBlockContext(StartBlockNum);
+        Block.MLevelSend = Block.StartLevel
         if(!Block.bSave)
-            this.MemPoolToTransfer(Block);
+            this.MemPoolToTransfer(Block)
         else
-            ToLog("BlockNum="+StartBlockNum+" was saved!")
-        this.SendCount=0;
-
+            ToLog("BlockNum=" + StartBlockNum + " was saved!")
+        this.SendCount = 0
     }
-
     GetMinTrPow(BlockNum)
     {
-        var arrMax,lengthMax=0;
-        for(var num=0;num<BLOCK_PROCESSING_LENGTH2;num++)
+        var arrMax, lengthMax = 0;
+        for(var num = 0; num < BLOCK_PROCESSING_LENGTH2; num++)
         {
-            var power=0;
-            var BlockPrev=this.GetBlock(BlockNum-BLOCK_PROCESSING_LENGTH*3-num)
+            var power = 0;
+            var BlockPrev = this.GetBlock(BlockNum - BLOCK_PROCESSING_LENGTH * 3 - num);
             if(BlockPrev && BlockPrev.arrContent && BlockPrev.arrContent.length)
             {
-                if(BlockPrev.arrContent.length>lengthMax)
+                if(BlockPrev.arrContent.length > lengthMax)
                 {
-                    arrMax=BlockPrev.arrContent;
-                    lengthMax=arrMax.length;
+                    arrMax = BlockPrev.arrContent
+                    lengthMax = arrMax.length
                 }
             }
         }
-
-
         if(arrMax)
         {
-            var KK,body;
-            if(arrMax.length>=AVG_TRANSACTION_COUNT)
+            var KK, body;
+            if(arrMax.length >= AVG_TRANSACTION_COUNT)
             {
-                KK=1;
-                body=arrMax[AVG_TRANSACTION_COUNT-1];
+                KK = 1
+                body = arrMax[AVG_TRANSACTION_COUNT - 1]
             }
             else
             {
-                KK=arrMax.length/AVG_TRANSACTION_COUNT;
-                body=arrMax[arrMax.length-1];
+                KK = arrMax.length / AVG_TRANSACTION_COUNT
+                body = arrMax[arrMax.length - 1]
             }
-            var HASH=shaarr(body);
-            var power=GetPowPower(HASH);
-            power=power*KK;
-
-            //ToLog("=============== BlockNum="+BlockNum+"  power="+power);
+            var HASH = shaarr(body);
+            var power = GetPowPower(HASH);
+            power = power * KK
             return power;
         }
         else
         {
-            //ToLog("=============== BlockNum="+BlockNum+"  power=0000");
             return 0;
         }
     }
-
     MemPoolToTransfer(Block)
     {
-        // if(this.RelayMode)
-        //     return;
-
-
-
-        //var startTime = process.hrtime();
-        var it=this.TreePoolTr.iterator(), item;
+        var it = this.TreePoolTr.iterator(), item;
         while((item = it.next()) !== null)
         {
-            var Res=this.AddTrToBlockQuote(Block,item);
+            var Res = this.AddTrToBlockQuote(Block, item);
         }
-        //ADD_TO_STAT_TIME("IsValidTransaction", startTime);
-
-        this.TreePoolTr.clear();//TODO
-
-     }
-
-
-    //MAIN EXCHANGE
-    //MAIN EXCHANGE
-    //MAIN EXCHANGE
-
-
-
-    TRANSFER(Info,CurTime)
+        this.TreePoolTr.clear()
+    }
+    TRANSFER(Info, CurTime)
     {
         var startTime = process.hrtime();
-        var Data=this.DataFromF(Info);
-
-        var Block=this.GetBlockContext(Data.BlockNum);
-        if(!Block || Block.StartLevel===undefined)
+        var Data = this.DataFromF(Info);
+        var Node = Info.Node;
+        var Block = this.GetBlockContext(Data.BlockNum);
+        if(!Block || Block.StartLevel === undefined)
         {
-            ADD_TO_STAT("TRANSFER_ERR_STARTLEVEL");
-            this.AddCheckErrCount(Info.Node,1,"Err GetBlockContext");
-            return;
+            ADD_TO_STAT("TRANSFER_ERR_STARTLEVEL")
+            this.AddCheckErrCount(Node, 1, "Err GetBlockContext")
+            return ;
         }
-
-
-        var Key=Info.Node.addrStr;
-        var Transfer=Block.TransferFromAddr[Key];
+        var Key = Node.addrStr;
+        var Transfer = Block.TransferFromAddr[Key];
         if(!Transfer)
         {
-            ADD_TO_STAT("NO_TRANSFER");
-            this.AddCheckErrCount(Info.Node,1,"Err Transfer");
-            return;
+            ADD_TO_STAT("NO_TRANSFER")
+            this.AddCheckErrCount(Node, 1, "Err Transfer")
+            return ;
         }
-
-
-        Transfer.WasGet=true;
-        //var startTime2 = process.hrtime();
-        for(var i=0;i<Data.Array.length;i++)
+        Transfer.WasGet = true
+        for(var i = 0; i < Data.Array.length; i++)
         {
-            this.AddTrToBlockQuote(Block,Data.Array[i]);
+            this.AddTrToBlockQuote(Block, Data.Array[i])
         }
-
-        //ADD_TO_STAT_TIME("IsValidTransaction", startTime2);
-
-        this.ToMaxPOWList(Data.MaxPOW);
-        this.ToMaxSumList(Data.MaxSum);
-
-        ADD_TO_STAT_TIME("TRANSFER_MS", startTime);
-
-        var Delta=(new Date())-this.StartLoadBlockTime;
-        if(Delta>10*1000 && Info.Node.TransferCount>10)
+        this.ToMaxPOWList(Data.MaxPOW, Node)
+        this.ToMaxSumList(Data.MaxSum, Node)
+        ADD_TO_STAT_TIME("TRANSFER_MS", startTime)
+        var Delta = (new Date()) - this.StartLoadBlockTime;
+        if(Delta > 10 * 1000 && Node.TransferCount > 10)
         {
-            Info.Node.BlockProcessCount++;
-            Info.Node.NextHotDelta=3000;
+            Node.BlockProcessCount++
+            Node.NextHotDelta = 3000
         }
-        Info.Node.TransferCount++;
-
-        Info.Node.LastTimeTransfer=GetCurrentTime()-0;
-
-
-        var Item=Transfer.TransferNodes[Key];
-        Item.GetTiming=GetCurrentTime(Block.DELTA_CURRENT_TIME)-Block.StartTimeNum;
+        Node.TransferCount++
+        Node.LastTimeTransfer = GetCurrentTime() - 0
+        var Item = Transfer.TransferNodes[Key];
+        Item.GetTiming = GetCurrentTime(Block.DELTA_CURRENT_TIME) - Block.StartTimeNum
     }
-
-    TrToInfo(Block,Array,StrInfo)
+    TrToInfo(Block, Array, StrInfo)
     {
-        var Str="";
-        for(var i=0;i<Array.length;i++)
+        var Str = "";
+        for(var i = 0; i < Array.length; i++)
         {
-            var Item=Array[i];
-            this.CheckCreateTransactionHASH(Item);
-            Str+=this.GetStrFromHashShort(shaarr(Item.body))+"("+Item.body.length+"),";
-            //Str+=this.GetStrFromHashShort(Item.HASH)+"("+Item.TimePow+"),";
-
+            var Item = Array[i];
+            this.CheckCreateTransactionHASH(Item)
+            Str += this.GetStrFromHashShort(shaarr(Item.body)) + "(" + Item.body.length + "),"
         }
-        AddInfoBlock(Block,""+StrInfo+": Arr=["+Str+"]");
+        AddInfoBlock(Block, "" + StrInfo + ": Arr=[" + Str + "]")
     }
-
-
-
     DoTransfer()
     {
         if(glStopNode)
-            return;
+            return ;
         if(!CAN_START)
-            return;
-
-
-
-
-        var MaxPOWList=this.GetMaxPOWList();
-        var MaxSumList=this.GetMaxSumList();
-
-        var start=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH;
-        var finish=this.CurrentBlockNum;
-        for(var b=start;b<=finish;b++)
+            return ;
+        var MaxPOWList = this.GetMaxPOWList();
+        var MaxSumList = this.GetMaxSumList();
+        var start = this.CurrentBlockNum - BLOCK_PROCESSING_LENGTH;
+        var finish = this.CurrentBlockNum;
+        for(var b = start; b <= finish; b++)
         {
-            var Block=this.GetBlock(b);
+            var Block = this.GetBlock(b);
             if(!Block)
                 continue;
-            if(Block.StartLevel===undefined || Block.MLevelSend===undefined)
+            if(Block.StartLevel === undefined || Block.MLevelSend === undefined)
                 continue;
             if(!Block.Active)
                 continue;
-            if(Block.MLevelSend<0)
-                  continue;
+            if(Block.MLevelSend < 0)
+                continue;
             if(Block.EndExchange)
                 continue;
-
-
-            var Transfer=Block.LevelsTransfer[Block.MLevelSend];
-
-            //Начало периода (такта) - если еще тут не были...
+            var Transfer = Block.LevelsTransfer[Block.MLevelSend];
             if(!Transfer.WasSend)
             {
-                //вот тут точно начало...
-
-                var arrTr=this.GetArrayFromTree(Block,"DoTransfer");
-                var BufData=this.CreateTransferBuffer(arrTr,MaxPOWList,MaxSumList,Block.BlockNum);
-                this.SendData(Transfer,BufData,1);
-
-                //цикл контроля данных
-
-                if(Block.MLevelSend===0 && Block.MLevelSend<Block.StartLevel)
+                var arrTr = this.GetArrayFromTree(Block, "DoTransfer");
+                var BufData = this.CreateTransferBuffer(arrTr, MaxPOWList, MaxSumList, Block.BlockNum);
+                this.SendData(Transfer, BufData, 1)
+                if(Block.MLevelSend === 0 && Block.MLevelSend < Block.StartLevel)
                 {
-                    var TreeHash=this.CalcTreeHashFromArrTr(arrTr);
-                    for(var L=Block.StartLevel;L>Block.MLevelSend;L--)
+                    var TreeHash = this.CalcTreeHashFromArrTr(arrTr);
+                    for(var L = Block.StartLevel; L > Block.MLevelSend; L--)
                     {
-                        var Transfer2=Block.LevelsTransfer[L];
+                        var Transfer2 = Block.LevelsTransfer[L];
                         if(Transfer2)
                         {
-                            this.SendControlData(Transfer2,BufData,Block.BlockNum,TreeHash,1);
+                            this.SendControlData(Transfer2, BufData, Block.BlockNum, TreeHash, 1)
                         }
                     }
                 }
             }
-            Transfer.WasSend=true;
-            var bNext=Transfer.WasGet;
-            if(!bNext)//check timeout
+            Transfer.WasSend = true
+            var bNext = Transfer.WasGet;
+            if(!bNext)
             {
-                var CurTimeNum=GetCurrentTime(Block.DELTA_CURRENT_TIME)-0;
-                var DeltaTime=CurTimeNum-Block.StartTimeNum;
-
-
-                if(DeltaTime>Transfer.MustDeltaTime)
+                var CurTimeNum = GetCurrentTime(Block.DELTA_CURRENT_TIME) - 0;
+                var DeltaTime = CurTimeNum - Block.StartTimeNum;
+                if(DeltaTime > Transfer.MustDeltaTime)
                 {
-                    bNext=true;
-                    Block.ErrRun=""+Transfer.LocalLevel+" "+Block.ErrRun;
-
+                    bNext = true
+                    Block.ErrRun = "" + Transfer.LocalLevel + " " + Block.ErrRun
                     for(var Addr in Transfer.TransferNodes)
                     {
-                        var Item=Transfer.TransferNodes[Addr];
-                        //Item.Node.BlockProcessCount--;
-
-                        ADD_TO_STAT("TRANSFER_TIME_OUT");
-                        this.AddCheckErrCount(Item.Node,1,"TRANSFER_TIME_OUT");
-
+                        var Item = Transfer.TransferNodes[Addr];
+                        ADD_TO_STAT("TRANSFER_TIME_OUT")
+                        this.AddCheckErrCount(Item.Node, 1, "TRANSFER_TIME_OUT")
                     }
-
-
-
-                    ADD_TO_STAT("TimeOutLevel");
+                    ADD_TO_STAT("TimeOutLevel")
                 }
             }
-
             if(bNext)
             {
-
-                //Конец периода (такта)
-                if(Block.MLevelSend===0)
+                if(Block.MLevelSend === 0)
                 {
-                    this.CreateTreeHash(Block);
+                    this.CreateTreeHash(Block)
                 }
-
-
-                Block.MLevelSend--;
+                Block.MLevelSend--
             }
         }
-
-
     }
-
-
-
-    SendData(Transfer,BufData,typedata)
+    SendData(Transfer, BufData, typedata)
     {
         for(var Addr in Transfer.TransferNodes)
         {
-            var Item=Transfer.TransferNodes[Addr];
-            Transfer.SendCount++;
-            this.SendCount++;
-
-            var SendData=
-                {
-                    "Method":"TRANSFER",
-                    "Data":BufData
-                };
-            this.Send(Item.Node,SendData,typedata);
+            var Item = Transfer.TransferNodes[Addr];
+            Transfer.SendCount++
+            this.SendCount++
+            var SendData = {"Method":"TRANSFER", "Data":BufData};
+            this.Send(Item.Node, SendData, typedata)
         }
     }
-
-    SendControlData(Transfer,BufData,BlockNum,TreeHash,typedata)
+    SendControlData(Transfer, BufData, BlockNum, TreeHash, typedata)
     {
-        return;
-
+        return ;
         for(var Addr in Transfer.TransferNodes)
         {
-            var Item=Transfer.TransferNodes[Addr];
-            Transfer.SendCount++;
-            this.SendCount++;
-
-            var SendData=
-                {
-                    "Method":"CONTROLHASH",
-                    "Context":{BufData:BufData},
-                    "Data":
-                        {
-                            TreeHash:TreeHash,
-                            BlockNum:BlockNum,
-                        }
-                };
-            this.SendF(Item.Node,SendData);
+            var Item = Transfer.TransferNodes[Addr];
+            Transfer.SendCount++
+            this.SendCount++
+            var SendData = {"Method":"CONTROLHASH", "Context":{BufData:BufData}, "Data":{TreeHash:TreeHash, BlockNum:BlockNum, }};
+            this.SendF(Item.Node, SendData)
         }
     }
-    static CONTROLHASH_F()
+    static
+    CONTROLHASH_F()
     {
         return "{TreeHash:hash,BlockNum:uint}";
     }
-    CONTROLHASH(Info,CurTime)
+    CONTROLHASH(Info, CurTime)
     {
-        return;
-
-        var Data=this.DataFromF(Info);
-        var Block=this.GetBlockContext(Data.BlockNum);
-        if(!Block || Block.StartLevel===undefined)
-            return;
-
-        var arrTr=this.GetArrayFromTree(Block);
-        var TreeHash=this.CalcTreeHashFromArrTr(arrTr);
-        if(CompareArr(TreeHash,Data.TreeHash)!==0)
+        return ;
+        var Data = this.DataFromF(Info);
+        var Block = this.GetBlockContext(Data.BlockNum);
+        if(!Block || Block.StartLevel === undefined)
+            return ;
+        var arrTr = this.GetArrayFromTree(Block);
+        var TreeHash = this.CalcTreeHashFromArrTr(arrTr);
+        if(CompareArr(TreeHash, Data.TreeHash) !== 0)
         {
-            //ToLog("ERR TreeHash");
-            this.SendF(Info.Node,
-                {
-                    "Method":"GETTRANSFER",
-                    "Context":Info.Context,
-                    "Data":
-                        {
-                            BlockNum:Block.BlockNum,
-                        }
-                });
+            this.SendF(Info.Node, {"Method":"GETTRANSFER", "Context":Info.Context, "Data":{BlockNum:Block.BlockNum, }})
         }
         else
         {
-
-            // this.Send(Info.Node,
-            //     {
-            //         "Method":"OKCONTROLHASH",
-            //         "Context":Info.Context,
-            //         "Data":undefined
-            //     });
         }
     }
-    static GETTRANSFER_F()
+    static
+    GETTRANSFER_F()
     {
         return "{BlockNum:uint}";
     }
-
-    // OKCONTROLHASH(Info,CurTime)
-    // {
-    // }
-
-    GETTRANSFER(Info,CurTime)
+    GETTRANSFER(Info, CurTime)
     {
-        //var Data=Info.Data;
-        var Data=this.DataFromF(Info);
-
-        var Block=this.GetBlockContext(Data.BlockNum);
-        if(!Block || Block.StartLevel===undefined)
-            return;
-        var MaxPOWList=this.GetMaxPOWList();
-        var MaxSumList=this.GetMaxSumList();
-        var arrTr=this.GetArrayFromTree(Block);
-        var BufData=this.CreateTransferBuffer(arrTr,MaxPOWList,MaxSumList,Block.BlockNum);
-        var SendData=
-            {
-                "Method":"TRANSFER",
-                "Data":BufData
-            };
-        this.Send(Info.Node,SendData,1);
-
+        var Data = this.DataFromF(Info);
+        var Block = this.GetBlockContext(Data.BlockNum);
+        if(!Block || Block.StartLevel === undefined)
+            return ;
+        var MaxPOWList = this.GetMaxPOWList();
+        var MaxSumList = this.GetMaxSumList();
+        var arrTr = this.GetArrayFromTree(Block);
+        var BufData = this.CreateTransferBuffer(arrTr, MaxPOWList, MaxSumList, Block.BlockNum);
+        var SendData = {"Method":"TRANSFER", "Data":BufData};
+        this.Send(Info.Node, SendData, 1)
     }
-
-    CreateTransferBuffer(arrTr,MaxPOWList,MaxSumList,BlockNum)
+    CreateTransferBuffer(arrTr, MaxPOWList, MaxSumList, BlockNum)
     {
-        var Data=
-            {
-                "SendNumber":1,
-                "BlockNum":BlockNum,
-                "Array":arrTr,
-                "MaxPOW":MaxPOWList,
-                "MaxSum":MaxSumList,
-            };
-
-        var BufWrite=BufLib.GetBufferFromObject(Data,FORMAT_DATA_TRANSFER,MAX_BLOCK_SIZE+30000,WorkStructSend);
+        var Data = {"SendNumber":1, "BlockNum":BlockNum, "Array":arrTr, "MaxPOW":MaxPOWList, "MaxSum":MaxSumList, };
+        var BufWrite = BufLib.GetBufferFromObject(Data, FORMAT_DATA_TRANSFER, MAX_BLOCK_SIZE + 30000, WorkStructSend);
         return BufWrite;
     }
-
-    static TRANSFER_F()
+    static
+    TRANSFER_F()
     {
         return FORMAT_DATA_TRANSFER;
     }
-
-
-
-
-
-    //MAX POW
-    //MAX POW
-    //MAX POW
-    //MAX POW
-
-
-
-    AddToMaxPOW(Block,item)
+    CheckingMaxPowOther(Block)
+    {
+        var POW = Block.MaxPOW;
+        if(POW && POW.Hash && CompareArr(POW.Hash, Block.Hash) < 0)
+        {
+            var LoadBlockNum = Block.BlockNum;
+            var LoadHash = POW.Hash;
+            var StrKey = this.GetStrFromHashShort(LoadHash);
+            var StrHashWas = this.GetStrFromHashShort(Block.Hash);
+            this.StartLoadBlockHeader(LoadHash, LoadBlockNum, "START OTHER:" + StrKey + " WAS:" + StrHashWas, false)
+            Block.Info += "\nREQ OTHER: " + StrKey
+        }
+        Block.CheckMaxPow = true
+    }
+    IsGPUMiner(Num)
+    {
+        return 0;
+    }
+    AddToMaxPOW(Block, item, Node)
     {
         if(Block && item)
         {
-
             if(!Block.MaxPOW)
-                Block.MaxPOW={};
-            var POW=Block.MaxPOW;
-
-
-            //item.SeqHash=this.GetSeqHash(Block.BlockNum,item.PrevHash,item.TreeHash);
-            item.Hash=CalcHashFromArray([item.SeqHash,item.AddrHash],true);
-
-            if(POW.SeqHash===undefined || CompareArr(item.Hash,POW.Hash)<0)
+                Block.MaxPOW = {}
+            var POW = Block.MaxPOW;
+            item.Hash = shaarrblock2(item.SeqHash, item.AddrHash, Block.BlockNum)
+            if(this.KPOWERARR[ReadUintFromArr(item.AddrHash, 0)])
             {
-                POW.AddrHash=item.AddrHash;
-                POW.Hash=item.Hash;
-
-
-                POW.PrevHash=item.PrevHash;
-                POW.TreeHash=item.TreeHash;
-                POW.SeqHash=item.SeqHash;
+                return ;
             }
-
-            //Local lider
-            if(Block.SeqHash && CompareArr(item.SeqHash,Block.SeqHash)===0)
+            if(this.IsGPUMiner(ReadUintFromArr(item.AddrHash, 0)))
             {
-                if(POW.LocalSeqHash===undefined || CompareArr(POW.LocalSeqHash,Block.SeqHash)!==0 || CompareArr(item.Hash,POW.LocalHash)<0)
+                return ;
+            }
+            if(POW.SeqHash === undefined || CompareArr(item.Hash, POW.Hash) < 0)
+            {
+                POW.AddrHash = item.AddrHash
+                POW.Hash = item.Hash
+                POW.PrevHash = item.PrevHash
+                POW.TreeHash = item.TreeHash
+                POW.SeqHash = item.SeqHash
+                if(Node)
                 {
-                    POW.LocalAddrHash=item.AddrHash;
-                    POW.LocalHash=item.Hash;
-                    POW.LocalSeqHash=Block.SeqHash;
+                    if(!Node.BLockMaxPOW || Node.BLockMaxPOW.BlockNum <= Block.BlockNum)
+                        Node.BLockMaxPOW = {BlockNum:Block.BlockNum, AddrHash:item.AddrHash, SeqHash:item.SeqHash}
                 }
             }
-
-            //Array of lider (global)
-            this.AddPOWToMaxTree(POW,item);
+            if(Block.SeqHash && CompareArr(item.SeqHash, Block.SeqHash) === 0)
+            {
+                if(POW.LocalSeqHash === undefined || CompareArr(POW.LocalSeqHash, Block.SeqHash) !== 0 || CompareArr(item.Hash, POW.LocalHash) < 0)
+                {
+                    POW.LocalAddrHash = item.AddrHash
+                    POW.LocalHash = item.Hash
+                    POW.LocalSeqHash = Block.SeqHash
+                }
+            }
+            this.AddPOWToMaxTree(POW, item)
         }
     }
-
-    AddPOWToMaxTree(POW,item)
+    AddPOWToMaxTree(POW, item)
     {
         if(!POW.MaxTree)
         {
             POW.MaxTree = new RBTree(function (a,b)
             {
-                return CompareArr(a.Hash,b.Hash);
-            });
+                return CompareArr(a.Hash, b.Hash);
+            })
         }
-
-
         if(!POW.MaxTree.find(item))
         {
-            POW.MaxTree.insert(item);
-            if(POW.MaxTree.size>12)//16
+            POW.MaxTree.insert(item)
+            if(POW.MaxTree.size > 12)
             {
-                var maxitem=POW.MaxTree.max();
-                POW.MaxTree.remove(maxitem);
+                var maxitem = POW.MaxTree.max();
+                POW.MaxTree.remove(maxitem)
             }
         }
     }
-
-
     GetMaxPOWList()
     {
-        var arr=[];
-        //var start=this.CurrentBlockNum+TIME_START_SAVE;
-        //var start=this.CurrentBlockNum+TIME_START_POW-3;//2
-        //var finish=this.CurrentBlockNum+TIME_START_POW;
-        var start=this.CurrentBlockNum+TIME_START_POW-2;// (2- стабильно, 1 не стабильно даже на нулевых блоках)
-        var finish=this.CurrentBlockNum+TIME_START_POW-0;//(0- стабильно, 1 не стабильно даже на нулевых блоках)
-        for(var b=start;b<finish;b++)
+        var arr = [];
+        var start = this.CurrentBlockNum + TIME_START_POW - 2;
+        var finish = this.CurrentBlockNum + TIME_START_POW - 0;
+        for(var b = start; b < finish; b++)
         {
-            var Block=this.GetBlock(b);
+            var Block = this.GetBlock(b);
             if(Block && Block.Prepared && Block.MaxPOW)
             {
                 if(Block.MaxPOW && Block.MaxPOW.MaxTree)
                 {
-                    var it=Block.MaxPOW.MaxTree.iterator(), Item;
+                    var it = Block.MaxPOW.MaxTree.iterator(), Item;
                     while((Item = it.next()) !== null)
                     {
-                        Item.BlockNum=Block.BlockNum;
-                        arr.push(Item);
+                        Item.BlockNum = Block.BlockNum
+                        arr.push(Item)
                     }
                 }
             }
         }
         return arr;
     }
-
-
-    ToMaxPOWList(Arr)
+    ToMaxPOWList(Arr, Node)
     {
-        for(var i=0;i<Arr.length;i++)
+        for(var i = 0; i < Arr.length; i++)
         {
-            var item=Arr[i];
-
-            if(item && item.BlockNum>=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH && item.BlockNum<this.CurrentBlockNum)
+            var item = Arr[i];
+            if(item && item.BlockNum >= this.CurrentBlockNum - BLOCK_PROCESSING_LENGTH && item.BlockNum < this.CurrentBlockNum)
             {
-                var Block=this.GetBlock(item.BlockNum);
-                this.AddToMaxPOW(Block,item);
+                var Block = this.GetBlock(item.BlockNum);
+                this.AddToMaxPOW(Block, item, Node)
             }
         }
     }
-
-
-
-    CheckMaxPowOther(Block)
+    CheckMaxSum(Block)
     {
-        var POW=Block.MaxPOW;
-
-
-
-
-        if(POW && POW.Hash && CompareArr(POW.Hash,Block.Hash)<0)
+        var POW = Block.MaxSum;
+        var List = this.GetBlockList(Block.BlockNum);
+        var SumPow = this.GetSumFromList(List, Block.BlockNum);
+        if(POW && POW.SumHash && POW.SumPow > SumPow)
         {
-            //start load blockchain from net
-            var LoadBlockNum=Block.BlockNum;
-            var LoadHash=POW.Hash;
-            var StrKey=this.GetStrFromHashShort(LoadHash);
-            var StrHashWas=this.GetStrFromHashShort(Block.Hash);
-            this.StartLoadBlockHeader(LoadHash,LoadBlockNum,"START OTHER:"+StrKey+" WAS:"+StrHashWas,false);
-            Block.Info+="\nREQ OTHER:"+StrKey;
+            var LoadBlockNum = Block.BlockNum;
+            var LoadHash = POW.SumHash;
+            var StrKey = this.GetStrFromHashShort(LoadHash);
+            this.StartLoadBlockHeader(LoadHash, LoadBlockNum, "START POW:" + POW.SumPow + ">" + SumPow + " SH:" + StrKey, true)
+            Block.Info += "\nREQ SUMHASH: " + StrKey
+            Block.CheckMaxSum = true
         }
-        Block.CheckMaxPow=true;
     }
-
-
-    //MAX SUM LIST
-    //MAX SUM LIST
-    //MAX SUM LIST
-
-
-    AddToMaxSum(Block,item)
+    AddToMaxSum(Block, item)
     {
         if(Block && item)
         {
             if(!Block.MaxSum)
-                Block.MaxSum={};
-            var POW=Block.MaxSum;
-
-            var SumPow=this.GetSumFromList(item.SumList,Block.BlockNum);
-            if(POW.SumHash===undefined || SumPow>POW.SumPow)
+                Block.MaxSum = {}
+            var POW = Block.MaxSum;
+            var SumPow = this.GetSumFromList(item.SumList, Block.BlockNum);
+            if(POW.SumHash === undefined || SumPow > POW.SumPow)
             {
-
-                POW.SumPow=SumPow;
-                POW.SumHash=item.SumHash;
-                POW.SumList=item.SumList;
+                POW.SumPow = SumPow
+                POW.SumHash = item.SumHash
+                POW.SumList = item.SumList
             }
         }
     }
-
-
     GetMaxSumList()
     {
-        var arr=[];
-
-
-        var start=this.CurrentBlockNum+TIME_START_SAVE-0;//0
-        var finish=this.CurrentBlockNum+TIME_START_SAVE;
-
-        for(var b=start;b<=finish;b++)
+        var arr = [];
+        var start = this.CurrentBlockNum + TIME_START_SAVE - 0;
+        var finish = this.CurrentBlockNum + TIME_START_SAVE;
+        for(var b = start; b <= finish; b++)
         {
-            var Block=this.GetBlock(b);
+            var Block = this.GetBlock(b);
             if(Block && Block.bSave && Block.MaxSum && Block.MaxSum.SumHash)
             {
-                var POW=Block.MaxSum;
-                var item=
-                    {
-                        BlockNum:Block.BlockNum,
-                        SumHash: POW.SumHash,
-                        SumList: POW.SumList,
-                    };
-
-                arr.push(item);
+                var POW = Block.MaxSum;
+                var item = {BlockNum:Block.BlockNum, SumHash:POW.SumHash, SumList:POW.SumList, };
+                arr.push(item)
             }
         }
         return arr;
     }
-
     ToMaxSumList(Arr)
     {
-
-        var start=this.CurrentBlockNum+TIME_START_SAVE-4;
-        var finish=this.CurrentBlockNum+TIME_START_SAVE;
-
-        for(var i=0;i<Arr.length;i++)
+        var start = this.CurrentBlockNum + TIME_START_SAVE - 4;
+        var finish = this.CurrentBlockNum + TIME_START_SAVE;
+        for(var i = 0; i < Arr.length; i++)
         {
-            var item=Arr[i];
-            if(item && item.BlockNum>=start && item.BlockNum<=finish)
+            var item = Arr[i];
+            if(item && item.BlockNum >= start && item.BlockNum <= finish)
             {
-                var Block=this.GetBlock(item.BlockNum);
-                this.AddToMaxSum(Block,item);
+                var Block = this.GetBlock(item.BlockNum);
+                this.AddToMaxSum(Block, item)
             }
         }
     }
-
-
-    CheckMaxSum(Block)
-    {
-        var POW=Block.MaxSum;
-
-        var List=this.GetBlockList(Block.BlockNum);
-        var SumPow=this.GetSumFromList(List,Block.BlockNum);
-
-        if(POW && POW.SumHash && POW.SumPow>SumPow)
-        {
-            //start load blockchain from net
-            var LoadBlockNum=Block.BlockNum;
-            var LoadHash=POW.SumHash;
-            var StrKey=this.GetStrFromHashShort(LoadHash);
-            this.StartLoadBlockHeader(LoadHash,LoadBlockNum,"START POW:"+POW.SumPow+">"+SumPow+" SH:"+StrKey,true);
-            Block.Info+="\nREQ SUMHASH:"+StrKey;
-            Block.CheckMaxSum=true;
-        }
-    }
-
-
-
-    //BlockList
-    //BlockList
-    //BlockList
-
-
-
-
     GetBlockList(CurBlockNum)
     {
-        var arr=[];
-
-
-        for(var b=CurBlockNum-SUM_LIST_LENGTH+1; b<=CurBlockNum; b++)
+        var arr = [];
+        for(var b = CurBlockNum - SUM_LIST_LENGTH + 1; b <= CurBlockNum; b++)
         {
-            var Block=this.GetBlock(b);
+            var Block = this.GetBlock(b);
             if(Block && Block.bSave)
             {
-                var item=
-                    {
-                        AddrHash:Block.AddrHash,
-                        // TreeHash:Block.TreeHash,
-                        // PrevHash:Block.PrevHash,
-                        SeqHash:Block.SeqHash,
-                    };
-                arr.push(item);
+                var item = {AddrHash:Block.AddrHash, SeqHash:Block.SeqHash, };
+                arr.push(item)
             }
             else
             {
@@ -917,25 +614,20 @@ module.exports = class CConsensus extends require("./block-loader")
         }
         return arr;
     }
-
-    GetSumFromList(arr,CurBlockNum)
+    GetSumFromList(arr, CurBlockNum)
     {
-        var SumPow=0;
-        if(arr.length!==SUM_LIST_LENGTH)
+        var SumPow = 0;
+        if(arr.length !== SUM_LIST_LENGTH)
             return SumPow;
-
-        var CountLoad=0;
-        var BlockNumStart=CurBlockNum-arr.length+1;
-
-        for(var i=0;i<arr.length;i++)
+        var CountLoad = 0;
+        var BlockNumStart = CurBlockNum - arr.length + 1;
+        for(var i = 0; i < arr.length; i++)
         {
-            var Block=arr[i];
+            var Block = arr[i];
             if(Block)
             {
-                //var SeqHash=this.GetSeqHash(BlockNumStart+i,Block.PrevHash,Block.TreeHash)
-                //var Hash=CalcHashFromArray([SeqHash,Block.AddrHash],true);
-                var Hash=CalcHashFromArray([Block.SeqHash,Block.AddrHash],true);
-                SumPow += GetPowPower(Hash);
+                var BlockNum = BlockNumStart + i;
+                SumPow += this.GetBlockPower(Block, BlockNum)
             }
             else
             {
@@ -944,705 +636,490 @@ module.exports = class CConsensus extends require("./block-loader")
         }
         return SumPow;
     }
-
-
-
-    //TREE <-> TR
-    //TREE <-> TR
-    //TREE <-> TR
-
+    GetBlockPower(Block, BlockNum)
+    {
+        var Hash = shaarrblock2(Block.SeqHash, Block.AddrHash, BlockNum);
+        var Sum = GetPowPower(Hash);
+        if(this.KPOWERARR[ReadUintFromArr(Block.AddrHash, 0)])
+        {
+            Sum = Math.trunc(Sum / 2)
+        }
+        if(this.IsGPUMiner(ReadUintFromArr(Block.AddrHash, 0)))
+        {
+            Sum = Math.trunc(Sum / 2)
+        }
+        return Sum;
+    }
     GetArrayFromTree(Block)
     {
         if(!Block.PowTree)
             return [];
-
-        var BufLength=0;
-        var MaxSize=MAX_BLOCK_SIZE;
-        var arr=[];
-        var it=Block.PowTree.iterator(), Item;
+        var BufLength = 0;
+        var MaxSize = MAX_BLOCK_SIZE;
+        var arr = [];
+        var it = Block.PowTree.iterator(), Item;
         while((Item = it.next()) !== null)
         {
-            arr.push(Item);
-
-            //контроль размера блока транзакций (обязательно после вставки!!!)
-
-            BufLength+=Item.body.length;
-            if(BufLength>MaxSize)
+            arr.push(Item)
+            BufLength += Item.body.length
+            if(BufLength > MaxSize)
                 break;
-
-        };
+        }
         return arr;
     }
-
-
-
-    AddTrToQuote(PowTree,Tr,MaxTransactionCount)
+    AddTrToQuote(PowTree, Tr, MaxTransactionCount)
     {
-        this.CheckCreateTransactionHASH(Tr);
-
-        //сначала поиск по полю HASH
-        var Tr0=PowTree.find(Tr);
+        this.CheckCreateTransactionHASH(Tr)
+        var Tr0 = PowTree.find(Tr);
         if(Tr0)
         {
-            return 3;//Was send
+            return 3;
         }
         else
         {
-            PowTree.insert(Tr);
-            if(PowTree.size>MaxTransactionCount)
+            PowTree.insert(Tr)
+            if(PowTree.size > MaxTransactionCount)
             {
-                var maxitem=PowTree.max();
-                PowTree.remove(maxitem);
-
-                if(CompareArr(maxitem.HASH,Tr.HASH)===0)
-                    return 0;//not add
+                var maxitem = PowTree.max();
+                PowTree.remove(maxitem)
+                if(CompareArr(maxitem.HASH, Tr.HASH) === 0)
+                    return 0;
             }
-
-            return 1;//OK
+            return 1;
         }
     }
-
-    //BlOCK QUOTE
-    AddTrToBlockQuote(Block,Tr)
+    AddTrToBlockQuote(Block, Tr)
     {
         if(Block.PowTree)
         {
-            //проверяем валидность транзакции
-            if(Block.MinTrPow===undefined)
-                 Block.MinTrPow=this.GetMinTrPow(Block.BlockNum);
-
-            var Res=this.IsValidTransaction(Tr,Block.BlockNum);
-            if(Res>=1)
+            if(Block.MinTrPow === undefined)
+                Block.MinTrPow = this.GetMinTrPow(Block.BlockNum)
+            var Res = this.IsValidTransaction(Tr, Block.BlockNum);
+            if(Res >= 1)
             {
                 if(!this.RelayMode)
-                if(Tr.power<Block.MinTrPow)
-                     return -1;
-
-                Res=this.AddTrToQuote(Block.PowTree,Tr,MAX_TRANSACTION_COUNT);
+                    if(Tr.power < Block.MinTrPow)
+                        return  - 1;
+                Res = this.AddTrToQuote(Block.PowTree, Tr, MAX_TRANSACTION_COUNT)
             }
             return Res;
-
         }
     }
-
-
-
-    //BLOCK CONTEXT
-    //BLOCK CONTEXT
-    //BLOCK CONTEXT
-
     GetBlockContext(BlockNum)
     {
-        if(BlockNum===undefined || !this.IsCorrectBlockNum(BlockNum))
+        if(BlockNum === undefined || !this.IsCorrectBlockNum(BlockNum))
             return undefined;
-
-        var Context=this.GetBlock(BlockNum);
+        var Context = this.GetBlock(BlockNum);
         if(!Context || !Context.StartTimeNum)
         {
-            Context=this.CreateBlockContext();
-            Context.BlockNum=BlockNum;
-            Context.DELTA_CURRENT_TIME=GetDeltaCurrentTime();
-            Context.StartTimeNum=(BlockNum-1+BLOCK_DELTA_ACTIVATE)*CONSENSUS_PERIOD_TIME+START_NETWORK_DATE;
-
-
-            this.BlockChain[BlockNum]=Context;
+            Context = this.CreateBlockContext()
+            Context.BlockNum = BlockNum
+            Context.DELTA_CURRENT_TIME = GetDeltaCurrentTime()
+            Context.StartTimeNum = (BlockNum - 1 + BLOCK_DELTA_ACTIVATE) * CONSENSUS_PERIOD_TIME + START_NETWORK_DATE
+            this.BlockChain[BlockNum] = Context
         }
         if(!Context.TransferFromAddr)
         {
-            Context.TransferFromAddr={};
-            Context.LevelsTransfer=[];
+            Context.TransferFromAddr = {}
+            Context.LevelsTransfer = []
         }
-
-
         return Context;
     }
-
     StartBlock(Block)
     {
-        Block.Active=true;
+        Block.Active = true
     }
-
-
     IsCorrectBlockNum(BlockNum)
     {
-        var start=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH;
-        var finish=this.CurrentBlockNum;
-
-        if(BlockNum<start || BlockNum>finish)
+        var start = this.CurrentBlockNum - BLOCK_PROCESSING_LENGTH;
+        var finish = this.CurrentBlockNum;
+        if(BlockNum < start || BlockNum > finish)
         {
             return false;
         }
-
         return true;
     }
-
-
-
-
-
-
-    //STR FOR DEBUG
-    //STR FOR DEBUG
-    //STR FOR DEBUG
-
     GetStrSendCount(Block)
     {
-        //var Block=this.BlockChain[this.CurrentBlockNum-1];
         if(!Block)
             return "";
-        var Str="";
-        var Count=0;
-        for(var L=0;L<Block.LevelsTransfer.length;L++)
+        var Str = "";
+        var Count = 0;
+        for(var L = 0; L < Block.LevelsTransfer.length; L++)
         {
-            var Transfer=Block.LevelsTransfer[L];
-            Str=Str+","+Transfer.SendCount;
-            if(typeof Transfer.SendCount==="number")
-                Count=Count+Transfer.SendCount;
+            var Transfer = Block.LevelsTransfer[L];
+            Str = Str + "," + Transfer.SendCount
+            if(typeof Transfer.SendCount === "number")
+                Count = Count + Transfer.SendCount
         }
-        return ""+Count+":["+Str.substr(1)+"]";
+        return "" + Count + ":[" + Str.substr(1) + "]";
     }
-
-
     GetStrGetCount(Block)
     {
-        //var Block=this.BlockChain[this.CurrentBlockNum-1];
         if(!Block)
             return "";
-        var Str="";
-        var Count=0;
-        for(var L=0;L<Block.LevelsTransfer.length;L++)
+        var Str = "";
+        var Count = 0;
+        for(var L = 0; L < Block.LevelsTransfer.length; L++)
         {
-            var Transfer=Block.LevelsTransfer[L];
-            Str=Str+","+Transfer.GetCount;
-            Count=Count+Transfer.GetCount;
+            var Transfer = Block.LevelsTransfer[L];
+            Str = Str + "," + Transfer.GetCount
+            Count = Count + Transfer.GetCount
         }
-        return ""+Count+":["+Str.substr(1)+"]";
+        return "" + Count + ":[" + Str.substr(1) + "]";
     }
-
-
-
     ToStrBlocks(DopStr)
     {
-        var num=Math.floor(this.CurrentBlockNum/3)*3;
-        var start=num-BLOCK_PROCESSING_LENGTH2+2;
-        var finish=this.CurrentBlockNum;
-        //start=this.CurrentBlockNum-BLOCK_PROCESSING_LENGTH2;
-
+        var num = Math.floor(this.CurrentBlockNum / 3) * 3;
+        var start = num - BLOCK_PROCESSING_LENGTH2 + 2;
+        var finish = this.CurrentBlockNum;
         if(!DopStr)
-            DopStr="";
-        var Str="";
-        for(var b=start;b<=finish;b++)
+            DopStr = ""
+        var Str = "";
+        for(var b = start; b <= finish; b++)
         {
-            var hashStr="";
-            var Block=this.GetBlock(b);
+            var hashStr = "";
+            var Block = this.GetBlock(b);
             if(Block && Block.ErrRun)
             {
                 if(Block.ErrRun)
-                    hashStr=Block.ErrRun.substr(0,5);
+                    hashStr = Block.ErrRun.substr(0, 5)
                 else
-                if(Block && Block.TreeHash)
-                    hashStr="-"+GetHexFromAddres(Block.TreeHash).substr(0,3)+"-";
+                    if(Block && Block.TreeHash)
+                        hashStr = "-" + GetHexFromAddres(Block.TreeHash).substr(0, 3) + "-"
             }
             else
-            if(Block && Block.TreeHash)
-            {
-                hashStr=GetHexFromAddres(Block.TreeHash).substr(0,5);
-            }
-
-            Str=Str+"|"+(hashStr+"     ").substr(0,5);
+                if(Block && Block.TreeHash)
+                {
+                    hashStr = GetHexFromAddres(Block.TreeHash).substr(0, 5)
+                }
+            Str = Str + "|" + (hashStr + "     ").substr(0, 5)
         }
-        Str=Str.substr(1);
-
-
-        ToInfo(""+finish+" -> "+Str+" "+DopStr);
-
+        Str = Str.substr(1)
+        ToInfo("" + finish + " -> " + Str + " " + DopStr)
     }
-
-    PreparePOWHash(Block,bSimplePow)
+    PreparePOWHash(Block, bSimplePow)
     {
         if(this.RelayMode)
-            bSimplePow=true;
-
+            bSimplePow = true
         if(Block.StartMining && !bSimplePow)
             return true;
-
-        var WasHash=Block.Hash;
-
+        var WasHash = Block.Hash;
         if(!Block.TreeHash)
-            Block.TreeHash=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-
-        var PrevHash=this.GetPrevHash(Block);
+            Block.TreeHash = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        var PrevHash = this.GetPrevHash(Block);
         if(!PrevHash)
             return false;
-        Block.PrevHash=PrevHash;
-        Block.SeqHash=this.GetSeqHash(Block.BlockNum,Block.PrevHash,Block.TreeHash);
-
+        Block.PrevHash = PrevHash
+        Block.SeqHash = this.GetSeqHash(Block.BlockNum, Block.PrevHash, Block.TreeHash)
         if(bSimplePow)
-            this.CreatePOWNew(Block,1);
-        else//расчет POW блока (1 сек) - TODO - перенести в отдельный процесс
-            this.CreatePOWNew(Block,(1<<MIN_POWER_POW_BL));
-
-        if(!WasHash || CompareArr(WasHash,Block.Hash)!==0)
-            Block.Info+="\nHASH:"+this.GetStrFromHashShort(WasHash)+"->"+this.GetStrFromHashShort(Block.Hash);
-
-
-        Block.Prepared=true;
-
+            this.CreatePOWNew(Block, 1)
+        else
+            this.CreatePOWNew(Block, (1 << MIN_POWER_POW_BL))
+        if(!WasHash || CompareArr(WasHash, Block.Hash) !== 0)
+            Block.Info += "\nHASH:" + this.GetStrFromHashShort(WasHash) + "->" + this.GetStrFromHashShort(Block.Hash)
+        Block.Prepared = true
         if(!bSimplePow)
         {
-            Block.StartMining=true;
-            this.MiningBlock=Block;
+            Block.StartMining = true
+            this.MiningBlock = Block
             if(global.SetCalcPOW)
-                global.SetCalcPOW(Block);
+                global.SetCalcPOW(Block)
         }
-
-
         return true;
     }
-
-
-
     ReloadTrTable(Block)
     {
         if(!this.IsCorrectBlockNum(Block.BlockNum))
-            return;
-
-        var arrTr=this.GetArrayFromTree(Block);
-        var bWasError=false;
-        for(var i=0;i<arrTr.length;i++)
+            return ;
+        var arrTr = this.GetArrayFromTree(Block);
+        var bWasError = false;
+        for(var i = 0; i < arrTr.length; i++)
         {
-            if(!this.IsValidTransaction(arrTr[i],Block.BlockNum)>=1)
+            if(!this.IsValidTransaction(arrTr[i], Block.BlockNum) >= 1)
             {
-                bWasError=true;
+                bWasError = true
                 break;
             }
         }
-
         if(!bWasError)
-            return;
-
-
-        this.AddDAppTransactions(Block.BlockNum,arrTr);
-
-        var arrContent=[];
-        var arrHASH=[];
-
-        Block.PowTree.clear();
-
-        for(var i=0;i<arrTr.length;i++)
+            return ;
+        this.AddDAppTransactions(Block.BlockNum, arrTr)
+        var arrContent = [];
+        var arrHASH = [];
+        Block.PowTree.clear()
+        for(var i = 0; i < arrTr.length; i++)
         {
-            var Tr=arrTr[i];
-
-            if(this.IsValidTransaction(Tr,Block.BlockNum)>=1)
+            var Tr = arrTr[i];
+            if(this.IsValidTransaction(Tr, Block.BlockNum) >= 1)
             {
                 if(Block.EndExchange)
                 {
-                    arrContent.push(Tr.body);
-                    arrHASH.push(Tr.HASH);
+                    arrContent.push(Tr.body)
+                    arrHASH.push(Tr.HASH)
                 }
-
-                this.AddTrToBlockQuote(Block,Tr);
-
+                this.AddTrToBlockQuote(Block, Tr)
             }
         }
-
-
         if(!Block.EndExchange)
-            return;
-
-        var Tree=CalcMerklFromArray(arrHASH);
-        if(!Block.TreeHash || CompareArr(Block.TreeHash,Tree.Root)!==0)
+            return ;
+        var Tree = CalcMerklFromArray(arrHASH);
+        if(!Block.TreeHash || CompareArr(Block.TreeHash, Tree.Root) !== 0)
         {
-            Block.Prepared=false;
-            AddInfoBlock(Block,"Set not Prepared");
-
-            if(Block.MaxPOW && Block.MaxPOW.Hash && CompareArr(Block.MaxPOW.Hash,Block.Hash)!==0)
+            Block.Prepared = false
+            AddInfoBlock(Block, "Set not Prepared")
+            if(Block.MaxPOW && Block.MaxPOW.Hash && CompareArr(Block.MaxPOW.Hash, Block.Hash) !== 0)
             {
-                this.ClearMaxInBlock(Block);
-                Block.Info+="\n--clear max2--"
+                this.ClearMaxInBlock(Block)
+                Block.Info += "\n--clear max2--"
             }
-
-
-
-            Block.TreeHash=Tree.Root;
-            Block.arrContent=arrContent;
-            Block.TrCount=Block.arrContent.length;
+            Block.TreeHash = Tree.Root
+            Block.arrContent = arrContent
+            Block.TrCount = Block.arrContent.length
         }
     }
     CalcTreeHashFromArrTr(arrTr)
     {
-        var arrHASH=[];
-        for(var i=0;i<arrTr.length;i++)
+        var arrHASH = [];
+        for(var i = 0; i < arrTr.length; i++)
         {
-            var Tr=arrTr[i];
-            arrHASH.push(Tr.HASH);
+            var Tr = arrTr[i];
+            arrHASH.push(Tr.HASH)
         }
-        var Tree=CalcMerklFromArray(arrHASH);
+        var Tree = CalcMerklFromArray(arrHASH);
         return Tree.Root;
     }
     CalcTreeHashFromArrBody(arrContent)
     {
         if(arrContent)
         {
-            var arrHASH=[];
-            for(var i=0;i<arrContent.length;i++)
+            var arrHASH = [];
+            for(var i = 0; i < arrContent.length; i++)
             {
-                var HASH=shaarr(arrContent[i]);
-                arrHASH.push(HASH);
+                var HASH = shaarr(arrContent[i]);
+                arrHASH.push(HASH)
             }
-            var Tree=CalcMerklFromArray(arrHASH);
+            var Tree = CalcMerklFromArray(arrHASH);
             return Tree.Root;
         }
         else
         {
-            return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+            return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         }
     }
-
-
     CreateTreeHash(Block)
     {
         if(Block.EndExchange)
-            return;
-        Block.EndExchange=true;
+            return ;
+        Block.EndExchange = true
         if(Block.bSave)
-            return;
-
-
-
-        var PrevBlock=this.GetBlock(Block.BlockNum-1);
+            return ;
+        var PrevBlock = this.GetBlock(Block.BlockNum - 1);
         if(PrevBlock && !PrevBlock.EndExchange && !PrevBlock.bSave)
         {
-            AddInfoBlock(Block,"Prev Not End Exchange");
-            return;
+            AddInfoBlock(Block, "Prev Not End Exchange")
+            return ;
         }
-
-        AddInfoBlock(Block,"End Exchange");
-
-        var arrContent=[];
-        var arrHASH=[];
-
-        var arrTr=this.GetArrayFromTree(Block);
-        this.AddDAppTransactions(Block.BlockNum,arrTr);
-
-
-        for(var i=0;i<arrTr.length;i++)
+        AddInfoBlock(Block, "End Exchange")
+        var arrContent = [];
+        var arrHASH = [];
+        var arrTr = this.GetArrayFromTree(Block);
+        this.AddDAppTransactions(Block.BlockNum, arrTr)
+        for(var i = 0; i < arrTr.length; i++)
         {
-            var Tr=arrTr[i];
-            arrContent.push(Tr.body);
-            arrHASH.push(Tr.HASH);
+            var Tr = arrTr[i];
+            arrContent.push(Tr.body)
+            arrHASH.push(Tr.HASH)
         }
-
-
-        var Tree=CalcMerklFromArray(arrHASH);
-        Block.TreeHash=Tree.Root;
-        Block.arrContent=arrContent;
-        Block.TrCount=Block.arrContent.length;
-
-
+        var Tree = CalcMerklFromArray(arrHASH);
+        Block.TreeHash = Tree.Root
+        Block.arrContent = arrContent
+        Block.TrCount = Block.arrContent.length
     }
-
-
     DoBlockChain()
     {
         if(glStopNode)
-            return;
+            return ;
         if(!CAN_START)
-            return;
-
-        this.MiningBlock=undefined;
-
-         if(this.LoadHistoryMode)
-            return;
-
-        this.StartConsensus();
-        var CURRENTBLOCKNUM=this.CurrentBlockNum;
-
-        var bWasSave=false;
+            return ;
+        this.MiningBlock = undefined
+        if(this.LoadHistoryMode)
+            return ;
+        this.StartConsensus()
+        var CURRENTBLOCKNUM = this.CurrentBlockNum;
+        var bWasSave = false;
         var LoadBlockNum;
         var LoadHash;
-        var start_save=CURRENTBLOCKNUM+TIME_START_SAVE;
-        for(var i=CURRENTBLOCKNUM-BLOCK_PROCESSING_LENGTH2; i>BLOCK_PROCESSING_LENGTH2 && i<CURRENTBLOCKNUM; i++)
+        var start_save = CURRENTBLOCKNUM + TIME_START_SAVE;
+        for(var i = CURRENTBLOCKNUM - BLOCK_PROCESSING_LENGTH2; i > BLOCK_PROCESSING_LENGTH2 && i < CURRENTBLOCKNUM; i++)
         {
-            var Block=this.GetBlock(i);
+            var Block = this.GetBlock(i);
             if(!Block)
             {
-                Block=this.GetBlockContext(i);
+                Block = this.GetBlockContext(i)
                 if(!Block)
                 {
                     continue;
                 }
             }
-
             if(Block.bSave)
             {
-                bWasSave=true;
-                //check pow Total Hash
-                if(i>=CURRENTBLOCKNUM+TIME_START_LOAD && Block.MaxSum && !Block.CheckMaxSum)
+                bWasSave = true
+                if(i >= CURRENTBLOCKNUM + TIME_START_LOAD && Block.MaxSum && !Block.CheckMaxSum)
                 {
-                    AddInfoBlock(Block,"CheckMaxSum");
-                    this.CheckMaxSum(Block);
+                    AddInfoBlock(Block, "CheckMaxSum")
+                    this.CheckMaxSum(Block)
                 }
-
-                //ОЧИСТКА ПАМЯТИ
-
-                if(i<=CURRENTBLOCKNUM-BLOCK_PROCESSING_LENGTH*4)
+                if(i <= CURRENTBLOCKNUM - BLOCK_PROCESSING_LENGTH * 4)
                 {
-                    Block.TransferFromAddr=undefined;
-                    Block.LevelsTransfer=undefined;
-                    Block.mapData=undefined;
-                    Block.MaxPOW=undefined;
-                    Block.MaxSum=undefined;
-                    Block.arrContent=undefined;
-
+                    Block.TransferFromAddr = undefined
+                    Block.LevelsTransfer = undefined
+                    Block.mapData = undefined
+                    Block.MaxPOW = undefined
+                    Block.MaxSum = undefined
+                    Block.arrContent = undefined
                     if(Block.PowTree)
                     {
-                        Block.PowTree.clear();
-                        Block.PowTree=undefined;
+                        Block.PowTree.clear()
+                        Block.PowTree = undefined
                     }
                 }
-
                 continue;
             }
-            var PrevBlock=this.GetBlock(i-1);
+            var PrevBlock = this.GetBlock(i - 1);
             if(!PrevBlock)
             {
-                Block.HasErr=1;
-                AddInfoBlock(Block,"!PrevBlock");
+                Block.HasErr = 1
+                AddInfoBlock(Block, "!PrevBlock")
                 continue;
             }
-
-
-            //Обмен
-            if(i>=CURRENTBLOCKNUM+TIME_END_EXCHANGE)
+            if(i >= CURRENTBLOCKNUM + TIME_END_EXCHANGE)
             {
                 if(Block.EndExchange)
-                    AddInfoBlock(Block,"WAIT");
+                    AddInfoBlock(Block, "WAIT")
                 else
-                if(Block.Active)
-                    AddInfoBlock(Block,"WAIT EXCHANGE");
-                else
-                    AddInfoBlock(Block,"NOT ACTIVE");
+                    if(Block.Active)
+                        AddInfoBlock(Block, "WAIT EXCHANGE")
+                    else
+                        AddInfoBlock(Block, "NOT ACTIVE")
                 continue;
             }
-            if(!Block.EndExchange)//Прошли тайминги обмена, но обмен не завершен. Завершаем вручную
+            if(!Block.EndExchange)
             {
-                AddInfoBlock(Block,"!EndExchange");
-                this.CreateTreeHash(Block);
-                this.PreparePOWHash(Block,true);//not start POW
-                this.AddToMaxPOW(Block);
+                AddInfoBlock(Block, "!EndExchange")
+                this.CreateTreeHash(Block)
+                this.PreparePOWHash(Block, true)
+                this.AddToMaxPOW(Block)
             }
-
-            //POW
-            if(i===CURRENTBLOCKNUM+TIME_START_POW)
+            if(i === CURRENTBLOCKNUM + TIME_START_POW)
             {
                 if(!Block.EndExchange)
-                    this.CreateTreeHash(Block);
-                Block.StartPOW=1;
-                AddInfoBlock(Block,"Start POW");
-
-                this.PreparePOWHash(Block);//start POW
+                    this.CreateTreeHash(Block)
+                Block.StartPOW = 1
+                AddInfoBlock(Block, "Start POW")
+                this.PreparePOWHash(Block)
                 if(!Block.Prepared)
-                    AddInfoBlock(Block,"!!Prepared");
+                    AddInfoBlock(Block, "!!Prepared")
                 continue;
             }
-
-            if(!Block.Prepared)//Прошли тайминги расчета POW, но (из-за загрузки другой цепочки) он не рассчитан. Рассчитываем упрощенно вручную
+            if(!Block.Prepared)
             {
-                Block.HasErr=1;
-                AddInfoBlock(Block,"Not was Prepared");
-                this.PreparePOWHash(Block,true);//not start POW
+                Block.HasErr = 1
+                AddInfoBlock(Block, "Not was Prepared")
+                this.PreparePOWHash(Block, true)
             }
-
-
-
-            //Обмен POW
-            if(i>=CURRENTBLOCKNUM+TIME_END_EXCHANGE_POW)
+            if(i >= CURRENTBLOCKNUM + TIME_END_EXCHANGE_POW)
             {
-                AddInfoBlock(Block,"WAIT EXCH.POW");
-                //continue;
+                AddInfoBlock(Block, "WAIT EXCH.POW")
             }
-
-
-
-
-
-            //if(i<=start_save)
             {
-                //ПРОВЕРКИ
-                //Пересчитываем предыдуший хеш
-                //проверяем - может предыдущие блоки были изменены путем загрузки из другой цепочки
-                var PrevHash=this.GetPrevHash(Block);
+                var PrevHash = this.GetPrevHash(Block);
                 if(!PrevHash)
                 {
-                    //нет предыдущих блоков - загрузка из сети
                     if(Block.MaxPOW && Block.MaxPOW.Hash)
                     {
-                        LoadBlockNum=Block.BlockNum;
-                        LoadHash=Block.MaxPOW.Hash;
-                        var StrKey=this.GetStrFromHashShort(LoadHash);
-                        if(this.StartLoadBlockHeader(LoadHash,LoadBlockNum,"START1 :"+StrKey,false))
-                            AddInfoBlock(Block,"REQUE: "+StrKey);
+                        LoadBlockNum = Block.BlockNum
+                        LoadHash = Block.MaxPOW.Hash
+                        var StrKey = this.GetStrFromHashShort(LoadHash);
+                        if(this.StartLoadBlockHeader(LoadHash, LoadBlockNum, "START1 :" + StrKey, false))
+                            AddInfoBlock(Block, "REQUE: " + StrKey)
                     }
                     continue;
                 }
-                var SeqHash=this.GetSeqHash(Block.BlockNum,PrevHash,Block.TreeHash);
-                if(CompareArr(SeqHash,Block.SeqHash)!==0)
+                var SeqHash = this.GetSeqHash(Block.BlockNum, PrevHash, Block.TreeHash);
+                if(CompareArr(SeqHash, Block.SeqHash) !== 0)
                 {
-                    Block.HasErr=1;
-                    AddInfoBlock(Block,"New simple pow");
-                    this.PreparePOWHash(Block,true);//not start POW
-                    this.AddToMaxPOW(Block);
+                    Block.HasErr = 1
+                    AddInfoBlock(Block, "New simple pow")
+                    this.PreparePOWHash(Block, true)
+                    this.AddToMaxPOW(Block)
                 }
-
-
-                //ПОИСК ЛИДЕРА
-                //Сравниваем предудущий хеш нашего блокчейна с лидерами, находим текущий и "другой" лидер
-                //Если "другой" лидер имеет сильнее Pow, то загружаем новую цепочку
-
-
-                if(Block.MaxPOW)
+                if(Block.MaxPOW && Block.MaxPOW.SeqHash && Block.MaxPOW.AddrHash && Block.MaxPOW.LocalSeqHash)
                 {
-                    if(CompareArr(Block.SeqHash,Block.MaxPOW.SeqHash)===0
-                        && CompareArr(Block.AddrHash,Block.MaxPOW.AddrHash)!==0)
+                    if(CompareArr(Block.SeqHash, Block.MaxPOW.SeqHash) === 0 && CompareArr(Block.AddrHash, Block.MaxPOW.AddrHash) !== 0)
                     {
-                        Block.AddrHash=Block.MaxPOW.AddrHash;
-                        Block.Hash=CalcHashFromArray([Block.SeqHash,Block.AddrHash],true);
-                        AddInfoBlock(Block,"->Max lider");
+                        Block.AddrHash = Block.MaxPOW.AddrHash
+                        Block.Hash = shaarrblock2(Block.SeqHash, Block.AddrHash, Block.BlockNum)
+                        AddInfoBlock(Block, "->Max lider")
                     }
-
-                    if(CompareArr(Block.SeqHash,Block.MaxPOW.LocalSeqHash)===0
-                        && CompareArr(Block.MaxPOW.LocalHash,Block.Hash)<0)
+                    if(CompareArr(Block.SeqHash, Block.MaxPOW.LocalSeqHash) === 0 && CompareArr(Block.MaxPOW.LocalHash, Block.Hash) < 0)
                     {
-                        Block.AddrHash=Block.MaxPOW.LocalAddrHash;
-                        Block.Hash=CalcHashFromArray([Block.SeqHash,Block.AddrHash],true);
-                        AddInfoBlock(Block,"->Local lider");
+                        Block.AddrHash = Block.MaxPOW.LocalAddrHash
+                        Block.Hash = shaarrblock2(Block.SeqHash, Block.AddrHash, Block.BlockNum)
+                        AddInfoBlock(Block, "->Local lider")
                     }
-
                 }
                 else
                 {
-                    AddInfoBlock(Block,"NO MaxPOW");
+                    AddInfoBlock(Block, "NO MaxPOW")
                 }
-
-
-                //check pow Hash
-                if(Block.MaxPOW && !Block.CheckMaxPow && !Block.CheckMaxSum
-                    && CompareArr(Block.SeqHash,Block.MaxPOW.SeqHash)!==0)
+                if(Block.MaxPOW && Block.MaxPOW.SeqHash && !Block.CheckMaxPow && !Block.CheckMaxSum && CompareArr(Block.SeqHash, Block.MaxPOW.SeqHash) !== 0)
                 {
-                    AddInfoBlock(Block,"CheckMaxPow");
-                    this.CheckMaxPowOther(Block);
+                    AddInfoBlock(Block, "CheckMaxPow")
+                    this.CheckingMaxPowOther(Block)
                 }
-
-
-                //ЗАПИСЬ
-
-                if(i>start_save)
+                if(i > start_save)
                     continue;
-
-                if(PrevBlock.bSave && this.BlockNumDB+1 >= Block.BlockNum)
+                if(PrevBlock.bSave && this.BlockNumDB + 1 >= Block.BlockNum)
                 {
-                    this.AddToStatBlockConfirmation(Block);
-
+                    this.AddToStatBlockConfirmation(Block)
                     if(this.WriteBlockDB(Block))
                     {
-
                         if(Block.arrContent && Block.arrContent.length)
-                            ADD_TO_STAT("MAX:TRANSACTION_COUNT",Block.arrContent.length);
-
-                        AddInfoBlock(Block,"SAVE TO DB: "+this.GetStrFromHashShort(Block.SumHash));
+                            ADD_TO_STAT("MAX:TRANSACTION_COUNT", Block.arrContent.length)
+                        AddInfoBlock(Block, "SAVE TO DB: " + this.GetStrFromHashShort(Block.SumHash))
                     }
                     else
                     {
-                        Block.HasErr=1;
-                        AddInfoBlock(Block,"ERROR WRITE DB");
+                        Block.HasErr = 1
+                        AddInfoBlock(Block, "ERROR WRITE DB")
                     }
-
-
-                    this.AddToMaxSum(Block,
-                        {
-                            SumHash: Block.SumHash,
-                            SumList: this.GetBlockList(Block.BlockNum),
-                        });
-
+                    this.AddToMaxSum(Block, {SumHash:Block.SumHash, SumList:this.GetBlockList(Block.BlockNum), })
                 }
                 else
                 {
-                    Block.HasErr=1;
-                    AddInfoBlock(Block,"Prev block not saved");
+                    Block.HasErr = 1
+                    AddInfoBlock(Block, "Prev block not saved")
                 }
-
             }
-
         }
-
-        for(var i=CURRENTBLOCKNUM-BLOCK_PROCESSING_LENGTH2; i>BLOCK_PROCESSING_LENGTH2 && i<start_save; i++)
+        for(var i = CURRENTBLOCKNUM - BLOCK_PROCESSING_LENGTH2; i > BLOCK_PROCESSING_LENGTH2 && i < start_save; i++)
         {
-            var Block=this.GetBlock(i);
+            var Block = this.GetBlock(i);
             if(Block && !Block.bSave && Block.TrCount && Block.TreeHash && !IsZeroArr(Block.TreeHash) && !Block.WasSaveDataTree)
             {
-                this.SaveDataTreeToDB(Block);
-                Block.WasSaveDataTree=1;
-                AddInfoBlock(Block,"*SAVE DATA TREE*");
-                //ToLog("SAVE DATA TREE: "+Block.BlockNum);
+                this.SaveDataTreeToDB(Block)
+                Block.WasSaveDataTree = 1
+                AddInfoBlock(Block, "*SAVE DATA TREE*")
             }
         }
-
-
-        this.RelayMode=!bWasSave;
-        this.FREE_MEM_BLOCKS(CURRENTBLOCKNUM-BLOCK_COUNT_IN_MEMORY);
-
-
+        this.RelayMode = !bWasSave
+        this.FREE_MEM_BLOCKS(CURRENTBLOCKNUM - BLOCK_COUNT_IN_MEMORY)
     }
-
-}
-
-global.GetCurrentBlockNumByTime=function GetCurrentBlockNumByTime()
+};
+global.GetCurrentBlockNumByTime = function GetCurrentBlockNumByTime()
 {
-    var CurTimeNum=GetCurrentTime()-FIRST_TIME_BLOCK;
-    var StartBlockNum=Math.trunc((CurTimeNum+CONSENSUS_PERIOD_TIME)/CONSENSUS_PERIOD_TIME);
+    var CurTimeNum = GetCurrentTime() - FIRST_TIME_BLOCK;
+    var StartBlockNum = Math.trunc((CurTimeNum + CONSENSUS_PERIOD_TIME) / CONSENSUS_PERIOD_TIME);
     return StartBlockNum;
-}
-
-global.TestCreateTr=TestCreateTr;
-function TestCreateTr()
-{
-    const FORMAT_CREATE=
-        "{\
-        Type:byte,\
-        Currency:uint,\
-        PubKey:arr33,\
-        Description:str40,\
-        Adviser:uint,\
-        Reserve:arr7,\
-        POWCreate:arr12,\
-        }";//1+6+33+40+6+7=93
-
-
-    var TR=
-        {
-            Type:100,
-            Currency:0,
-            PubKey:[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-            Description:"Description",
-            Adviser:4,
-        };
-    var Body=BufLib.GetBufferFromObject(TR,FORMAT_CREATE,1000,{});
-    var startTime = process.hrtime();
-    var StartData=new Date()-0;
-    var nonce=CreateHashBodyPOWInnerMinPower(Body,1000,17);
-    var Time = process.hrtime(startTime);
-
-    var power=GetPowPower(shaarr(Body));
-    var deltaTime=(Time[0]*1000 + Time[1]/1e6)/1000;//s
-    var DeltaData=(new Date()-StartData)/1000;
-
-    ToLog("power="+power+"  nonce="+nonce+" TIME="+deltaTime+" sec"+"  DeltaData="+DeltaData+" sec")
-    //return {body:Body};
-    return {time1:deltaTime,time2:DeltaData};
-}
-
-
-
-
-
+};

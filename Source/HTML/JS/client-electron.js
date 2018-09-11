@@ -1,37 +1,31 @@
+/*
+ * @project: TERA
+ * @version: Development (beta)
+ * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
+ * @license: Not for evil
+ * GitHub: https://github.com/terafoundation/wallet
+ * Twitter: https://twitter.com/terafoundation
+ * Telegram: https://web.telegram.org/#/im?p=@terafoundation
+*/
 
-const {ipcRenderer} = require('electron')
-
-function GetDataElectron(Method, ObjPost, Func)
+const ipcRenderer = require('electron').ipcRenderer;
+function GetDataElectron(Method,ObjPost,Func)
 {
-
-    if(Func===undefined)
+    if(Func === undefined)
     {
-        //old mode
-        Func=ObjPost;
-        ObjPost=null;
+        Func = ObjPost;
+        ObjPost = null;
     }
-
     var reply;
     try
     {
-        //reply = ipcRenderer.send('GetData', {path:Method,obj:ObjPost});
-        reply = ipcRenderer.sendSync('GetData', {path:Method,obj:ObjPost});
+        reply = ipcRenderer.sendSync('GetData', {path:Method, obj:ObjPost});
     }
     catch(e)
     {
-        reply=undefined;
+        reply = undefined;
     }
     if(Func)
         Func(reply);
-
-}
-
-// ipcRenderer.on('RetGetData', (event, arg) =>
-// {
-//     const message = `Asynchronous message reply: ${arg}`
-//     SetStatus(message);
-// });
-
-
-
-window.GetData=GetDataElectron;
+};
+window.GetData = GetDataElectron;

@@ -219,6 +219,21 @@
     {
         var DeltaBlockNum = parseInt($("idConsoleDeltaBlockNum").value);
 
+
+        if($("idSendAll").checked)
+        {
+            var Data={DeltaBlockNum:DeltaBlockNum,Code:Code,All:1};
+            GetData("/SendECode/",Data, function (Data)
+            {
+                if(Data)
+                {
+                    ToResult(Data.text);
+                }
+            });
+            return;
+        }
+
+
         var Addr = $("idNode").value;
 
         AllSend=0;
@@ -417,6 +432,7 @@
             CodeList=JSON.parse(localStorage["ConsoleCodeList2"]);
         if(localStorage["idConsolePow"])
             $("idPow").value=localStorage["idConsolePow"];
+        $("idSendAll").checked=(localStorage["idConsoleSendAll"]==="true");
     }
     function SaveValues()
     {
@@ -427,6 +443,8 @@
         localStorage["idConsoleNode"]=$("idNode").value;
         localStorage["ConsoleCodeList2"]=JSON.stringify(CodeList);
         localStorage["idConsolePow"]=$("idPow").value;
+        localStorage["idConsoleSendAll"]=$("idSendAll").checked;
+
 
     }
 
@@ -483,9 +501,8 @@
             </textarea>
 
             <INPUT type="button" onclick="SendToServer()" class="bt btdoit" id="idBtRun" value="Send">
+            All<input type="checkbox" id="idSendAll" onchange = "SaveValues()"/>
             <BR>
-
-
 
             <BR>
 

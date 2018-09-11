@@ -1,594 +1,237 @@
-//Copyright: Yuriy Ivanov, 2017 e-mail: progr76@gmail.com
-//Use:
-//require("./log.js");
+/*
+ * @project: TERA
+ * @version: Development (beta)
+ * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
+ * @license: Not for evil
+ * GitHub: https://github.com/terafoundation/wallet
+ * Twitter: https://twitter.com/terafoundation
+ * Telegram: https://web.telegram.org/#/im?p=@terafoundation
+*/
+
 require("./constant.js");
-//const util = require('util');
-const fs = require('fs');
-
-
-var file_name_info      = GetDataPath("info.log");
-var file_name_infoPrev  = GetDataPath("info-prev.log");
-CheckSizeLogFile(file_name_info,file_name_infoPrev);
-
-var file_name_log       = GetDataPath("log.log");
-var file_name_logPrev   = GetDataPath("log-prev.log");
-CheckSizeLogFile(file_name_log,file_name_logPrev);
-
-
-var file_name_error       = GetDataPath("err.log");
-var file_name_errorPrev   = GetDataPath("err-prev.log");
-CheckSizeLogFile(file_name_error,file_name_errorPrev);
-
-
-//Logs
-//Logs
-//Logs
-//Logs
-global.SmallAddr=function(Str)
+var fs = require("fs");
+require("./log-strict.js");
+var file_name_info = GetDataPath("info.log"), file_name_infoPrev = GetDataPath("info-prev.log");
+CheckSizeLogFile(file_name_info, file_name_infoPrev);
+var file_name_log = GetDataPath("log.log"), file_name_logPrev = GetDataPath("log-prev.log");
+CheckSizeLogFile(file_name_log, file_name_logPrev);
+var StartStatTime, file_name_error = GetDataPath("err.log"), file_name_errorPrev = GetDataPath("err-prev.log");
+function ToLogFile(t,e,r)
 {
-    return Str.substr(0,5);
-}
-
-global.ToLogTrace=function (Str)
+    e instanceof Error && (e = e.message + "\n" + e.stack), console.log(START_PORT_NUMBER + ": " + GetStrOnlyTime() + ": " + e),
+    r || SaveToLogFileSync(t, e);
+};
+function ToLogClient(t,e,r)
 {
-    ToErrorTrace(Str);
-}
-global.ToErrorTrace=function (Str)
+    t && (ToLogFile(file_name_log, t), e || (e = ""), ArrLogClient.push({text:GetStrOnlyTime() + " " + t, key:e, final:r}), 13 < ArrLogClient.length && ArrLogClient.shift());
+};
+CheckSizeLogFile(file_name_error, file_name_errorPrev), global.ToLog = function (t)
 {
-    ToError(""+Str+":"+new Error().stack);
-}
-global.ToLog=function (Str)
+    global.SendLogToClient || global.ALL_LOG_TO_CLIENT ? ToLogClient(t, void 0, void 0) : ToLogFile(file_name_log, t);
+}, global.SmallAddr = function (t)
 {
-    if(global.SendLogToClient || global.ALL_LOG_TO_CLIENT)
-        ToLogClient(Str,undefined,undefined);
-    else
-        ToLogFile(file_name_log,Str);
-}
-global.ToInfo=function (Str)
+    return t.substr(0, 5);
+}, global.ToErrorTrace = function (t)
 {
-    ToLogFile(file_name_info,Str,1);
-}
-global.ToError=function (Str)
+    ToError(t + ":" + (new Error).stack);
+}, global.ToLogTrace = function (t)
 {
-    ToLogFile(file_name_error,Str);
-}
-
-function ToLogFile(file_name,Str,bNoFile)
+    ToErrorTrace(t);
+}, global.ToInfo = function (t)
 {
-    if (Str instanceof Error)
-    {
-        Str=Str.message+"\n"+Str.stack;
-    }
-
-    console.log(""+START_PORT_NUMBER+": "+GetStrOnlyTime()+": "+Str);
-
-    if(bNoFile)
-        return;
-
-    SaveToLogFileSync(file_name,Str)
-}
-
-
-
-global.ArrLogClient=[];
-function ToLogClient(Str,StrKey,bFinal)
+    ToLogFile(file_name_info, t, 1);
+}, global.ToError = function (t)
 {
-    if(!Str)
-        return;
-
-    ToLogFile(file_name_log,Str);
-
-    if(!StrKey)
-        StrKey="";
-    ArrLogClient.push(
-        {
-            text:GetStrOnlyTime()+" "+Str,
-            key:StrKey,
-            final:bFinal,
-        });
-
-    if(ArrLogClient.length>13)
-        ArrLogClient.shift();
-}
-global.ToLogClient=ToLogClient;
-
-
-
-var StartStatTime;
-var CONTEXT_STATS={Total:{},Interval:[]};
-var CONTEXT_ERRORS={Total:{},Interval:[]};
-
-
-global.TO_ERROR_LOG=function (Module,ErrNum,Str,type,data1,data2)
-{
-    if (Str instanceof Error)
-    {
-        Str=Str.message+"\n";//+Str.stack;
-    }
-
-    if(type==="rinfo")
-        Str+=" from: "+data1.address + ':' + data1.port;// + ' data size:' + data2.length;
-    else
-    if(type==="node")
-        Str+=" from: "+data1.ip + ':' + data1.port;// + ' data size:' + data2.length;
-
-
-
-    var Key=Module+":"+ErrNum;
-
-    ToError(" ==ERROR== "+Key+" "+Str);
-
-
-    AddToStatContext(CONTEXT_ERRORS,Key);
-
-    ADD_TO_STAT("ERRORS");
-}
-
-//stats
-
-var CurStatIndex=0;
+    ToLogFile(file_name_error, t);
+}, global.ArrLogClient = [], global.ToLogClient = ToLogClient;
+var CONTEXT_STATS = {Total:{}, Interval:[]}, CONTEXT_ERRORS = {Total:{}, Interval:[]}, CurStatIndex = 0;
 function GetCurrentStatIndex()
 {
-    var DefMaxStatPeriod=MAX_STAT_PERIOD*2+2;
-
-    return CurStatIndex%DefMaxStatPeriod;;
-}
-global.HASH_RATE=0;
-global.ADD_HASH_RATE=function(Count)
+    var t = 2 * MAX_STAT_PERIOD + 2;
+    return CurStatIndex % t;
+};
+function ResizeArrMax(t)
 {
-    global.HASH_RATE+=Count;
-    ADD_TO_STAT("HASHRATE",Count);
-}
-
-
-global.ADD_TO_STAT=function(Key,Count,bDetail)
+    for(var e = [], r = Math.trunc(t.length / 2), o = 0; o < r; o++)
+        e[o] = Math.max(t[2 * o], t[2 * o + 1]);
+    return e;
+};
+function ResizeArrAvg(t)
 {
-    if(global.STAT_MODE)
+    for(var e = [], r = Math.trunc(t.length / 2), o = 0; o < r; o++)
+        e[o] = (t[2 * o] + t[2 * o + 1]) / 2;
+    return e;
+};
+function ResizeArr(t)
+{
+    for(var e = [], r = Math.trunc(t.length / 2), o = 0; o < r; o++)
+        e[o] = t[2 * o];
+    return e;
+};
+function GetDiagramData(t,e)
+{
+    var r, o = 2 * MAX_STAT_PERIOD + 2;
+    r = "MAX:" === e.substr(0, 4);
+    for(var n, a = MAX_STAT_PERIOD, l = (GetCurrentStatIndex() - a + o) % o, i = (t.Total, []), T = void 0, g = l; g < l + a; g++)
     {
-        if(bDetail && global.STAT_MODE!==2)
-            return;
-
-        AddToStatContext(CONTEXT_STATS,Key,Count);
-    }
-}
-
-global.ADD_TO_STAT_TIME=function(Name,startTime,bDetail)
-{
-    if(global.STAT_MODE)
-    {
-        if(bDetail && global.STAT_MODE!==2)
-            return;
-
-        var Time = process.hrtime(startTime);
-        var deltaTime=Time[0]*1000 + Time[1]/1e6;//ms
-        ADD_TO_STAT(Name,deltaTime);
-    }
-}
-
-
-global.GET_STATS=function(Key)
-{
-
-    var now=GetCurrentTime();
-    var index=GetCurrentStatIndex();
-
-
-    var stats=
+        var S = g % o;
+        if(n = t.Interval[S])
         {
-            Counter:CONTEXT_STATS.Total,
-            Counter10S:CalcInterval(CONTEXT_STATS,index,10),
-            Counter10M:CalcInterval(CONTEXT_STATS,index,10*60),
-            //Counter1H:CalcInterval(CONTEXT_STATS,index,3600)
-        };
-    var errors=
-    {
-        Counter:CONTEXT_ERRORS.Total,
-        Counter10S:CalcInterval(CONTEXT_ERRORS,index,10),
-        Counter10M:CalcInterval(CONTEXT_ERRORS,index,10*60),
-        //Counter1H:CalcInterval(CONTEXT_ERRORS,index,3600)
-    };
-
-    var Period=(now-StartStatTime)/1000;
-
-    return {stats:stats,errors:errors,period:Period,Confirmation:[]};
-}
-
-
-global.GET_STATDIAGRAMS=function(Keys)
-{
-    var now=GetCurrentTime();
-    var index=GetCurrentStatIndex();
-
-    if(!Keys || !Keys.length)
-        return [];
-
-    var Data=[];
-    for(var i=0;i<Keys.length;i++)
-    {
-        var name=Keys[i];
-        var Value=GetDiagramData(CONTEXT_STATS,name);
-        Data.push({name:name,maxindex:index,arr:Value,starttime:(StartStatTime-0),steptime:1});
-    }
-
-
-    var MinLength=undefined;
-    for(var i=0;i<Data.length;i++)
-    {
-        var arr=Data[i].arr;
-        if(arr.length>0 && (MinLength===undefined || arr.length<MinLength))
-            MinLength=arr.length;
-    }
-
-    const MaxSizeArr=500;
-
-    for(var i=0;i<Data.length;i++)
-    {
-        var ItemServer=Data[i];
-
-        var arr=ItemServer.arr;
-        if(MinLength && arr.length>MinLength)
-        {
-            arr=arr.slice(arr.length-MinLength);
-        }
-
-        if(MinLength)
-        if(",POWER_MY_WIN,POWER_BLOCKCHAIN,".indexOf(","+ItemServer.name+",")>=0)
-        {
-            //calc from blockhain stat
-            arr=SERVER.GetStatBlockchain(ItemServer.name,MinLength);
-        }
-
-        //calc avg
-        var AvgValue=0;
-        for(var j=0;j<arr.length;j++)
-        {
-            if(arr[j])
-                AvgValue+=arr[j];
-        }
-        if(arr.length>0)
-            AvgValue=AvgValue/arr.length;
-
-
-        var StepTime=1;
-        if(ItemServer.name.substr(0,4)==="MAX:")
-        //if(ItemServer.name.indexOf("ERR")>=0)
-        {
-            while(arr.length>=MaxSizeArr)
-            {
-                arr=ResizeArrMax(arr);
-                //arr=ResizeArr(arr);
-                StepTime=StepTime*2;
-            }
-        }
-        else
-        {
-            while(arr.length>=MaxSizeArr)
-            {
-                arr=ResizeArrAvg(arr);
-                StepTime=StepTime*2;
-            }
-        }
-        ItemServer.AvgValue=AvgValue;
-        ItemServer.steptime=StepTime;
-        ItemServer.arr=arr.slice(1);
-    }
-
-    return Data;
-}
-
-global.StartCommonStat=function()
-{
-    for(var key in CONTEXT_STATS.Total)
-        return;
-    ClearCommonStat();
-}
-
-global.ClearCommonStat=function()
-{
-    CurStatIndex=0;
-    StartStatTime=undefined;
-    CONTEXT_STATS={Total:{},Interval:[]};
-    CONTEXT_ERRORS={Total:{},Interval:[]};
-
-    global.HASH_RATE=0;
-    SERVER.ClearStat();
-}
-
-
-function ResizeArr(arr)
-{
-    var arr2=[];
-    var Count2=Math.trunc(arr.length/2);
-    for(var i=0;i<Count2;i++)
-    {
-        arr2[i]=arr[i*2];
-    }
-    return arr2;
-}
-
-
-function ResizeArrMax(arr)
-{
-    var arr2=[];
-    var Count2=Math.trunc(arr.length/2);
-    for(var i=0;i<Count2;i++)
-    {
-        arr2[i]=Math.max(arr[i*2],arr[i*2+1]);
-    }
-    return arr2;
-}
-
-function ResizeArrAvg(arr)
-{
-    var arr2=[];
-    var Count2=Math.trunc(arr.length/2);
-    for(var i=0;i<Count2;i++)
-    {
-        arr2[i]=(arr[i*2]+arr[i*2+1])/2;
-    }
-    return arr2;
-}
-global.ResizeArrAvg=ResizeArrAvg;
-global.ResizeArrMax=ResizeArrMax;
-
-
-function GetDiagramData(Context,Key)
-{
-    var DefMaxStatPeriod=MAX_STAT_PERIOD*2+2;
-
-    var IsMax;
-    if(Key.substr(0,4)==="MAX:")
-        IsMax=true;
-    else
-        IsMax=false;
-
-
-    var delta=MAX_STAT_PERIOD;
-    var index2=GetCurrentStatIndex();
-    var index1=(index2-delta+DefMaxStatPeriod)%DefMaxStatPeriod;
-    var Total=Context.Total;
-    var Counter1;
-
-    var arr=[];
-    var PrevValue=undefined;
-    for(var i=index1;i<index1+delta;i++)
-    {
-        var index3=i%DefMaxStatPeriod;
-        Counter1=Context.Interval[index3];
-        if(Counter1)
-        {
-            var Value=Counter1[Key];
-            if(Value!==undefined)
-            {
-                if(!IsMax)
-                {
-                    if(PrevValue!==undefined)
-                    {
-                        arr.push(Value-PrevValue);
-                    }
-                    else
-                    {
-                        arr.push(Value);
-                    }
-                    PrevValue=Value;
-                }
-                else
-                {
-                    arr.push(Value);
-                }
-            }
-            else
-            {
-                arr.push(0);
-            }
+            var f = n[e];
+            void 0 !== f ? r ? i.push(f) : (void 0 !== T ? i.push(f - T) : i.push(f), T = f) : i.push(0);
         }
     }
-    return arr;
-
-}
-
-function CalcInterval(Context,index2,delta)
+    return i;
+};
+function CalcInterval(t,e,r)
 {
-    var DefMaxStatPeriod=MAX_STAT_PERIOD*2+2;
-
-    var Res={};
-    var index1=(index2-delta+DefMaxStatPeriod)%DefMaxStatPeriod;
-    var Total=Context.Total;
-    var Counter1;
-
-    for(var i=index1;i<index1+delta;i++)
+    for(var o, n = 2 * MAX_STAT_PERIOD + 2, a = {}, l = (e - r + n) % n, i = t.Total, T = l; T < l + r; T++)
     {
-        var index3=i%DefMaxStatPeriod;
-        Counter1=Context.Interval[index3];
-        if(Counter1)
+        var g = T % n;
+        if(o = t.Interval[g])
             break;
     }
-    if(Counter1)
-    for(var Key in Total)
+    if(o)
+        for(var S in i)
+            "MAX:" === S.substr(0, 4) ? a[S] = 0 : void 0 === o[S] ? a[S] = i[S] : a[S] = i[S] - o[S];
+    return a;
+};
+function AddToStatContext(t,e,r)
+{
+    void 0 === r && (r = 1);
+    var o = t.Total[e];
+    o || (o = 0), "MAX:" === e.substr(0, 4) ? o = Math.max(o, r) : o += r, t.Total[e] = o, StartStatTime || (StartStatTime = GetCurrentTime(0));
+};
+function CopyStatInterval(t,e)
+{
+    var r = t.Interval[e];
+    r || (r = {}, t.Interval[e] = r);
+    var o = t.Total;
+    for(var n in o)
+        r[n] = o[n], "MAX:" === n.substr(0, 4) && (o[n] = 0);
+};
+function SaveToLogFileAsync(t,o)
+{
+    fs.open(t, "a", void 0, function (t,r)
     {
-        if(Key.substr(0,4)==="MAX:")
-            Res[Key]=0;
+        if(t)
+            console.log("Ошибка открытия лог-файла ошибок");
         else
         {
-            if(Counter1[Key]===undefined)
-                Res[Key]=Total[Key];
-            else
-                Res[Key]=Total[Key]-Counter1[Key];
+            var e = GetStrTime() + " : " + o + "\r\n";
+            fs.write(r, e, null, "utf8", function (t,e)
+            {
+                t ? console.log("Ошибка записи в лог-файл ошибок!") : (console.log(o), fs.close(r));
+            });
         }
-    }
-    return Res;
-}
-
-function AddToStatContext(Context,Key,AddValue)
-{
-    if(AddValue===undefined)
-        AddValue = 1;
-
-    var Val=Context.Total[Key];
-    if(!Val)
-        Val=0;
-    if(Key.substr(0,4)==="MAX:")
-        Val=Math.max(Val,AddValue);
-    else
-        Val=Val+AddValue;
-    Context.Total[Key]=Val;
-
-    if(!StartStatTime)
-        StartStatTime=GetCurrentTime(0);
-}
-
-
-function CopyStatInterval(Context,index)
-{
-    var Counter=Context.Interval[index];
-    if(!Counter)
-    {
-        Counter={};
-        Context.Interval[index]=Counter;
-    }
-
-    var Total=Context.Total;
-    for(var Key in Total)
-    {
-        Counter[Key]=Total[Key];
-        if(Key.substr(0,4)==="MAX:")
-            Total[Key]=0;
-    }
-}
-
-
-
-
-
-global.PrepareStatEverySecond=function()
-{
-    CurStatIndex++;
-    var index=GetCurrentStatIndex();
-    CopyStatInterval(CONTEXT_STATS,index);
-    CopyStatInterval(CONTEXT_ERRORS,index);
-}
-
-
-if(DEBUG_MODE)
-global.TO_DEBUG_LOG=function (Str,type,data1,data2)
-{
-    if(!DEBUG_MODE)
-        return;
-
-    if(type==="rinfo")
-        Str+=" from: "+data1.address + ':' + data1.port + ' - ' + data2.length;
-
-    ToLog(Str);
-}
-else
-global.TO_DEBUG_LOG=function (Str,type,data1,data2){};
-
-
-function SaveToLogFileSync(fname,Str)
+    });
+};
+function SaveToLogFileSync(t,e)
 {
     try
     {
-        var StrLog=GetStrTime() +" : "+Str+"\r\n";
-
-        var file_handle=fs.openSync(fname, "a");
-        fs.writeSync(file_handle, StrLog, null, 'utf8');
-        fs.closeSync(file_handle);
+        var r = GetStrTime() + " : " + e + "\r\n", o = fs.openSync(t, "a");
+        fs.writeSync(o, r, null, "utf8"), fs.closeSync(o);
     }
-    catch (err)
+    catch(t)
     {
-        console.log(err.message);
+        console.log(t.message);
     }
-}
-
-function SaveToLogFileAsync(fname,Str)
+};
+global.PrepareStatEverySecond = function ()
 {
-    fs.open(fname, "a", undefined, function(err, file_handle)//0644
+    CurStatIndex++;
+    var t = GetCurrentStatIndex();
+    if(CopyStatInterval(CONTEXT_STATS, t), CopyStatInterval(CONTEXT_ERRORS, t), SERVER.MiningBlock)
     {
-        if (!err)
-        {
-            var StrLog=GetStrTime() +" : "+Str+"\r\n";
-            fs.write(file_handle, StrLog, null, 'utf8', function(err, written)
-            {
-                if (!err)
-                {
-                    console.log(Str);
-                    fs.close(file_handle)
-                }
-                else
-                {
-                    console.log("Ошибка записи в лог-файл ошибок!");
-                }
-            });
-        }
+        var e = SERVER.MiningBlock;
+        SERVER.СтатБлок = {BlockNum:e.BlockNum, SeqHash:e.SeqHash, AddrHash:e.AddrHash};
+    }
+}, global.TO_ERROR_LOG = function (t,e,r,o,n,a)
+{
+    r instanceof Error && (r = r.message + "\n"), "rinfo" === o ? r += " from: " + n.address + ":" + n.port : "node" === o && (r += " from: " + n.ip + ":" + n.port);
+    var l = t + ":" + e;
+    ToError(" ==ERROR== " + l + " " + r), AddToStatContext(CONTEXT_ERRORS, l), ADD_TO_STAT("ERRORS");
+}, global.HASH_RATE = 0, global.ADD_HASH_RATE = function (t)
+{
+    global.HASH_RATE += t, ADD_TO_STAT("HASHRATE", t);
+}, global.ADD_TO_STAT_TIME = function (t,e,r)
+{
+    if(global.STAT_MODE)
+    {
+        if(r && 2 !== global.STAT_MODE)
+            return ;
+        var o = process.hrtime(e), n = 1e3 * o[0] + o[1] / 1e6;
+        ADD_TO_STAT(t, n);
+    }
+}, global.ADD_TO_STAT = function (t,e,r)
+{
+    if(global.STAT_MODE)
+    {
+        if(r && 2 !== global.STAT_MODE)
+            return ;
+        AddToStatContext(CONTEXT_STATS, t, e);
+    }
+}, global.GET_STATDIAGRAMS = function (t)
+{
+    GetCurrentTime();
+    var e = GetCurrentStatIndex();
+    if(!t || !t.length)
+        return [];
+    for(var r = [], o = 0; o < t.length; o++)
+    {
+        var n = t[o], a = GetDiagramData(CONTEXT_STATS, n);
+        r.push({name:n, maxindex:e, arr:a, starttime:StartStatTime - 0, steptime:1});
+    }
+    var l = void 0;
+    for(o = 0; o < r.length; o++)
+    {
+        0 < (T = r[o].arr).length && (void 0 === l || T.length < l) && (l = T.length);
+    }
+    for(o = 0; o < r.length; o++)
+    {
+        var i = r[o], T = i.arr;
+        l && T.length > l && (T = T.slice(T.length - l)), l && 0 <= ",POWER_MY_WIN,POWER_BLOCKCHAIN,".indexOf("," + i.name + ",") && (T = SERVER.GetStatBlockchain(i.name,
+        l));
+        for(var g = 0, S = 0; S < T.length; S++)
+            T[S] && (g += T[S]);
+        0 < T.length && (g /= T.length);
+        var f = 1;
+        if("MAX:" === i.name.substr(0, 4))
+            for(; 500 <= T.length; )
+                T = ResizeArrMax(T), f *= 2;
         else
-        {
-            console.log("Ошибка открытия лог-файла ошибок");
-        }
-    });
-}
-
-
-function CheckSizeLogFile(file_name,file_name_prev)
+            for(; 500 <= T.length; )
+                T = ResizeArrAvg(T), f *= 2;
+        i.AvgValue = g, i.steptime = f, i.arr = T.slice(1);
+    }
+    return r;
+}, global.GET_STATS = function (t)
 {
-    "use strict";
-
-    let FILE_NAME_LOG=file_name;
-    let FILE_NAME_LOG_PREV=file_name_prev;
-    setInterval(function()
-    {
-        try {
-
-            var stat = fs.statSync(FILE_NAME_LOG);
-            if (stat.size > MAX_SIZE_LOG)
-            {
-
-                if(fs.existsSync(FILE_NAME_LOG_PREV))
-                {
-                    fs.unlinkSync(FILE_NAME_LOG_PREV);
-                }
-
-                fs.renameSync(FILE_NAME_LOG,FILE_NAME_LOG_PREV);
-                ToLog("truncate logfile ok");
-            }
-
-        }
-        catch (err)
-        {
-            //ToLog(err);
-        }
-        //fs.stat(file_name_log, function(error, stat){
-
-    },60000);
-}
-
-
-
-global.GetStrTime=function (now)
+    var e = GetCurrentTime(), r = GetCurrentStatIndex();
+    return {stats:{Counter:CONTEXT_STATS.Total, Counter10S:CalcInterval(CONTEXT_STATS, r, 10), Counter10M:CalcInterval(CONTEXT_STATS,
+            r, 600)}, errors:{Counter:CONTEXT_ERRORS.Total, Counter10S:CalcInterval(CONTEXT_ERRORS, r, 10), Counter10M:CalcInterval(CONTEXT_ERRORS,
+            r, 600)}, period:(e - StartStatTime) / 1e3, Confirmation:[]};
+}, global.StartCommonStat = function ()
 {
-    now = now || GetCurrentTime();
-
-    var Str=""+now.getDate().toStringZ(2);
-    Str=Str+"."+(1+now.getMonth()).toStringZ(2);
-    Str=Str+"."+now.getFullYear();
-    Str=Str+" "+now.getHours().toStringZ(2);
-    Str=Str+":"+now.getMinutes().toStringZ(2);
-    Str=Str+":"+now.getSeconds().toStringZ(2);
-    Str=Str+"."+now.getMilliseconds().toStringZ(3);
-    return Str;
-}
-
-global.GetStrOnlyTime=function (now)
+    for(var t in CONTEXT_STATS.Total)
+        return ;
+    ClearCommonStat();
+}, global.ClearCommonStat = function ()
 {
-    now = now || GetCurrentTime();
-
-    var Str=""+now.getHours().toStringZ(2);
-    Str=Str+":"+now.getMinutes().toStringZ(2);
-    Str=Str+":"+now.getSeconds().toStringZ(2);
-    Str=Str+"."+now.getMilliseconds().toStringZ(3);
-    return Str;
-}
-
-
-
-//TODO: Ввести несколько файлов и разные уровни ошибок: инфо, ошибки
-
+    StartStatTime = void (CurStatIndex = 0), CONTEXT_STATS = {Total:{}, Interval:[]}, CONTEXT_ERRORS = {Total:{}, Interval:[]},
+    global.HASH_RATE = 0, SERVER.ClearStat();
+}, global.ResizeArrAvg = ResizeArrAvg, global.ResizeArrMax = ResizeArrMax, DEBUG_MODE ? global.TO_DEBUG_LOG = function (t,e,r,o)
+{
+    DEBUG_MODE && ("rinfo" === e && (t += " from: " + r.address + ":" + r.port + " - " + o.length), ToLog(t));
+} : global.TO_DEBUG_LOG = function (t,e,r,o)
+{
+}, global.GetStrOnlyTime = function (t)
+{
+    var e = "" + (t = t || GetCurrentTime()).getHours().toStringZ(2);
+    return e = (e = (e = e + ":" + t.getMinutes().toStringZ(2)) + ":" + t.getSeconds().toStringZ(2)) + "." + t.getMilliseconds().toStringZ(3);
+}, global.GetStrTime = function (t)
+{
+    var e = "" + (t = t || GetCurrentTime()).getDate().toStringZ(2);
+    return e = (e = (e = (e = (e = (e = e + "." + (1 + t.getMonth()).toStringZ(2)) + "." + t.getFullYear()) + " " + t.getHours().toStringZ(2)) + ":" + t.getMinutes().toStringZ(2)) + ":" + t.getSeconds().toStringZ(2)) + "." + t.getMilliseconds().toStringZ(3);
+};

@@ -150,6 +150,9 @@
             return;
 
         var arr=Item.arr;
+        if(!arr)
+            arr=Item.ArrList;
+
         var name=Item.id;
         var GreenValue=Item.value;
         var StepTime=Item.steptime;
@@ -1104,6 +1107,9 @@
         var Adviser=ParseNum(document.getElementById("idAdviser").value);
         var bNonce=document.getElementById("idNonce").checked;
 
+        if(document.getElementById("idMiner").value==="")
+            Miner=-1;
+
 
         GetData("/GetBlockchainStat",{BlockNum:BlockNum,Count:Count,Miner:Miner,Adviser:Adviser,bNonce:bNonce}, function (Data)
         {
@@ -1111,7 +1117,7 @@
             {
                 var BlockNum=ParseNum(document.getElementById("idBlockNum").value);
                 var ItemClient=ExternDiagramItem;
-                ItemClient.arr=Data.arr;
+                ItemClient.ArrList=Data.ArrList;
                 ItemClient.AvgValue=Data.AvgValue;
                 ItemClient.steptime=Data.steptime;
                 ItemClient.startnumber=BlockNum;
@@ -1122,10 +1128,10 @@
                     var arr=ItemClient.arr;
                     for(var i=0;i<arr.length;i++)
                     {
-                        arr[i]=arr[i]/10000000;
+                        arr[i]=arr[i]%10000000;
                     }
-
                 }
+
                 DrawDiagram(ItemClient);
             }
         });

@@ -17,6 +17,7 @@
   "license": "TERA",
   "dependencies": {
     "bintrees": "^1.0.2",
+    "minify": "^3.0.5",
     "ntp-client": "^0.5.3",
     "secp256k1": "^3.5.0",
     "sha3": "^1.2.2",

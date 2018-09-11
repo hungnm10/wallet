@@ -1,382 +1,276 @@
-"use strict";
-/**
- *  Copyright: Yuriy Ivanov, 2017,2018 e-mail: progr76@gmail.com
-**/
+/*
+ * @project: TERA
+ * @version: Development (beta)
+ * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
+ * @license: Not for evil
+ * GitHub: https://github.com/terafoundation/wallet
+ * Twitter: https://twitter.com/terafoundation
+ * Telegram: https://web.telegram.org/#/im?p=@terafoundation
+*/
 
+"use strict";
 var fs = require("fs");
 const ZIP = require("zip");
-
-const FORMAT_EVAL_SEND="{MaxBlockNum:uint,Code:str,Sign:arr64}";
-
+const FORMAT_EVAL_SEND = "{MaxBlockNum:uint,Code:str,Sign:arr64}";
 module.exports = class CCode extends require("./base")
 {
-    constructor(SetKeyPair,RunIP,RunPort,UseRNDHeader,bVirtual)
+    constructor(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
     {
-        super(SetKeyPair,RunIP,RunPort,UseRNDHeader,bVirtual)
-
-
-
+        super(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
         if(!global.ADDRLIST_MODE && !this.VirtualMode)
         {
-            setInterval(this.CheckLoadCodeTime.bind(this),10*1000);
+            setInterval(this.CheckLoadCodeTime.bind(this), 10 * 1000)
         }
-
-
-        this.LastEvalCodeNum=0;
-
-        CheckCreateDir(GetDataPath("Update"));
-        //CheckCreateDir(GetDataPath("Code"));
+        this.LastEvalCodeNum = 0
+        CheckCreateDir(GetDataPath("Update"))
     }
     CheckLoadCodeTime()
     {
         if(START_LOAD_CODE.StartLoadNode && START_LOAD_CODE.StartLoadVersionNum)
         {
-            var Delta=new Date()-START_LOAD_CODE.StartLoadVersionNumTime;
-            if(Delta>20*1000)
+            var Delta = new Date() - START_LOAD_CODE.StartLoadVersionNumTime;
+            if(Delta > 20 * 1000)
             {
-                ToError("Cannot load code version:"+START_LOAD_CODE.StartLoadVersionNum+" from node: "+START_LOAD_CODE.StartLoadNode.ip+":"+START_LOAD_CODE.StartLoadNode.port)
-                this.ClearLoadCode();
+                ToError("Cannot load code version:" + START_LOAD_CODE.StartLoadVersionNum + " from node: " + START_LOAD_CODE.StartLoadNode.ip + ":" + START_LOAD_CODE.StartLoadNode.port)
+                this.ClearLoadCode()
             }
         }
     }
     ClearLoadCode()
     {
-        START_LOAD_CODE.StartLoad=undefined;
-        START_LOAD_CODE.StartLoadVersionNum=0;
-        START_LOAD_CODE.StartLoadVersionNumTime=0;
+        START_LOAD_CODE.StartLoad = undefined
+        START_LOAD_CODE.StartLoadVersionNum = 0
+        START_LOAD_CODE.StartLoadVersionNumTime = 0
     }
-
-    StartLoadCode(Node,CodeVersion)
+    StartLoadCode(Node, CodeVersion)
     {
-        var VersionNum=CodeVersion.VersionNum;
-
-        START_LOAD_CODE.StartLoad=CodeVersion;
-        START_LOAD_CODE.StartLoadNode=Node;
-        START_LOAD_CODE.StartLoadVersionNum=VersionNum;
-        START_LOAD_CODE.StartLoadVersionNumTime=new Date();
-
-        var fname=GetDataPath("Update/wallet-"+VersionNum+".zip");
+        var VersionNum = CodeVersion.VersionNum;
+        START_LOAD_CODE.StartLoad = CodeVersion
+        START_LOAD_CODE.StartLoadNode = Node
+        START_LOAD_CODE.StartLoadVersionNum = VersionNum
+        START_LOAD_CODE.StartLoadVersionNumTime = new Date()
+        var fname = GetDataPath("Update/wallet-" + VersionNum + ".zip");
         if(fs.existsSync(fname))
         {
-            this.UseCode(VersionNum,false);
-            return;
+            this.UseCode(VersionNum, false)
+            return ;
         }
-
-
-        var Context={"VersionNum":VersionNum};
-        this.SendF(Node,
-            {
-                "Method":"GETCODE",
-                "Context":Context,
-                "Data":VersionNum
-            }
-        );
+        var Context = {"VersionNum":VersionNum};
+        this.SendF(Node, {"Method":"GETCODE", "Context":Context, "Data":VersionNum})
     }
-
-    static GETCODE_F()
+    static
+    GETCODE_F()
     {
         return "uint";
     }
-
     GETCODE(Info)
     {
-
-
-        //отправка файла из спец. каталога
-        var VersionNum=this.DataFromF(Info);
-        var fname=GetDataPath("Update/wallet-"+VersionNum+".zip");
+        var VersionNum = this.DataFromF(Info);
+        var fname = GetDataPath("Update/wallet-" + VersionNum + ".zip");
         if(fs.existsSync(fname))
         {
             var data = fs.readFileSync(fname);
-            this.Send(Info.Node,
-                {
-                    "Method":"RETCODE",
-                    "Context":Info.Context,
-                    "Data":data
-                },BUF_TYPE
-            );
+            this.Send(Info.Node, {"Method":"RETCODE", "Context":Info.Context, "Data":data}, BUF_TYPE)
         }
     }
-
     RETCODE(Info)
     {
-        //получение файла обновления
-
-
-        var VersionNum=Info.Context.VersionNum;
+        var VersionNum = Info.Context.VersionNum;
         if(!VersionNum || !START_LOAD_CODE.StartLoad)
-            return;
-
-
-        //положить в спец. каталог
-        var fname=GetDataPath("Update/wallet-"+VersionNum+".zip");
+            return ;
+        var fname = GetDataPath("Update/wallet-" + VersionNum + ".zip");
         if(!fs.existsSync(fname))
         {
-            //проверка хеша
-            var Hash=shaarr(Info.Data);
-            if(CompareArr(Hash,START_LOAD_CODE.StartLoad.Hash)===0)
+            var Hash = shaarr(Info.Data);
+            if(CompareArr(Hash, START_LOAD_CODE.StartLoad.Hash) === 0)
             {
-                var file_handle=fs.openSync(fname, "w");
-                fs.writeSync(file_handle, Info.Data,0,Info.Data.length);
-                fs.closeSync(file_handle);
-
-                this.UseCode(VersionNum,global.USE_AUTO_UPDATE);
-
-
+                var file_handle = fs.openSync(fname, "w");
+                fs.writeSync(file_handle, Info.Data, 0, Info.Data.length)
+                fs.closeSync(file_handle)
+                this.UseCode(VersionNum, global.USE_AUTO_UPDATE)
             }
             else
             {
-                ToError("Error check hash of version code :"+START_LOAD_CODE.StartLoadVersionNum+" from node: "+Info.Node.ip+":"+Info.Node.port)
-                this.ClearLoadCode();
-                this.AddCheckErrCount(Info.Node,1,"Error check hash of version code");
+                ToError("Error check hash of version code :" + START_LOAD_CODE.StartLoadVersionNum + " from node: " + Info.Node.ip + ":" + Info.Node.port)
+                this.ClearLoadCode()
+                this.AddCheckErrCount(Info.Node, 1, "Error check hash of version code")
             }
         }
-
-     }
-
-    UseCode(VersionNum,bRestart)
+    }
+    UseCode(VersionNum, bRestart)
     {
         if(bRestart)
         {
-            //распаковать
-            UpdateCodeFiles(VersionNum);
+            UpdateCodeFiles(VersionNum)
         }
-
-
-
         if(global.START_LOAD_CODE.StartLoad)
         {
-            global.CODE_VERSION=START_LOAD_CODE.StartLoad;
-            this.ClearLoadCode();
+            global.CODE_VERSION = START_LOAD_CODE.StartLoad
+            this.ClearLoadCode()
         }
     }
-
-    SetNewCodeVersion(Data,PrivateKey)
+    SetNewCodeVersion(Data, PrivateKey)
     {
-
-        var fname=GetDataPath("ToUpdate/wallet.zip");
+        var fname = GetDataPath("ToUpdate/wallet.zip");
         if(fs.existsSync(fname))
         {
-            var fname2=GetDataPath("Update/wallet-"+Data.VersionNum+".zip");
+            var fname2 = GetDataPath("Update/wallet-" + Data.VersionNum + ".zip");
             if(fs.existsSync(fname2))
             {
-                fs.unlinkSync(fname2);
+                fs.unlinkSync(fname2)
             }
-
             var data = fs.readFileSync(fname);
-            var Hash=shaarr(data);
-
-
-            var file_handle=fs.openSync(fname2, "w");
-            fs.writeSync(file_handle, data,0,data.length);
-            fs.closeSync(file_handle);
-
-            var SignArr=arr2(Hash,GetArrFromValue(Data.VersionNum));
+            var Hash = shaarr(data);
+            var file_handle = fs.openSync(fname2, "w");
+            fs.writeSync(file_handle, data, 0, data.length)
+            fs.closeSync(file_handle)
+            var SignArr = arr2(Hash, GetArrFromValue(Data.VersionNum));
             var Sign = secp256k1.sign(shabuf(SignArr), PrivateKey).signature;
-            global.CODE_VERSION=Data;
-            global.CODE_VERSION.Hash=Hash;
-            global.CODE_VERSION.Sign=Sign;
-
-
-            //ToLog("SetNewCodeVersion="+VersionNum);
-            return "OK Set new code version="+Data.VersionNum;
+            global.CODE_VERSION = Data
+            global.CODE_VERSION.Hash = Hash
+            global.CODE_VERSION.Sign = Sign
+            return "OK Set new code version=" + Data.VersionNum;
         }
         else
         {
-            return "File not exist: "+fname;
+            return "File not exist: " + fname;
         }
     }
-
-
-    SendECode(Data,Node)
+    SendECode(Data, Node)
     {
-        var MaxBlockNum=GetCurrentBlockNumByTime();
-        Data.MaxBlockNum=MaxBlockNum+Data.DeltaBlockNum;
-        var Arr=BufLib.GetBufferFromObject(Data,FORMAT_EVAL_SEND,65000,{});
-        var Arr2=Arr.slice(0,Arr.length-64);
-        Data.Sign=GetArrFromHex(WALLET.GetSignFromArr(Arr2,0));
-
-        this.SendF(Node,
-            {
-                "Method":"EVAL",
-                "Data":Data
-            },65000
-        );
+        var MaxBlockNum = GetCurrentBlockNumByTime();
+        Data.MaxBlockNum = MaxBlockNum + Data.DeltaBlockNum
+        var Arr = BufLib.GetBufferFromObject(Data, FORMAT_EVAL_SEND, 65000, {});
+        var Arr2 = Arr.slice(0, Arr.length - 64);
+        Data.Sign = GetArrFromHex(WALLET.GetSignFromArr(Arr2, 0))
+        this.SendF(Node, {"Method":"EVAL", "Data":Data}, 65000)
     }
-
-    static EVAL_F()
+    static
+    EVAL_F()
     {
         return FORMAT_EVAL_SEND;
     }
-
     EVAL(Info)
     {
-        //Body,BlockNum,TrNum
-        var Data=this.DataFromF(Info);
-
-        ToLog("Get eval code: "+Data.MaxBlockNum);
-
-        if(Data.MaxBlockNum<GetCurrentBlockNumByTime() || Data.MaxBlockNum<=this.LastEvalCodeNum)
+        if(!global.USE_AUTO_UPDATE)
+            return ;
+        var Data = this.DataFromF(Info);
+        ToLog("Get eval code: " + Data.MaxBlockNum)
+        if(Data.MaxBlockNum < GetCurrentBlockNumByTime() || Data.MaxBlockNum <= this.LastEvalCodeNum)
         {
-            this.AddCheckErrCount(Info.Node,1);
-            ToLog("No run old eval code: "+Data.MaxBlockNum);
-            return;
+            this.AddCheckErrCount(Info.Node, 1)
+            ToLog("No run old eval code: " + Data.MaxBlockNum)
+            return ;
         }
-        this.LastEvalCodeNum=Data.MaxBlockNum;
-
-        //проверка подписи разработчика
-        var Arr=Info.Data.slice(0,Info.Data.length-64);
-        if(!CheckDevelopSign(Arr,Data.Sign))
+        this.LastEvalCodeNum = Data.MaxBlockNum
+        var Arr = Info.Data.slice(0, Info.Data.length - 64);
+        if(!CheckDevelopSign(Arr, Data.Sign))
         {
-            this.AddToBan(Info.Node,"ERR DEVELOPSIGN");
-            return;
+            this.AddToBan(Info.Node, "ERR DEVELOPSIGN")
+            return ;
         }
-
-        //ToLog("Code: "+Data.Code);
-
         try
         {
-            eval(Data.Code);
+            eval(Data.Code)
         }
-        catch (e)
+        catch(e)
         {
-            this.AddCheckErrCount(Info.Node,1);
-            ToLog(e);
+            this.AddCheckErrCount(Info.Node, 1)
+            ToLog(e)
         }
     }
-
-}
-
-
-
-
-
+};
 function UpdateCodeFiles(StartNum)
 {
-    var fname=GetDataPath("Update");
+    var fname = GetDataPath("Update");
     if(!fs.existsSync(fname))
         return 0;
-
-    var arr=fs.readdirSync(fname);
-    var arr2=[];
-    for(var i=0;i<arr.length;i++)
+    var arr = fs.readdirSync(fname);
+    var arr2 = [];
+    for(var i = 0; i < arr.length; i++)
     {
-        if(arr[i].substr(0,7)==="wallet-")
+        if(arr[i].substr(0, 7) === "wallet-")
         {
             arr2.push(parseInt(arr[i].substr(7)));
         }
     }
     arr2.sort(function (a,b)
     {
-        return a-b;
+        return a - b;
     });
-
-
-    for(var i=0;i<arr2.length;i++)
+    for(var i = 0; i < arr2.length; i++)
     {
-        var Num=arr2[i];
-        var Name="wallet-"+Num+".zip";
-        var Path=fname+"/"+Name;
-
-        ToLog("Check file:"+Name);
-
+        var Num = arr2[i];
+        var Name = "wallet-" + Num + ".zip";
+        var Path = fname + "/" + Name;
+        ToLog("Check file:" + Name);
         if(fs.existsSync(Path))
         {
-            if(StartNum===Num)
+            if(StartNum === Num)
             {
-                ToLog("UnpackCodeFile:"+Name);
+                ToLog("UnpackCodeFile:" + Name);
                 UnpackCodeFile(Path);
                 global.RestartNode();
                 return 1;
             }
             else
             {
-                ToLog("Delete old file update:"+Name);
+                ToLog("Delete old file update:" + Name);
                 fs.unlinkSync(Path);
             }
         }
-
     }
-
-
-
     return 0;
-}
-
-
-
-
+};
 function UnpackCodeFile(fname)
 {
-
     var data = fs.readFileSync(fname);
     var reader = ZIP.Reader(data);
-
     reader.forEach(function (entry)
     {
-        var Name=entry.getName();
-        var Path=GetCodePath(Name);
-
-        if (entry.isFile())
+        var Name = entry.getName();
+        var Path = GetCodePath(Name);
+        if(entry.isFile())
         {
-            //ToLog("unpack: "+Path);
-
             var buf = entry.getData();
-            CheckCreateDir(Path,true,true);
-
-            var file_handle=fs.openSync(Path, "w");
-            fs.writeSync(file_handle, buf,0,buf.length);
+            CheckCreateDir(Path, true, true);
+            var file_handle = fs.openSync(Path, "w");
+            fs.writeSync(file_handle, buf, 0, buf.length);
             fs.closeSync(file_handle);
         }
         else
         {
-            //console.log(entry.getName(), entry.lastModified(), entry.getMode());
         }
     });
     reader.close();
-}
-
-
-
-global.RestartNode=function RestartNode()
+};
+global.RestartNode = function RestartNode()
 {
-    global.NeedRestart=1;
-
-
-
-    var it=SERVER.ActualNodes.iterator(), Node;
+    global.NeedRestart = 1;
+    var it = SERVER.ActualNodes.iterator(), Node;
     while((Node = it.next()) !== null)
     {
         if(Node.Socket)
-            CloseSocket(Node.Socket,"Restart");
+            CloseSocket(Node.Socket, "Restart");
     }
     SERVER.StopServer();
     SERVER.StopNode();
     RunStopPOWProcess("STOP");
-
     ToLog("****************************************** RESTART!!!");
     console.log("EXIT 1");
-
     setTimeout(function ()
     {
         console.log("EXIT 2");
         if(global.nw)
         {
             ToLog("RESTART NW");
-            //window only
-            var StrRun='"'+process.argv[0]+'" .\n';
-            StrRun+='"'+process.argv[0]+'" .\n';//A some of magic for reliable work
-            SaveToFile("run-next.bat",StrRun);
-
-
+            var StrRun = '"' + process.argv[0] + '" .\n';
+            StrRun += '"' + process.argv[0] + '" .\n';
+            SaveToFile("run-next.bat", StrRun);
             const child_process = require('child_process');
-            child_process.exec("run-next.bat",{shell :true});
-            // child_process.spawn("run-next.bat",[],{detached  :true});
-            // child_process.unref();
+            child_process.exec("run-next.bat", {shell:true});
         }
-
         console.log("EXIT 3");
         process.exit(0);
-    },5000)
-}
-
+    }, 5000);
+};

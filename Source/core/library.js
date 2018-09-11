@@ -1,658 +1,273 @@
-//Copyright: Yuriy Ivanov, 2017 e-mail: progr76@gmail.com
+/*
+ * @project: TERA
+ * @version: Development (beta)
+ * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
+ * @license: Not for evil
+ * GitHub: https://github.com/terafoundation/wallet
+ * Twitter: https://twitter.com/terafoundation
+ * Telegram: https://web.telegram.org/#/im?p=@terafoundation
+*/
 
-var fs = require('fs');
-require("./constant.js");
-
-if(global.USE_PARAM_JS)
+var fs = require("fs");
+if(require("./constant.js"), global.USE_PARAM_JS)
 {
-    var PathParams=GetCodePath("../extern-run.js");
+    var PathParams = GetCodePath("../extern-run.js");
     if(fs.existsSync(PathParams))
-        try{require(PathParams)}catch(e) {console.log(e)};
-}
-
-
-
-require("./log.js");
-
-global.BufLib=require("../core/buffer");
-
-//sha
-//global.sha = require('js-sha3').keccak512;
-require('../HTML/JS/sha3.js');
-var jsSHA_CHECK;
-//jsSHA_CHECK = require("jssha");
-function Sha_CheckStr(arr)
-{
-    if(!jsSHA_CHECK)
-        jsSHA_CHECK = require("jssha");
-
-    var shaObj;
-    if(typeof arr==="string")
-    {
-        shaObj = new jsSHA_CHECK("SHA3-256", "TEXT");
-        shaObj.update(arr);
-    }
-    else
-    {
-        var Buf=new Uint8Array(arr.length);
-        for(var i=0;i<arr.length;i++)
+        try
         {
-            Buf[i]=arr[i];
+            require(PathParams);
         }
-        shaObj = new jsSHA_CHECK("SHA3-256", "ARRAYBUFFER");
-        shaObj.update(Buf);
-    }
-    var ret = shaObj.getHash("HEX");
-    return ret;
-};
-
-
-
-//GLOBAL!!!!
-
-Number.prototype.toStringZ=function(count)
-{
-    var strnum=this.toString();
-    if(strnum.length>count)
-        count=strnum.length;
-    else
-        strnum="0000000000"+strnum;
-    return strnum.substring(strnum.length-count,strnum.length);
-};
-
-String.prototype.right=function(count)
-{
-    if(this.length>count)
-        return this.substr(this.length-count,count);
-    else
-        return this.substr(0,this.length);
-};
-
-
-
-global.ReadUintFromArr=function(arr,len)
-{
-    if(len===undefined)
-    {
-        len=arr.len;
-        arr.len+=6;
-    }
-
-    var value=(arr[len+5]<<23)*2 + (arr[len+4]<<16)  + (arr[len+3]<<8) + arr[len+2];
-    value=value*256 + arr[len+1];
-    value=value*256 + arr[len];
-    return value;
-}
-global.WriteUintToArr=function (arr,Num)
-{
-    var len=arr.length;
-    arr[len]=Num&0xFF;
-    arr[len+1]=(Num>>>8) & 0xFF;
-    arr[len+2]=(Num>>>16) & 0xFF;
-    arr[len+3]=(Num>>>24) & 0xFF;
-
-    var NumH=Math.floor(Num/4294967296);
-    arr[len+4]=NumH&0xFF;
-    arr[len+5]=(NumH>>>8) & 0xFF;
-
-}
-
-global.WriteUint32ToArr=function (arr,Num)
-{
-    var len=arr.length;
-    arr[len]=Num&0xFF;
-    arr[len+1]=(Num>>>8) & 0xFF;
-    arr[len+2]=(Num>>>16) & 0xFF;
-    arr[len+3]=(Num>>>24) & 0xFF;
-}
-
-global.WriteArrToArr=function(arr,arr2,ConstLength)
-{
-    var len=arr.length;
-    for(var i=0;i<ConstLength;i++)
-    {
-        arr[len+i]=arr2[i];
-    }
-}
-
-global.ConvertBufferToStr=function(Data)
-{
-    for(var key in Data)
-    {
-        var item=Data[key];
-        if(item instanceof Buffer)
+        catch(r)
         {
-            Data[key]=GetHexFromArr(item);
+            console.log(r);
         }
-        else
-        if(typeof item==="object")
-            ConvertBufferToStr(item);
-    }
 }
-
-
-//var Num=123;ToLog(Num.toStringZ(4));process.exit(0);
-
-// ArrayBuffer.prototype.toString=toString;
-// function toString(encode)
-// {
-//     var Buf=Buffer.from(this);
-//     return Buf.toString(encode);
-// }
-
-
-global.DelDir=function (Path)
+require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML/JS/sha3.js"), Number.prototype.toStringZ = function (r)
 {
-    if(Path.substr(Path.length-1,1)==="/")
-        Path=Path.substr(0,Path.length-1);
-
-    if(fs.existsSync(Path))
+    var t = this.toString();
+    return t.length > r ? r = t.length : t = "0000000000" + t, t.substring(t.length - r, t.length);
+}, String.prototype.right = function (r)
+{
+    return this.length > r ? this.substr(this.length - r, r) : this.substr(0, this.length);
+}, global.ReadUintFromArr = function (r,t)
+{
+    void 0 === t && (t = r.len, r.len += 6);
+    var e = 2 * (r[t + 5] << 23) + (r[t + 4] << 16) + (r[t + 3] << 8) + r[t + 2];
+    return e = 256 * (e = 256 * e + r[t + 1]) + r[t];
+}, global.WriteUintToArr = function (r,t)
+{
+    var e = r.length;
+    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
+    var o = Math.floor(t / 4294967296);
+    r[e + 4] = 255 & o, r[e + 5] = o >>> 8 & 255;
+}, global.WriteUint32ToArr = function (r,t)
+{
+    var e = r.length;
+    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
+}, global.WriteArrToArr = function (r,t,e)
+{
+    for(var o = r.length, n = 0; n < e; n++)
+        r[o + n] = t[n];
+}, global.ConvertBufferToStr = function (r)
+{
+    for(var t in r)
     {
-        var arr=fs.readdirSync(Path)
-        //console.log("arr: "+arr);
-
-        for(var i=0;i<arr.length;i++)
+        var e = r[t];
+        e instanceof Buffer ? r[t] = GetHexFromArr(e) : "object" == typeof e && ConvertBufferToStr(e);
+    }
+}, global.DelDir = function (r)
+{
+    if("/" === r.substr(r.length - 1, 1) && (r = r.substr(0, r.length - 1)), fs.existsSync(r))
+        for(var t = fs.readdirSync(r), e = 0; e < t.length; e++)
         {
-            var name=Path+"/"+arr[i];
-            if (fs.statSync(name).isDirectory())
-            {
-                DelDir(name);
-                //console.log("DELETE "+name);
-                //fs.rmdirSync(name);
-            }
+            var o = r + "/" + t[e];
+            if(fs.statSync(o).isDirectory())
+                DelDir(o);
             else
             {
-                if(name.right(9)=="const.lst")                    continue;
-                if(name.right(7)=="log.log")                    continue;
-
-
-                //console.log("Delete "+name);
-                fs.unlinkSync(name);
+                if("const.lst" == o.right(9))
+                    continue;
+                if("log.log" == o.right(7))
+                    continue;
+                fs.unlinkSync(o);
             }
         }
-
-    };
-}
-
-
-
-
-global.SliceArr=function(arr,start,end)
+}, global.SliceArr = function (r,t,e)
 {
-    var ret=[];
-    for(var i=start;i<end;i++)
-    {
-        ret[i-start]=arr[i];
-    }
-    return ret;
-}
-
-
-
-
-
-
-//rnd
-//global.RandomValue=123;
-global.RandomValue=Math.floor(123+Math.random()*1000);
-global.random=function (max)
+    for(var o = [], n = t; n < e; n++)
+        o[n - t] = r[n];
+    return o;
+}, global.RandomValue = Math.floor(123 + 1e3 * Math.random()), global.random = function (r)
 {
-    return Math.floor(Math.random()*max);
-
-    RandomValue=(RandomValue*63018038201+123)%489133282872437279;
-    var ret=1.0*RandomValue/489133282872437279;
-    if(max!==undefined)
-        ret=Math.floor(ret*max);
-
-    return ret;
-}
-
-
-
-
-
-
-//степень похожести адресов
-// global.AddrLevel=function (Addr1,Addr2)
-// {
-//     var Level=0;
-//     //for(var i=0;i<Addr1.length;i++)
-//     for(var i=0;i<MAX_LEVEL_SPECIALIZATION;i++)
-//     {
-//         if(Addr1[i]!==Addr2[i])
-//             break;
-//
-//         Level++;
-//     }
-//
-//     return Level;
-// }
-
-global.AddrLevelArrFromBegin=function (arr1,arr2)
+    return Math.floor(Math.random() * r);
+}, global.AddrLevelArrFromBegin = function (r,t)
 {
-    var Level=0;
-    for(var i=0;i<arr1.length;i++)
-    {
-        var a1=arr1[i];
-        var a2=arr2[i];
-        for(var b=0;b<8;b++)
+    for(var e = 0, o = 0; o < r.length; o++)
+        for(var n = r[o], a = t[o], l = 0; l < 8; l++)
         {
-            if((a1&128) !== (a2&128))
-                return Level;
-
-            a1=a1<<1;
-            a2=a2<<1;
-            Level++;
+            if((128 & n) != (128 & a))
+                return e;
+            n <<= 1, a <<= 1, e++;
         }
-    }
-
-    return Level;
-}
-
-global.AddrLevelArr=function (arr1,arr2)
+    return e;
+}, global.AddrLevelArr = function (r,t)
 {
-    var Level=0;
-    for(var i=arr1.length-1;i>=0;i--)
-    {
-        var a1=arr1[i];
-        var a2=arr2[i];
-        for(var b=0;b<8;b++)
+    for(var e = 0, o = r.length - 1; 0 <= o; o--)
+        for(var n = r[o], a = t[o], l = 0; l < 8; l++)
         {
-            if((a1&1) !== (a2&1))
-                return Level;
-
-            a1=a1>>1;
-            a2=a2>>1;
-            Level++;
+            if((1 & n) != (1 & a))
+                return e;
+            n >>= 1, a >>= 1, e++;
         }
-    }
-
-    return Level;
-}
-
-
-
-
-global.SaveToFile=function (name,buf)
+    return e;
+}, global.SaveToFile = function (r,t)
 {
-    var fs = require('fs');
-    var file_handle=fs.openSync(name, "w");
-    fs.writeSync(file_handle, buf,0,buf.length);
-    fs.closeSync(file_handle);
-}
-
-
-
-//Params
-
-global.LoadParams=function(filename,DefaultValue)
+    var e = require("fs"), o = e.openSync(r, "w");
+    e.writeSync(o, t, 0, t.length), e.closeSync(o);
+}, global.LoadParams = function (t,r)
 {
     try
     {
-        if(fs.existsSync(filename))
+        if(fs.existsSync(t))
         {
-
-            var Str = fs.readFileSync(filename);
-            if(Str.length>0)
-                return JSON.parse(Str);
+            var e = fs.readFileSync(t);
+            if(0 < e.length)
+                return JSON.parse(e);
         }
     }
-    catch (err)
+    catch(r)
     {
-        TO_ERROR_LOG("MAINLIB",100,"Error in file:"+filename+"\n"+err);
+        TO_ERROR_LOG("MAINLIB", 100, "Error in file:" + t + "\n" + r);
     }
-    return DefaultValue;
-}
-
-global.SaveParams=function(filename,data)
+    return r;
+}, global.SaveParams = function (r,t)
 {
-    SaveToFile(filename,Buffer.from(JSON.stringify(data,"",4)));
-}
-
-
-
-
-global.StartTime=function ()
+    SaveToFile(r, Buffer.from(JSON.stringify(t, "", 4)));
+}, global.StartTime = function ()
 {
-    global.TimeStart=GetCurrentTime();
-}
-
-global.FinishTime=function (Str)
+    global.TimeStart = GetCurrentTime();
+}, global.FinishTime = function (r)
 {
-    Str = Str || "";
-    var TimeFinish=GetCurrentTime();
-    var delta=TimeFinish-TimeStart;
-
-    console.log(Str+" time: "+delta+" ms");
-}
-
-// console.time("1");
-// console.timeEnd("1");
-
-
-global.CompareItemBufFD =function(a,b)
+    r = r || "";
+    var t = GetCurrentTime() - TimeStart;
+    console.log(r + " time: " + t + " ms");
+}, global.CompareItemBufFD = function (r,t)
 {
-    if(a.FD!==b.FD)
-        return a.FD-b.FD;
-    else
-        return a.Position-b.Position;
-}
-
-
-global.CompareArr=function (a,b)
+    return r.FD !== t.FD ? r.FD - t.FD : r.Position - t.Position;
+}, global.CompareArr = function (r,t)
 {
-    for(var i=0;i<a.length;i++)
-    {
-        if(a[i]!==b[i])
-            return a[i]-b[i];
-    }
+    for(var e = 0; e < r.length; e++)
+        if(r[e] !== t[e])
+            return r[e] - t[e];
     return 0;
-}
-
-global.CompareArr33=function (a,b)
+}, global.CompareArr33 = function (r,t)
 {
-    for(var i=0;i<33;i++)
-    {
-        if(a[i]!==b[i])
-            return a[i]-b[i];
-    }
+    for(var e = 0; e < 33; e++)
+        if(r[e] !== t[e])
+            return r[e] - t[e];
     return 0;
-}
-
-global.CompareItemHashSimple=function (a,b)
+}, global.CompareItemHashSimple = function (r,t)
 {
-    if(a.hash<b.hash)
-        return -1;
-    else
-    if(a.hash>b.hash)
-        return 1;
-    else
-        return 0;
-}
-
-
-global.CompareItemHash=function(a,b)
+    return r.hash < t.hash ?  - 1 : r.hash > t.hash ? 1 : 0;
+}, global.CompareItemHash = function (r,t)
 {
-    var hasha=a.hash;
-    var hashb=b.hash;
-    for(var i=0;i<hasha.length;i++)
-    {
-        if(hasha[i]!==hashb[i])
-            return hasha[i]-hashb[i];
-    }
+    for(var e = r.hash, o = t.hash, n = 0; n < e.length; n++)
+        if(e[n] !== o[n])
+            return e[n] - o[n];
     return 0;
-}
-global.CompareItemHash32=function(a,b)
+}, global.CompareItemHash32 = function (r,t)
 {
-    var hasha=a.hash;
-    var hashb=b.hash;
-    for(var i=0;i<32;i++)
-    {
-        if(hasha[i]!==hashb[i])
-            return hasha[i]-hashb[i];
-    }
+    for(var e = r.hash, o = t.hash, n = 0; n < 32; n++)
+        if(e[n] !== o[n])
+            return e[n] - o[n];
     return 0;
-}
-global.CompareItemHASH32=function(a,b)
+}, global.CompareItemHASH32 = function (r,t)
 {
-    var hasha=a.HASH;
-    var hashb=b.HASH;
-    for(var i=0;i<32;i++)
-    {
-        if(hasha[i]!==hashb[i])
-            return hasha[i]-hashb[i];
-    }
+    for(var e = r.HASH, o = t.HASH, n = 0; n < 32; n++)
+        if(e[n] !== o[n])
+            return e[n] - o[n];
     return 0;
-}
-global.CompareItemHash33=function(a,b)
+}, global.CompareItemHash33 = function (r,t)
 {
-    var hasha=a.hash;
-    var hashb=b.hash;
-    for(var i=0;i<33;i++)
-    {
-        if(hasha[i]!==hashb[i])
-            return hasha[i]-hashb[i];
-    }
+    for(var e = r.hash, o = t.hash, n = 0; n < 33; n++)
+        if(e[n] !== o[n])
+            return e[n] - o[n];
     return 0;
-}
-
-global.CompareItemHashPow=function(a,b)
+}, global.CompareItemHashPow = function (r,t)
 {
-    return CompareArr(a.hashPow,b.hashPow);
-}
-global.CompareItemTimePow=function(a,b)
+    return CompareArr(r.hashPow, t.hashPow);
+}, global.CompareItemTimePow = function (r,t)
 {
-    if(b.TimePow!==a.TimePow)
-        return b.TimePow-a.TimePow;
-    else
-        return CompareArr(a.hashPow,b.hashPow);
-
-}
-
-
-
-
-
-
-global.LOAD_CONST=function ()
-{
-    var Count=0;
-    var constants=LoadParams(GetDataPath("const.lst"),{});
-    if(constants)
-    for(var i=0;i<CONST_NAME_ARR.length;i++)
-    {
-        var key=CONST_NAME_ARR[i];
-        if(constants[key]!==undefined)
-        {
-            Count++;
-            global[key]=constants[key];
-        }
-    }
-    return Count;
+    return t.TimePow !== r.TimePow ? t.TimePow - r.TimePow : CompareArr(r.hashPow, t.hashPow);
 };
-
-
-var WasStartSaveConst=false;
+var WasStartSaveConst = !(global.LOAD_CONST = function ()
+{
+    var r = 0, t = LoadParams(GetDataPath("const.lst"), {});
+    if(t)
+        for(var e = 0; e < CONST_NAME_ARR.length; e++)
+        {
+            var o = CONST_NAME_ARR[e];
+            void 0 !== t[o] && (r++, global[o] = t[o]);
+        }
+    return r;
+});
 function SaveConst()
 {
-    var constants={};
-    for(var i=0;i<CONST_NAME_ARR.length;i++)
+    for(var r = {}, t = 0; t < CONST_NAME_ARR.length; t++)
     {
-        var key=CONST_NAME_ARR[i];
-        if(global[key]!==undefined)
-            constants[key]=global[key];
+        var e = CONST_NAME_ARR[t];
+        void 0 !== global[e] && (r[e] = global[e]);
     }
-    // console.log(GetDataPath("const.lst"))
-    // console.log(JSON.stringify(constants))
-    SaveParams(GetDataPath("const.lst"),constants);
-    WasStartSaveConst=false;
+    SaveParams(GetDataPath("const.lst"), r), WasStartSaveConst = !1;
 };
-
-global.SAVE_CONST=function (bForce)
+global.SAVE_CONST = function (r)
 {
-    if(bForce)
-    {
-        SaveConst();
-    }
-    else
-    {
-        if(!WasStartSaveConst)
-            setTimeout(SaveConst,10*1000);
-        WasStartSaveConst=true;
-    }
-}
-
-
-//Time synchronization
-var ntpClient = require('ntp-client');
+    r ? SaveConst() : (WasStartSaveConst || setTimeout(SaveConst, 1e4), WasStartSaveConst = !0);
+};
+var ntpClient = require("ntp-client");
 function CheckTime()
 {
-    ntpClient.getNetworkTime("pool.ntp.org", 123, function(err, NetTime)
+    ntpClient.getNetworkTime("pool.ntp.org", 123, function (r,t)
     {
-        if(err)
-        {
-            TO_ERROR_LOG("MAINLIB",110,err);
-            return;
-        }
-
-        var curTime=new Date;
-        global.DELTA_CURRENT_TIME=NetTime-curTime;
-
-        if(isNaN(global.DELTA_CURRENT_TIME) || typeof global.DELTA_CURRENT_TIME!=="number")
-            global.DELTA_CURRENT_TIME=0;
+        if(r)
+            TO_ERROR_LOG("MAINLIB", 110, r);
         else
-        if(Math.abs(global.DELTA_CURRENT_TIME)>24*3600*1000)
-            global.DELTA_CURRENT_TIME=0;
-
-        SAVE_CONST();
-
-        //console.log("DELTA_CURRENT_TIME : "+DELTA_CURRENT_TIME);
-        // console.log("pool.ntp.org="+NetTime);
-        // console.log("my:"+curTime);
-        // console.log("GetCurrentTime:"+GetCurrentTime());
-
-    });
-    SAVE_CONST();
-}
-
-global.GetDeltaCurrentTime=function ()
+        {
+            var e = new Date;
+            global.DELTA_CURRENT_TIME = t - e, isNaN(global.DELTA_CURRENT_TIME) || "number" != typeof global.DELTA_CURRENT_TIME ? global.DELTA_CURRENT_TIME = 0 : 864e5 < Math.abs(global.DELTA_CURRENT_TIME) && (global.DELTA_CURRENT_TIME = 0),
+            SAVE_CONST();
+        }
+    }), SAVE_CONST();
+};
+function GetSecFromStrTime(r)
 {
-    // if(isNaN(global.DELTA_CURRENT_TIME) || typeof global.DELTA_CURRENT_TIME!=="number")
-    // {
-    //     LOAD_CONST();
-    //     if(isNaN(global.DELTA_CURRENT_TIME) || typeof global.DELTA_CURRENT_TIME!=="number")
-    //     {
-    //         global.DELTA_CURRENT_TIME=0;
-    //         //TODO CheckTime();
-    //     }
-    // }
-
-    if(isNaN(global.DELTA_CURRENT_TIME) || typeof global.DELTA_CURRENT_TIME!=="number")
-        global.DELTA_CURRENT_TIME=0;
-    return global.DELTA_CURRENT_TIME;
-}
-
-
-//Date time
-global.GetStrTimeUTC=function (now)
+    for(var t = r.split(":"), e = 3600, o = 0, n = 0; n < t.length; n++)
+        o += e * parseInt(t[n]), e /= 60;
+    return o;
+};
+function CopyObjValue(r,t)
 {
-    if(!now)
-        now = GetCurrentTime();
-    var Str=""+now.getUTCDate();
-    Str=Str+"."+(1+now.getUTCMonth());
-    Str=Str+"."+now.getUTCFullYear();
-    Str=Str+" "+now.getUTCHours();
-    Str=Str+":"+now.getUTCMinutes();
-    Str=Str+":"+now.getUTCSeconds();
-    //Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
-    return Str;
-}
-
-
-global.GetStrOnlyTimeUTC=function (now)
-{
-    if(!now)
-        now = GetCurrentTime();
-    var Str;
-    Str=""+now.getUTCHours().toStringZ(2);
-    Str=Str+":"+now.getUTCMinutes().toStringZ(2);
-    Str=Str+":"+now.getUTCSeconds().toStringZ(2);
-    //Str=Str+"."+now.getUTCMilliseconds().toStringZ(3);
-    return Str;
-}
-
-function GetSecFromStrTime(Str)
-{
-    var arr=Str.split(":");
-    var Mult=3600;
-    var Sum=0;
-    for(var i=0;i<arr.length;i++)
+    if(t && 5 < t)
+        return r;
+    var e = {};
+    for(var o in r)
     {
-        Sum+=Mult*parseInt(arr[i]);
-        Mult=Mult/60;
+        var n = r[o];
+        "object" != typeof n || n instanceof Buffer || n instanceof ArrayBuffer || n instanceof Array || (n = CopyObjValue(n, t + 1)),
+        e[o] = n;
     }
-    return Sum;
-}
-global.GetSecFromStrTime=GetSecFromStrTime;
-
-global.GetCurrentTime=function(Delta_Time)
+    return e;
+};
+function DateFromBlock(r)
 {
-    if(Delta_Time===undefined)
-        Delta_Time=GetDeltaCurrentTime();
-
-    var curTime=new Date;
-    var Time=new Date(curTime-(-Delta_Time))
-
-    return Time;
-}
-
-
-function CopyObjValue(obj,num)
+    var t;
+    return t = (t = (t = new Date(FIRST_TIME_BLOCK + 1e3 * r).toISOString()).substr(0, t.indexOf("."))).replace("T", " ");
+};
+global.GetDeltaCurrentTime = function ()
 {
-    if(num && num>5)
-        return obj;
-
-    var ret={};
-    for(var key in obj)
+    return (isNaN(global.DELTA_CURRENT_TIME) || "number" != typeof global.DELTA_CURRENT_TIME) && (global.DELTA_CURRENT_TIME = 0),
+    global.DELTA_CURRENT_TIME;
+}, global.GetStrTimeUTC = function (r)
+{
+    r || (r = GetCurrentTime());
+    var t = "" + r.getUTCDate();
+    return t = (t = (t = (t = (t = t + "." + (1 + r.getUTCMonth())) + "." + r.getUTCFullYear()) + " " + r.getUTCHours()) + ":" + r.getUTCMinutes()) + ":" + r.getUTCSeconds();
+}, global.GetStrOnlyTimeUTC = function (r)
+{
+    return r || (r = GetCurrentTime()), "" + r.getUTCHours().toStringZ(2) + ":" + r.getUTCMinutes().toStringZ(2) + ":" + r.getUTCSeconds().toStringZ(2);
+}, global.GetSecFromStrTime = GetSecFromStrTime, global.GetCurrentTime = function (r)
+{
+    void 0 === r && (r = GetDeltaCurrentTime());
+    var t = new Date;
+    return new Date(t -  - r);
+}, global.CopyObjValue = CopyObjValue, global.DateFromBlock = DateFromBlock;
+var code_base = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—�™љ›њќћџ ЎўЈ¤Ґ¦§Ё©Є«¬­®Ї°±Ііґµ¶·ё№є»јЅѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя";
+global.NormalizeName = function (r)
+{
+    for(var t = "", e = 0; e < r.length; e++)
     {
-        var val=obj[key];
-        if((typeof val === "object") && !(val instanceof Buffer) && !(val instanceof ArrayBuffer) && !(val instanceof Array))
-            val=CopyObjValue(val,num+1);
-
-        ret[key]=val;
+        var o = r.charCodeAt(e);
+        32 <= o && (t += code_base.charAt(o - 32));
     }
-    return ret;
-}
-global.CopyObjValue=CopyObjValue;
-
-//DELTA_CURRENT_TIME=Math.random()*5000;
-//DELTA_CURRENT_TIME=0;
-//setTimeout(CheckTime,100);
-//setInterval(CheckTime,2*24*3600*1000*Math.random());
-
-function DateFromBlock(BlockNum)
-{
-    var Str;
-    var now=new Date(FIRST_TIME_BLOCK+BlockNum*1000);
-    Str=now.toISOString();
-    Str=Str.substr(0,Str.indexOf("."));
-    Str=Str.replace("T"," ");
-    return Str;
-}
-global.DateFromBlock=DateFromBlock;
-
-
-
-
-
-//Name
-var code_base=' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\u0402\u0403\u201a\u0453\u201e\u2026\u2020\u2021\u20ac\u2030\u0409\u2039\u040a\u040c\u040b\u040f\u0452\u2018\u2019\u201c\u201d\u2022\u2013\u2014\ufffd\u2122\u0459\u203a\u045a\u045c\u045b\u045f\xa0\u040e\u045e\u0408\xa4\u0490\xa6\xa7\u0401\xa9\u0404\xab\xac\xad\xae\u0407\xb0\xb1\u0406\u0456\u0491\xb5\xb6\xb7\u0451\u2116\u0454\xbb\u0458\u0405\u0455\u0457\u0410\u0411\u0412\u0413\u0414\u0415\u0416\u0417\u0418\u0419\u041a\u041b\u041c\u041d\u041e\u041f\u0420\u0421\u0422\u0423\u0424\u0425\u0426\u0427\u0428\u0429\u042a\u042b\u042c\u042d\u042e\u042f\u0430\u0431\u0432\u0433\u0434\u0435\u0436\u0437\u0438\u0439\u043a\u043b\u043c\u043d\u043e\u043f\u0440\u0441\u0442\u0443\u0444\u0445\u0446\u0447\u0448\u0449\u044a\u044b\u044c\u044d\u044e\u044f';
-global.NormalizeName=function(Name)
-{
-    var Str="";
-    for(var i=0;i<Name.length;i++)
-    {
-        var code=Name.charCodeAt(i);
-        if(code>=32)
-            Str+=code_base.charAt(code-32);
-    }
-    return Str;
-}
-
-
-
-
-
-
-
-if(!LOAD_CONST() && !global.NWMODE)
-{
-    CheckTime();
-}
-
-global.AUTO_COORECT_TIME=1;
-
-
-
-//TODO - функция бинарного преобразования пакетов будет содержать валидаторы значений полей, если поле не удовлетворяет заданному диапазону значений - пакет отбрасывается
-
+    return t;
+}, LOAD_CONST() || global.NWMODE || CheckTime(), global.AUTO_COORECT_TIME = 1;
