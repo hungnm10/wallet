@@ -810,27 +810,6 @@ module.exports = class CTransport extends require("./connect")
                     ADD_TO_STAT("SENDDATA(KB)", Value)
                     ADD_TO_STAT("SENDDATA(KB):" + NodeName(Node), Value, 1)
                 }
-        if(!CountNodeSend)
-            this.DoCalcPow()
-    }
-    DoCalcPow()
-    {
-        if(!this.MiningBlock)
-            return ;
-        if(!global.USE_MINING)
-            return ;
-        if(this.LoadBufSocketList.size)
-            return ;
-        if(this.HardPacketForSend.size)
-            return ;
-        if(this.PrevWasMining)
-        {
-            this.PrevWasMining = 0
-            return ;
-        }
-        this.PrevWasMining = 1
-        this.CreatePOWNext(this.MiningBlock, (1 << MIN_POWER_POW_BL))
-        ADD_TO_STAT("MINING-COUNT", 1)
     }
     CheckPOWTicketConnect(Socket, data)
     {
@@ -1138,6 +1117,7 @@ module.exports = class CTransport extends require("./connect")
         }
     }
 };
+
 function CalcStatArr(arr,arrAvg,arrNext,Period)
 {
     var arrSum = [arr[0]];

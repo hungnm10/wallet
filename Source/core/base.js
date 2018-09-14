@@ -11,6 +11,7 @@
 "use strict";
 require("./library.js");
 require("./crypto-library");
+require("./terahash");
 const crypto = require('crypto');
 const RBTree = require('bintrees').RBTree;
 const os = require('os');
@@ -326,6 +327,7 @@ class STreeBuffer
         this.MetaTree2.clear()
     }
 };
+
 function ReadHashFromBufDB(Map,BlockNum)
 {
     var MyHash = Map[BlockNum];
@@ -340,6 +342,7 @@ function ReadHashFromBufDB(Map,BlockNum)
     }
     return MyHash;
 };
+
 function GetCheckAccHash(Map,BlockNum,Hash)
 {
     var MyHash = Map[BlockNum];
@@ -368,6 +371,7 @@ function GetCheckAccHash(Map,BlockNum,Hash)
 global.GetCheckAccHash = GetCheckAccHash;
 global.ReadHashFromBufDB = ReadHashFromBufDB;
 global.TestCreateTr = TestCreateTr;
+
 function TestCreateTr()
 {
     const FORMAT_CREATE = "{\

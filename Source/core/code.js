@@ -180,6 +180,7 @@ module.exports = class CCode extends require("./base")
         }
     }
 };
+
 function UpdateCodeFiles(StartNum)
 {
     var fname = GetDataPath("Update");
@@ -222,6 +223,7 @@ function UpdateCodeFiles(StartNum)
     }
     return 0;
 };
+
 function UnpackCodeFile(fname)
 {
     var data = fs.readFileSync(fname);

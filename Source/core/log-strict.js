@@ -9,6 +9,7 @@
 */
 
 var fs = require('fs');
+
 function CheckSizeLogFile(file_name,file_name_prev)
 {
     "use strict";

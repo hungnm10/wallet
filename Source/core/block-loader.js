@@ -107,36 +107,6 @@ module.exports = class CBlock extends require("./db/block-db")
         }
         return PrevArr;
     }
-    CreatePOWNew(Block, CountNonce)
-    {
-        var AddrArr = GetArrFromValue(GENERATE_BLOCK_ACCOUNT);
-        var MaxHash = shaarrblock2(Block.SeqHash, AddrArr, Block.BlockNum);
-        var Ret = CreateAddrPOW(Block.SeqHash, AddrArr, MaxHash, 0, CountNonce, Block.BlockNum);
-        ADD_HASH_RATE(CountNonce)
-        Block.Hash = Ret.MaxHash
-        Block.AddrHash = AddrArr
-        Block.LastNonce = Ret.LastNonce
-        Block.Power = GetPowPower(Block.Hash)
-        ADD_TO_STAT("MAX:POWER", Block.Power)
-        this.AddToMaxPOW(Block, {SeqHash:Block.SeqHash, AddrHash:Block.AddrHash, PrevHash:Block.PrevHash, TreeHash:Block.TreeHash,
-        })
-    }
-    CreatePOWNext(Block, CountNonce)
-    {
-        var AddrArr = GetArrFromValue(GENERATE_BLOCK_ACCOUNT);
-        var Ret = CreateAddrPOW(Block.SeqHash, AddrArr, Block.Hash, Block.LastNonce, CountNonce, Block.BlockNum);
-        ADD_HASH_RATE(CountNonce)
-        Block.LastNonce = Ret.LastNonce
-        if(Ret.bFind)
-        {
-            Block.Hash = Ret.MaxHash
-            Block.AddrHash = AddrArr
-            Block.Power = GetPowPower(Block.Hash)
-            ADD_TO_STAT("MAX:POWER", Block.Power)
-            this.AddToMaxPOW(Block, {SeqHash:Block.SeqHash, AddrHash:Block.AddrHash, PrevHash:Block.PrevHash, TreeHash:Block.TreeHash,
-            })
-        }
-    }
     GetSeqHash(BlockNum, PrevHash, TreeHash)
     {
         var arr = [GetArrFromValue(BlockNum), PrevHash, TreeHash];
@@ -600,8 +570,8 @@ module.exports = class CBlock extends require("./db/block-db")
                 }
                 Block.PrevHash = CalcHashFromArray(arr, true)
                 Block.SeqHash = this.GetSeqHash(Block.BlockNum, Block.PrevHash, Block.TreeHash)
-                Block.Hash = shaarrblock2(Block.SeqHash, Block.AddrHash, Block.BlockNum)
-                Block.Power = GetPowPower(Block.Hash)
+                CalcHashBlockFromSeqAddr(Block, Block.PrevHash)
+                Block.Power = GetPowPower(Block.PowHash)
                 if(PrevBlock)
                 {
                     Block.SumHash = shaarr2(PrevBlock.SumHash, Block.Hash)
@@ -776,7 +746,7 @@ module.exports = class CBlock extends require("./db/block-db")
                         var BlockDB = this.ReadBlockHeaderDB(Block.BlockNum);
                         if(BlockDB)
                         {
-                            Block.Power = GetPowPower(Block.Hash)
+                            Block.Power = GetPowPower(Block.PowHash)
                             chain.LoadCountDB++
                             chain.LoadSumDB += BlockDB.Power
                             chain.LoadSum += Block.Power
@@ -841,47 +811,16 @@ module.exports = class CBlock extends require("./db/block-db")
             return ;
         var BlockMax = arr[arr.length - 1];
         var BlockMin = arr[0];
-        var startMerge = this.CurrentBlockNum + TIME_START_POW - BLOCK_PROCESSING_LENGTH;
-        if(0 && BlockMax.BlockNum > startMerge)
-        {
-            var delta = BlockMax.BlockNum - startMerge;
-            var startindex = arr.length - delta - 1;
-            if(startindex < 1)
-                startindex = 1
-            for(var i = startindex; i < arr.length; i++)
-            {
-                var Block = arr[i];
-                var BlockDB = this.ReadBlockHeaderDB(Block.BlockNum);
-                if(!BlockDB)
-                    break;
-                var PrevBlock = arr[i - 1];
-                if(!PrevBlock)
-                {
-                    ToLog('throw "!PrevBlock i="+i')
-                    throw "!PrevBlock i=" + i;
-                    break;
-                }
-                if(CompareArr(BlockDB.SeqHash, Block.SeqHash) === 0)
-                    if(BlockDB.Power > Block.Power)
-                    {
-                        Block = BlockDB
-                        arr[i] = Block
-                        ToLog("******************Set block from DB: " + Block.BlockNum)
-                    }
-                Block.SumPow = PrevBlock.SumPow + Block.Power
-                Block.SumHash = shaarr2(PrevBlock.SumHash, Block.Hash)
-            }
-        }
         var PrevBlock = BlockMin;
         for(var i = 1; i < arr.length; i++)
         {
             var Block = arr[i];
-            Block.Power = GetPowPower(Block.Hash)
+            Block.Power = GetPowPower(Block.PowHash)
             Block.SumPow = PrevBlock.SumPow + Block.Power
             PrevBlock = Block
         }
         var BlockNow = this.ReadBlockHeaderDB(BlockMax.BlockNum);
-        if(BlockNow && (BlockMax.SumPow < BlockNow.SumPow || BlockMax.SumPow === BlockNow.SumPow && CompareArr(BlockMax.Hash, BlockNow.Hash) < 0))
+        if(BlockNow && (BlockMax.SumPow < BlockNow.SumPow || BlockMax.SumPow === BlockNow.SumPow && CompareArr(BlockMax.PowHash, BlockNow.PowHash) < 0))
         {
             var Str = "Low SumPow";
             chain.AddInfo(Str)
@@ -945,6 +884,7 @@ module.exports = class CBlock extends require("./db/block-db")
         POW.PrevHash = Block.PrevHash
         POW.TreeHash = Block.TreeHash
         POW.Hash = Block.Hash
+        POW.PowHash = Block.PowHash
         POW.SumPow = Block.SumPow
         POW.port = 0
         Block.MaxSum = {}
@@ -954,6 +894,7 @@ module.exports = class CBlock extends require("./db/block-db")
         POW.PrevHash = Block.PrevHash
         POW.TreeHash = Block.TreeHash
         POW.Hash = Block.Hash
+        POW.PowHash = Block.PowHash
         POW.SumHash = Block.SumHash
         POW.SumPow = Block.SumPow
         POW.port = 0
@@ -1084,6 +1025,7 @@ module.exports = class CBlock extends require("./db/block-db")
             return ;
         var startTime = process.hrtime();
         ToLog("WRITE DATA Count:" + arr.length + "  " + arr[0].BlockNum + "-" + arr[arr.length - 1].BlockNum)
+        this.MapMining = undefined
         var CurrentBlockNum = GetCurrentBlockNumByTime();
         var Block;
         for(var i = 0; i < arr.length; i++)
@@ -1462,10 +1404,10 @@ module.exports = class CBlock extends require("./db/block-db")
         }
         var PrevHash = CalcHashFromArray(arr, true);
         var testSeqHash = this.GetSeqHash(Block.BlockNum, PrevHash, Block.TreeHash);
-        var testHash = shaarrblock2(testSeqHash, Block.AddrHash, Block.BlockNum);
-        if(CompareArr(testHash, Block.Hash) !== 0)
+        var TestValue = GetHashFromSeqAddr(testSeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
+        if(CompareArr(TestValue.Hash, Block.Hash) !== 0)
         {
-            var Str = "-----------------------" + StrError + " ERROR hash - block num: " + Block.BlockNum + "  test PrevHash=" + GetHexFromArr(PrevHash) + " test Hash=" + GetHexFromArr(testHash);
+            var Str = "-----------------------" + StrError + " ERROR hash - block num: " + Block.BlockNum + "  test PrevHash=" + GetHexFromArr(PrevHash) + " test Hash=" + GetHexFromArr(TestValue.Hash);
             this.ToLogBlock(Block, Str)
             return false;
         }
@@ -1622,7 +1564,8 @@ module.exports = class CBlock extends require("./db/block-db")
     }
     ChainBindMethods(chain)
     {
-        function GetRootChain()
+        
+function GetRootChain()
         {
             var Count = 0;
             var root_chain = this;
@@ -1639,7 +1582,8 @@ module.exports = class CBlock extends require("./db/block-db")
             }
             return root_chain;
         };
-        function GetFindDB()
+        
+function GetFindDB()
         {
             return this.GetRootChain().FindBlockDB;
         };
@@ -1693,6 +1637,7 @@ module.exports = class CBlock extends require("./db/block-db")
         this.PrepareTransactionsForLoad(chain, arr, 1)
     }
 };
+
 function AddInfo(Block,Str,BlockNumStart)
 {
     if(Block.Info.length < 2000)

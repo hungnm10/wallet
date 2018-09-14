@@ -47,6 +47,7 @@ global.GetHexFromArr = function (arr)
     else
         return Buffer.from(arr).toString('hex').toUpperCase();
 };
+
 function GetArrFromHex(Str)
 {
     var array = [];
@@ -219,6 +220,7 @@ global.GetKeyPairTest = function (password,Power)
     }
     throw "ERROR. Key pair not found. Try another password!";
 };
+
 function GetArrFromValue(Num)
 {
     var arr = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -231,11 +233,13 @@ function GetArrFromValue(Num)
     arr[5] = (NumH >>> 8) & 0xFF;
     return arr;
 };
+
 function GetHashWithNonce(hash0,nonce)
 {
     return shaarr2(hash0, GetArrFromValue(nonce));
 };
 global.GetHashWithValues = GetHashWithValues;
+
 function GetHashWithValues(hash0,value1,value2,bNotCopy)
 {
     var hash;
@@ -254,6 +258,7 @@ function GetHashWithValues(hash0,value1,value2,bNotCopy)
     var arrhash = shaarr(hash);
     return arrhash;
 };
+
 function GetPowPower(arrhash)
 {
     var SumBit = 0;
@@ -267,6 +272,7 @@ function GetPowPower(arrhash)
         }
     return SumBit;
 };
+
 function GetPowValue(arrhash)
 {
     var value = (arrhash[0] << 23) * 2 + (arrhash[1] << 16) + (arrhash[2] << 8) + arrhash[3];
@@ -275,6 +281,7 @@ function GetPowValue(arrhash)
     return value;
 };
 global.CreateNoncePOWExtern = CreateNoncePOWExtern;
+
 function CreateNoncePOWExtern(arr0,BlockNum,count,startnone)
 {
     var arr = [];
@@ -297,6 +304,7 @@ function CreateNoncePOWExtern(arr0,BlockNum,count,startnone)
     return maxnonce;
 };
 global.CreateNoncePOWExternMinPower = CreateNoncePOWExternMinPower;
+
 function CreateNoncePOWExternMinPower(arr0,BlockNum,MinPow)
 {
     var arr = [];
@@ -333,6 +341,7 @@ global.CreateNoncePOWInner = function (arr0,count)
     }
     return {nonce:maxnonce, Hash:Hash};
 };
+
 function shaarrblock2(Value1,Value2,BlockNum)
 {
     return shaarrblock(arr2(Value1, Value2), BlockNum);
@@ -365,6 +374,7 @@ global.CreateAddrPOW = function (SeqHash,AddrArr,MaxHash,Start,CountNonce,BlockN
     }
     return {MaxHash:MaxHash, LastNonce:nonce, MaxNonce:MaxNonce, bFind:bFind};
 };
+
 function IsZeroArr(arr)
 {
     if(arr)
@@ -375,6 +385,7 @@ function IsZeroArr(arr)
         }
     return true;
 };
+
 function CalcHashFromArray(ArrHashes,bOriginalSeq)
 {
     if(bOriginalSeq === undefined)
@@ -394,6 +405,7 @@ function CalcHashFromArray(ArrHashes,bOriginalSeq)
     var Hash = shaarr(Buf);
     return Hash;
 };
+
 function CalcMerklFromArray(Arr,Tree0)
 {
     var Tree, bSort;
@@ -438,6 +450,7 @@ function CalcMerklFromArray(Arr,Tree0)
     }
     return CalcMerklFromArray(Arr2, Tree);
 };
+
 function TestMerklTree()
 {
     var h1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -459,6 +472,7 @@ function TestMerklTree()
     if(CompareArr(TreeTest.Root, Tree.Root) !== 0)
         ToLog("=========ERROR HASHTEST==============");
 };
+
 function UpdateMerklTree(Tree,NumLevel)
 {
     var HashArr = Tree.LevelsArr[NumLevel];
@@ -527,6 +541,7 @@ function UpdateMerklTree(Tree,NumLevel)
             }
         }
 };
+
 function arr2(Value1,Value2)
 {
     var Buf = [];
@@ -536,6 +551,7 @@ function arr2(Value1,Value2)
         Buf.push(Value2[n]);
     return Buf;
 };
+
 function shaarr2(Value1,Value2)
 {
     return shaarr(arr2(Value1, Value2));
@@ -544,6 +560,7 @@ var RC = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2
 2147483648, 138, 0, 136, 0, 2147516425, 0, 2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771, 2147483648,
 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648, 2147516545, 2147483648, 32896, 2147483648, 2147483649,
 0, 2147516424, 2147483648];
+
 function Mesh(s,Count)
 {
     var h, l, n, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15,
@@ -725,6 +742,7 @@ function Mesh(s,Count)
         s[1] ^= RC[n + 1];
     }
 };
+
 function WriteNumToArr0(body,Num)
 {
     body[0] ^= Num & 0xFF;
@@ -732,6 +750,7 @@ function WriteNumToArr0(body,Num)
     body[2] ^= (Num >>> 16) & 0xFF;
     body[3] ^= (Num >>> 24) & 0xFF;
 };
+
 function ClientHex(Str,nonce)
 {
     var arr = [0, 0, 0, 0];
@@ -744,6 +763,7 @@ function ClientHex(Str,nonce)
 global.ClientHex = ClientHex;
 var GlobalCryptID = 0;
 var DeltaTimeCryptID = new Date(2018, 1, 1) - 0;
+
 function Encrypt(Arr,Arr2,ArrSecret)
 {
     const StartLen = 9;
@@ -758,12 +778,14 @@ function Encrypt(Arr,Arr2,ArrSecret)
     var SecretBuf = Buffer.concat([Arr2.slice(0, StartLen), ArrSecret]);
     DoSecret(Arr, Arr2, SecretBuf, 9);
 };
+
 function Decrypt(Arr,Arr2,ArrSecret)
 {
     const StartLen = 9;
     var SecretBuf = Buffer.concat([Arr.slice(0, StartLen), ArrSecret]);
     DoSecret(Arr, Arr2, SecretBuf, StartLen);
 };
+
 function DoSecret(Arr,Arr2,SecretBuf,StartLen)
 {
     var CryptID = SecretBuf.readUInt32LE(1, 4);
@@ -779,6 +801,7 @@ function DoSecret(Arr,Arr2,SecretBuf,StartLen)
         SecretBuf.writeUInt32LE(CryptID, 5, 4);
     }
 };
+
 function TestEncryptDecrypt()
 {
     var ArrSecret = Buffer.from([1, 1, 1, 1, 1, 1]);
@@ -796,6 +819,7 @@ function TestEncryptDecrypt()
     console.log("Decrypt:");
     console.log(Utf8ArrayToStr(Arr3.slice(9)));
 };
+
 function toUTF8Array(str)
 {
     var utf8 = [];
@@ -823,6 +847,7 @@ function toUTF8Array(str)
     }
     return utf8;
 };
+
 function Utf8ArrayToStr(array)
 {
     var out, i, len, c;
@@ -867,10 +892,12 @@ function Utf8ArrayToStr(array)
     }
     return out;
 };
+
 function GetArr32FromStr(Str)
 {
     return GetArrFromStr(Str, 32);
 };
+
 function GetArrFromStr(Str,Len)
 {
     var arr = toUTF8Array(Str);
@@ -880,12 +907,14 @@ function GetArrFromStr(Str,Len)
     }
     return arr.slice(0, Len);
 };
+
 function CreateHashBody(body,Num,Nonce)
 {
     body.writeUIntLE(Num, body.length - 12, 6);
     body.writeUIntLE(Nonce, body.length - 6, 6);
     return shaarr(body);
 };
+
 function CreateHashBodyPOWInnerMinPower(arr,BlockNum,MinPow)
 {
     var nonce = 0;
@@ -927,10 +956,9 @@ global.IsDeveloperAccount = function (Key)
         }
     return 0;
 };
-global.DEVELOP_PUB_KEY_ARR = ["022e80aa78bc07c72781fac12488096f0bfa7b4f48fbab0f2a92e208d1ee3654df", "0222263942b11f7a78e11c43903094f870a2bf728bc8be085023b4eaf4e6228cd9",
-"02250c8c8f7f7e1468cdc5e9b9203841ba14250e2f480f77ebcd502f3e691506d8", "027c0caec4e6f8f08d220f6dab24bb6f53d3f1d7b95231216805d9fac85d34a95f",
-"025defd5b884cc02f6948cd0d62b03d7b7445bf942206ab935158b6be8f0f7a2ce", "024a97d69cd81c965f162b4b8b7b506263bc8aec8dbcea9eec59f73b5b470a0be1",
-];
+global.DEVELOP_PUB_KEY_ARR = ["0222263942b11f7a78e11c43903094f870a2bf728bc8be085023b4eaf4e6228cd9", "02250c8c8f7f7e1468cdc5e9b9203841ba14250e2f480f77ebcd502f3e691506d8",
+"027c0caec4e6f8f08d220f6dab24bb6f53d3f1d7b95231216805d9fac85d34a95f", "025defd5b884cc02f6948cd0d62b03d7b7445bf942206ab935158b6be8f0f7a2ce",
+"024a97d69cd81c965f162b4b8b7b506263bc8aec8dbcea9eec59f73b5b470a0be1", ];
 for(var i = 0; i < DEVELOP_PUB_KEY_ARR.length; i++)
     DEVELOP_PUB_KEY_ARR[i] = Buffer.from(GetArrFromHex(DEVELOP_PUB_KEY_ARR[i]));
 global.DEVELOP_PUB_KEY = DEVELOP_PUB_KEY_ARR[0];

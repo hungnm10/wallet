@@ -16,11 +16,13 @@ CheckSizeLogFile(file_name_info, file_name_infoPrev);
 var file_name_log = GetDataPath("log.log"), file_name_logPrev = GetDataPath("log-prev.log");
 CheckSizeLogFile(file_name_log, file_name_logPrev);
 var StartStatTime, file_name_error = GetDataPath("err.log"), file_name_errorPrev = GetDataPath("err-prev.log");
+
 function ToLogFile(t,e,r)
 {
     e instanceof Error && (e = e.message + "\n" + e.stack), console.log(START_PORT_NUMBER + ": " + GetStrOnlyTime() + ": " + e),
     r || SaveToLogFileSync(t, e);
 };
+
 function ToLogClient(t,e,r)
 {
     t && (ToLogFile(file_name_log, t), e || (e = ""), ArrLogClient.push({text:GetStrOnlyTime() + " " + t, key:e, final:r}), 13 < ArrLogClient.length && ArrLogClient.shift());
@@ -45,29 +47,34 @@ CheckSizeLogFile(file_name_error, file_name_errorPrev), global.ToLog = function 
     ToLogFile(file_name_error, t);
 }, global.ArrLogClient = [], global.ToLogClient = ToLogClient;
 var CONTEXT_STATS = {Total:{}, Interval:[]}, CONTEXT_ERRORS = {Total:{}, Interval:[]}, CurStatIndex = 0;
+
 function GetCurrentStatIndex()
 {
     var t = 2 * MAX_STAT_PERIOD + 2;
     return CurStatIndex % t;
 };
+
 function ResizeArrMax(t)
 {
     for(var e = [], r = Math.trunc(t.length / 2), o = 0; o < r; o++)
         e[o] = Math.max(t[2 * o], t[2 * o + 1]);
     return e;
 };
+
 function ResizeArrAvg(t)
 {
     for(var e = [], r = Math.trunc(t.length / 2), o = 0; o < r; o++)
         e[o] = (t[2 * o] + t[2 * o + 1]) / 2;
     return e;
 };
+
 function ResizeArr(t)
 {
     for(var e = [], r = Math.trunc(t.length / 2), o = 0; o < r; o++)
         e[o] = t[2 * o];
     return e;
 };
+
 function GetDiagramData(t,e)
 {
     var r, o = 2 * MAX_STAT_PERIOD + 2;
@@ -83,6 +90,7 @@ function GetDiagramData(t,e)
     }
     return i;
 };
+
 function CalcInterval(t,e,r)
 {
     for(var o, n = 2 * MAX_STAT_PERIOD + 2, a = {}, l = (e - r + n) % n, i = t.Total, T = l; T < l + r; T++)
@@ -96,12 +104,14 @@ function CalcInterval(t,e,r)
             "MAX:" === S.substr(0, 4) ? a[S] = 0 : void 0 === o[S] ? a[S] = i[S] : a[S] = i[S] - o[S];
     return a;
 };
+
 function AddToStatContext(t,e,r)
 {
     void 0 === r && (r = 1);
     var o = t.Total[e];
     o || (o = 0), "MAX:" === e.substr(0, 4) ? o = Math.max(o, r) : o += r, t.Total[e] = o, StartStatTime || (StartStatTime = GetCurrentTime(0));
 };
+
 function CopyStatInterval(t,e)
 {
     var r = t.Interval[e];
@@ -110,6 +120,7 @@ function CopyStatInterval(t,e)
     for(var n in o)
         r[n] = o[n], "MAX:" === n.substr(0, 4) && (o[n] = 0);
 };
+
 function SaveToLogFileAsync(t,o)
 {
     fs.open(t, "a", void 0, function (t,r)
@@ -126,6 +137,7 @@ function SaveToLogFileAsync(t,o)
         }
     });
 };
+
 function SaveToLogFileSync(t,e)
 {
     try

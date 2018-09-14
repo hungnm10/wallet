@@ -25,13 +25,6 @@ global.TIME_START_POW_EXCHANGE =  - 5;
 global.TIME_END_EXCHANGE_POW =  - 7;
 global.TIME_START_SAVE =  - 8;
 global.TIME_START_LOAD =  - 12;
-const FORMAT_DATA_TRANSFER0 = "{\
-    SendNumber:uint16,\
-    BlockNum:uint,\
-    Array:[{body:tr}],\
-    MaxPOW:[{BlockNum:uint,AddrHash:hash,PrevHash:hash,TreeHash:hash}],\
-    MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,SeqHash:hash}]}]\
-    }";
 const FORMAT_DATA_TRANSFER = "{\
     SendNumber:uint16,\
     BlockNum:uint,\
@@ -49,7 +42,7 @@ module.exports = class CConsensus extends require("./block-loader")
         this.RelayMode = false
         this.SendCount = 0
         this.TreeSendPacket = new RBTree(CompareItemHash)
-        this.KPOWERARR = []
+        this.MapMining = undefined
         if(!global.ADDRLIST_MODE && !this.VirtualMode)
         {
             this.idBlockChainTimer = setInterval(this.StartBlockChain.bind(this), CONSENSUS_PERIOD_TIME - 5)
@@ -424,7 +417,7 @@ module.exports = class CConsensus extends require("./block-loader")
     CheckingMaxPowOther(Block)
     {
         var POW = Block.MaxPOW;
-        if(POW && POW.Hash && CompareArr(POW.Hash, Block.Hash) < 0)
+        if(POW && POW.Hash && CompareArr(POW.PowHash, Block.PowHash) < 0)
         {
             var LoadBlockNum = Block.BlockNum;
             var LoadHash = POW.Hash;
@@ -434,6 +427,18 @@ module.exports = class CConsensus extends require("./block-loader")
             Block.Info += "\nREQ OTHER: " + StrKey
         }
         Block.CheckMaxPow = true
+    }
+    IsPoolMiner(Num, BlockNum)
+    {
+        if(global.DECENTRALIZATION_LENGTH_FACTOR && this.MapMining)
+        {
+            var LastBlockNum = this.MapMining[Num];
+            if(LastBlockNum && LastBlockNum >= BlockNum - global.DECENTRALIZATION_LENGTH_FACTOR)
+            {
+                return 1;
+            }
+        }
+        return 0;
     }
     IsGPUMiner(Num)
     {
@@ -446,19 +451,22 @@ module.exports = class CConsensus extends require("./block-loader")
             if(!Block.MaxPOW)
                 Block.MaxPOW = {}
             var POW = Block.MaxPOW;
-            item.Hash = shaarrblock2(item.SeqHash, item.AddrHash, Block.BlockNum)
-            if(this.KPOWERARR[ReadUintFromArr(item.AddrHash, 0)])
+            item.BlockNum = Block.BlockNum
+            CalcHashBlockFromSeqAddr(item, Block.PrevHash)
+            var MinerID = ReadUintFromArr(item.AddrHash, 0);
+            if(this.IsPoolMiner(MinerID, Block.BlockNum))
             {
                 return ;
             }
-            if(this.IsGPUMiner(ReadUintFromArr(item.AddrHash, 0)))
+            if(this.IsGPUMiner(MinerID))
             {
                 return ;
             }
-            if(POW.SeqHash === undefined || CompareArr(item.Hash, POW.Hash) < 0)
+            if(POW.SeqHash === undefined || CompareArr(item.PowHash, POW.PowHash) < 0)
             {
                 POW.AddrHash = item.AddrHash
                 POW.Hash = item.Hash
+                POW.PowHash = item.PowHash
                 POW.PrevHash = item.PrevHash
                 POW.TreeHash = item.TreeHash
                 POW.SeqHash = item.SeqHash
@@ -470,10 +478,10 @@ module.exports = class CConsensus extends require("./block-loader")
             }
             if(Block.SeqHash && CompareArr(item.SeqHash, Block.SeqHash) === 0)
             {
-                if(POW.LocalSeqHash === undefined || CompareArr(POW.LocalSeqHash, Block.SeqHash) !== 0 || CompareArr(item.Hash, POW.LocalHash) < 0)
+                if(POW.LocalSeqHash === undefined || CompareArr(POW.LocalSeqHash, Block.SeqHash) !== 0 || CompareArr(item.PowHash, POW.PowLocalHash) < 0)
                 {
                     POW.LocalAddrHash = item.AddrHash
-                    POW.LocalHash = item.Hash
+                    POW.PowLocalHash = item.PowHash
                     POW.LocalSeqHash = Block.SeqHash
                 }
             }
@@ -486,7 +494,7 @@ module.exports = class CConsensus extends require("./block-loader")
         {
             POW.MaxTree = new RBTree(function (a,b)
             {
-                return CompareArr(a.Hash, b.Hash);
+                return CompareArr(a.PowHash, b.PowHash);
             })
         }
         if(!POW.MaxTree.find(item))
@@ -626,8 +634,8 @@ module.exports = class CConsensus extends require("./block-loader")
             var Block = arr[i];
             if(Block)
             {
-                var BlockNum = BlockNumStart + i;
-                SumPow += this.GetBlockPower(Block, BlockNum)
+                Block.BlockNum = BlockNumStart + i
+                SumPow += this.GetBlockPowerWithPoolFactor(Block)
             }
             else
             {
@@ -636,18 +644,20 @@ module.exports = class CConsensus extends require("./block-loader")
         }
         return SumPow;
     }
-    GetBlockPower(Block, BlockNum)
+    GetBlockPowerWithPoolFactor(Item)
     {
-        var Hash = shaarrblock2(Block.SeqHash, Block.AddrHash, BlockNum);
-        var Sum = GetPowPower(Hash);
-        if(this.KPOWERARR[ReadUintFromArr(Block.AddrHash, 0)])
+        var MinerID = ReadUintFromArr(Item.AddrHash, 0);
+        var Value = GetHashFromSeqAddr(Item.SeqHash, Item.AddrHash, Item.BlockNum);
+        var Sum = GetPowPower(Value.PowHash);
+        if(this.IsPoolMiner(MinerID, Item.BlockNum))
         {
             Sum = Math.trunc(Sum / 2)
         }
-        if(this.IsGPUMiner(ReadUintFromArr(Block.AddrHash, 0)))
-        {
-            Sum = Math.trunc(Sum / 2)
-        }
+        else
+            if(this.IsGPUMiner(MinerID))
+            {
+                Sum = Math.trunc(Sum / 2)
+            }
         return Sum;
     }
     GetArrayFromTree(Block)
@@ -936,6 +946,40 @@ module.exports = class CConsensus extends require("./block-loader")
         Block.arrContent = arrContent
         Block.TrCount = Block.arrContent.length
     }
+    InitMapMining()
+    {
+        if(!global.DECENTRALIZATION_LENGTH_FACTOR)
+            return ;
+        this.MapMining = {}
+        for(var Num = this.BlockNumDB - global.DECENTRALIZATION_LENGTH_FACTOR; Num <= this.BlockNumDB; Num++)
+        {
+            var Block = SERVER.ReadBlockHeaderFromMapDB(Num);
+            if(Block)
+            {
+                this.AddToMapMining(Block)
+            }
+        }
+    }
+    AddToMapMining(Block)
+    {
+        if(!global.DECENTRALIZATION_LENGTH_FACTOR)
+            return ;
+        if(!this.MapMining)
+            this.InitMapMining()
+        var MinerID = ReadUintFromArr(Block.AddrHash, 0);
+        this.MapMining[MinerID] = Block.BlockNum
+    }
+    DeleteHeadMapMining()
+    {
+        for(var Key in this.MapMining)
+        {
+            var Num = this.MapMining[Key];
+            if(Num < this.BlockNumDB - global.DECENTRALIZATION_LENGTH_FACTOR)
+            {
+                delete this.MapMining[Key]
+            }
+        }
+    }
     DoBlockChain()
     {
         if(glStopNode)
@@ -1056,16 +1100,18 @@ module.exports = class CConsensus extends require("./block-loader")
                 }
                 if(Block.MaxPOW && Block.MaxPOW.SeqHash && Block.MaxPOW.AddrHash && Block.MaxPOW.LocalSeqHash)
                 {
+                    if(!Block.PowHash)
+                        throw "#122 ERROR:  NOT Block.PowHash";
                     if(CompareArr(Block.SeqHash, Block.MaxPOW.SeqHash) === 0 && CompareArr(Block.AddrHash, Block.MaxPOW.AddrHash) !== 0)
                     {
                         Block.AddrHash = Block.MaxPOW.AddrHash
-                        Block.Hash = shaarrblock2(Block.SeqHash, Block.AddrHash, Block.BlockNum)
+                        CalcHashBlockFromSeqAddr(Block, Block.PrevHash)
                         AddInfoBlock(Block, "->Max lider")
                     }
-                    if(CompareArr(Block.SeqHash, Block.MaxPOW.LocalSeqHash) === 0 && CompareArr(Block.MaxPOW.LocalHash, Block.Hash) < 0)
+                    if(CompareArr(Block.SeqHash, Block.MaxPOW.LocalSeqHash) === 0 && CompareArr(Block.MaxPOW.PowLocalHash, Block.PowHash) < 0)
                     {
                         Block.AddrHash = Block.MaxPOW.LocalAddrHash
-                        Block.Hash = shaarrblock2(Block.SeqHash, Block.AddrHash, Block.BlockNum)
+                        CalcHashBlockFromSeqAddr(Block, Block.PrevHash)
                         AddInfoBlock(Block, "->Local lider")
                     }
                 }
@@ -1085,6 +1131,8 @@ module.exports = class CConsensus extends require("./block-loader")
                     this.AddToStatBlockConfirmation(Block)
                     if(this.WriteBlockDB(Block))
                     {
+                        this.AddToMapMining(Block)
+                        this.DeleteHeadMapMining()
                         if(Block.arrContent && Block.arrContent.length)
                             ADD_TO_STAT("MAX:TRANSACTION_COUNT", Block.arrContent.length)
                         AddInfoBlock(Block, "SAVE TO DB: " + this.GetStrFromHashShort(Block.SumHash))
@@ -1115,6 +1163,25 @@ module.exports = class CConsensus extends require("./block-loader")
         }
         this.RelayMode = !bWasSave
         this.FREE_MEM_BLOCKS(CURRENTBLOCKNUM - BLOCK_COUNT_IN_MEMORY)
+    }
+    CreatePOWNew(Block, CountNonce)
+    {
+        var Result = CreateHashMinimal(Block, GENERATE_BLOCK_ACCOUNT);
+        if(!Result)
+        {
+            var AddrArr = GetArrFromValue(GENERATE_BLOCK_ACCOUNT);
+            var MaxHash = shaarrblock2(Block.SeqHash, AddrArr, Block.BlockNum);
+            var Ret = CreateAddrPOW(Block.SeqHash, AddrArr, MaxHash, 0, CountNonce, Block.BlockNum);
+            ADD_HASH_RATE(CountNonce)
+            Block.Hash = Ret.MaxHash
+            Block.PowHash = Ret.MaxHash
+            Block.AddrHash = AddrArr
+            Block.LastNonce = Ret.LastNonce
+            Block.Power = GetPowPower(Block.PowHash)
+            ADD_TO_STAT("MAX:POWER", Block.Power)
+        }
+        this.AddToMaxPOW(Block, {SeqHash:Block.SeqHash, AddrHash:Block.AddrHash, PrevHash:Block.PrevHash, TreeHash:Block.TreeHash,
+        })
     }
 };
 global.GetCurrentBlockNumByTime = function GetCurrentBlockNumByTime()

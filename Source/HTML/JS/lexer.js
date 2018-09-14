@@ -11,7 +11,8 @@
 module.exports = function ()
 {
     "use strict";
-    function u(e)
+    
+function u(e)
     {
         for(var t = 1; t < arguments.length; t++)
             e = e.replace("%" + t, arguments[t]);
@@ -44,20 +45,23 @@ module.exports = function ()
         n(this.lexTypeIdentifier), this.SpacesArray[0] = "", this.SpacesArray[1] = "";
         for(var i = 2; i < 100; i++)
             this.SpacesArray[i] = this.SpacesArray[i - 1] + "    ";
-        function r(e,t,s)
+        
+function r(e,t,s)
         {
             for(var i = 0; i < t.length; i++)
             {
                 s[t.charCodeAt(i)] = e;
             }
         };
-        function h(e,t,s)
+        
+function h(e,t,s)
         {
             for(var i = 32; i < 65536; i++)
                 t[i] && "L" != t[i] || (s[i] = "L");
             s[92] = "L";
         };
-        function n(e)
+        
+function n(e)
         {
             for(var t = 0; t < 65536; t++)
                 e[t] = e[t] || !1;

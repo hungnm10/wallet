@@ -254,9 +254,11 @@ module.exports = class CMessages extends require("./transaction-validator")
         }
     }
 };
+
 function ToLogContext(Str)
 {
 };
+
 function TrName(Tr)
 {
     if(!Tr.HASH)

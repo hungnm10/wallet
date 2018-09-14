@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const os = require('os');
 const http = require('http'), net = require('net'), url = require('url'), fs = require('fs'), querystring = require('querystring');
 global.HTTPCaller = {};
+
 function DoCommand(response,Path,params)
 {
     var F = HTTPCaller[params[0]];
@@ -299,6 +300,7 @@ HTTPCaller.SetMining = function (MiningAccount,Param2,Param3)
     WALLET.SetMiningAccount(parseInt(MiningAccount));
     return {result:1};
 };
+
 function CheckCorrectDevKey()
 {
     if(WALLET.WalletOpen === false)
@@ -353,6 +355,7 @@ HTTPCaller.SetCheckPoint = function (BlockNum,Param2,Param3)
     else
         return {result:0, text:"Error on check point BlockNum=" + BlockNum};
 };
+
 function SetCheckPointOnBlock(BlockNum)
 {
     var Block = SERVER.ReadBlockHeaderDB(BlockNum);
@@ -380,6 +383,7 @@ HTTPCaller.SetAutoCheckPoint = function (Param)
 };
 var SumCheckPow = 0;
 var CountCheckPow = 0;
+
 function RunSetCheckPoint()
 {
     if(!SERVER.BlockNumDB)
@@ -393,7 +397,7 @@ function RunSetCheckPoint()
     var Block = SERVER.ReadBlockHeaderDB(BlockNum);
     if(Block)
     {
-        var Power = GetPowPower(Block.Hash);
+        var Power = GetPowPower(Block.PowHash);
         if(Power < 16)
         {
             ToLog("CANNOT SET CHECK POINT Power=" + Power + "  BlockNum=" + BlockNum);
@@ -453,6 +457,7 @@ HTTPCaller.SetAutoCorrTime = function (bSet)
     return {result:1, text:"Auto correct: " + bSet};
 };
 var StartCheckTimeNum = 0;
+
 function RunAutoCorrTime()
 {
     if(WALLET.WalletOpen === false)
@@ -578,7 +583,8 @@ HTTPCaller.GetHotArray = function (Param)
             arr[n] = GetCopyNode(arr[n], BlockCounts);
         }
     }
-    function SortNodeHot(a,b)
+    
+function SortNodeHot(a,b)
     {
         if(b.Hot !== a.Hot)
             return b.Hot - a.Hot;
@@ -590,6 +596,7 @@ HTTPCaller.GetHotArray = function (Param)
     };
     return {result:1, ArrTree:ArrTree};
 };
+
 function GetCopyNode(Node,BlockCounts)
 {
     if(!Node)
@@ -740,6 +747,7 @@ HTTPCaller.GetBlockChain = function (type)
     arrLoadedBlocks = [];
     return obj;
 };
+
 function CreateDump(response)
 {
     response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
@@ -765,6 +773,7 @@ setInterval(function ()
         }
     }
 }, 500 * 1000);
+
 function GetNetParams(response)
 {
     response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
@@ -774,6 +783,7 @@ function GetNetParams(response)
         BLOCK_PROCESSING_LENGTH:BLOCK_PROCESSING_LENGTH};
     response.end(JSON.stringify(Result));
 };
+
 function GetBlockHeaders(response)
 {
     response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
@@ -796,6 +806,7 @@ function GetBlockHeaders(response)
     Result.sessionid = sessionid;
     response.end(JSON.stringify(Result));
 };
+
 function GetBlockData(response,BlockNum)
 {
     response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
@@ -827,19 +838,22 @@ function GetBlockData(response,BlockNum)
     Result.sessionid = sessionid;
     response.end(JSON.stringify(Result));
 };
+
 function GetCopyBlock(Block)
 {
     var Result = {BlockNum:Block.BlockNum, bSave:Block.bSave, TreeHash:GetHexFromAddres(Block.TreeHash), AddrHash:GetHexFromAddres(Block.AddrHash),
         PrevHash:GetHexFromAddres(Block.PrevHash), SumHash:GetHexFromAddres(Block.SumHash), SumPow:Block.SumPow, TrDataPos:Block.TrDataPos,
-        TrDataLen:Block.TrDataLen, SeqHash:GetHexFromAddres(Block.SeqHash), Hash:GetHexFromAddres(Block.Hash), Power:GetPowPower(Block.Hash),
+        TrDataLen:Block.TrDataLen, SeqHash:GetHexFromAddres(Block.SeqHash), Hash:GetHexFromAddres(Block.Hash), Power:GetPowPower(Block.PowHash),
         TrCount:Block.TrCount, arrContent:Block.arrContent, };
     return Result;
 };
 var AddrLength = 16;
+
 function GetHexFromAddresShort(Hash)
 {
     return GetHexFromAddres(Hash).substr(0, AddrLength);
 };
+
 function GetHexFromStrShort(Str)
 {
     if(Str === undefined)
@@ -848,6 +862,7 @@ function GetHexFromStrShort(Str)
         return Str.substr(0, AddrLength);
 };
 var glid = 0;
+
 function GetGUID(Block)
 {
     if(!Block)
@@ -859,6 +874,7 @@ function GetGUID(Block)
     }
     return Block.guid;
 };
+
 function CopyBlockDraw(Block,MainChains)
 {
     var MinerID = 0;
@@ -884,7 +900,7 @@ function CopyBlockDraw(Block,MainChains)
         SumHash:GetHexFromAddresShort(Block.SumHash), SeqHash:GetHexFromAddresShort(Block.SeqHash), TreeHash:GetHexFromAddresShort(Block.TreeHash),
         AddrHash:GetHexFromAddresShort(Block.AddrHash), Miner1:MinerID, Comment1:Block.Comment1, Comment2:Block.Comment2, SumPow:Block.SumPow,
         Info:Block.Info, TreeLoaded:Block.TreeEq, AddToLoad:Block.AddToLoad, LoadDB:Block.LoadDB, FindBlockDB:Block.FindBlockDB, TrCount:Block.TrCount,
-        ArrLength:0, TrDataLen:Block.TrDataLen, Power:GetPowPower(Block.Hash), CheckPoint:CheckPoint, Mining:Mining, StartPOW:Block.StartPOW,
+        ArrLength:0, TrDataLen:Block.TrDataLen, Power:GetPowPower(Block.PowHash), CheckPoint:CheckPoint, Mining:Mining, StartPOW:Block.StartPOW,
         HasErr:Block.HasErr, };
     if(Block.chain)
         Item.chainid = Block.chain.id;
@@ -899,6 +915,7 @@ function CopyBlockDraw(Block,MainChains)
     }
     return Item;
 };
+
 function CopyChainDraw(Chain,bWasRecursive,bMain)
 {
     if(!Chain)
@@ -932,6 +949,7 @@ function CopyChainDraw(Chain,bWasRecursive,bMain)
     }
     return Item;
 };
+
 function AddChainList(arrLoadedChainList,LoadedChainList,bMain)
 {
     for(var chain of LoadedChainList)
@@ -942,6 +960,7 @@ function AddChainList(arrLoadedChainList,LoadedChainList,bMain)
         }
     }
 };
+
 function AddMapList(arrLoadedBlocks,type,MapMapLoaded,MainChains)
 {
     for(var key in MapMapLoaded)
@@ -964,6 +983,7 @@ function AddMapList(arrLoadedBlocks,type,MapMapLoaded,MainChains)
     }
 };
 var MapFileHTML5 = {};
+
 function SendFileHTML(response,name,StrCookie)
 {
     let type = name.substr(name.length - 3, 3);
@@ -1034,6 +1054,7 @@ function SendFileHTML(response,name,StrCookie)
         response.end(data);
     });
 };
+
 function GetStrTime(now)
 {
     if(!now)
@@ -1043,6 +1064,7 @@ function GetStrTime(now)
     Str = Str + ":" + now.getSeconds().toStringZ(2);
     return Str;
 };
+
 function OnGetData(arg)
 {
     var Path = arg.path;
@@ -1064,6 +1086,7 @@ function OnGetData(arg)
     }
     return Ret;
 };
+
 function parseCookies(rc)
 {
     var list = {};
@@ -1217,6 +1240,7 @@ if(global.ELECTRON)
     });
 }
 exports.SendData = OnGetData;
+
 function RunConsole(StrRun)
 {
     var Str = fs.readFileSync("./EXPERIMENTAL/!run-console.js", {encoding:"utf8"});

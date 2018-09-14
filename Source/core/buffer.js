@@ -8,6 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
+
 function Write(e,r,t,n,l)
 {
     if("number" == typeof t)
@@ -119,6 +120,7 @@ function Write(e,r,t,n,l)
             }
     }
 };
+
 function Read(e,r,t,n)
 {
     var l;
@@ -229,42 +231,51 @@ function Read(e,r,t,n)
     }
     return l;
 };
+
 function BufWriteByte(e)
 {
     this[this.len] = e, this.len += 1;
 };
+
 function BufWrite(e,r,t)
 {
     Write(this, e, r, t);
 };
+
 function BufRead(e,r)
 {
     return Read(this, e, r);
 };
+
 function GetNewBuffer(e)
 {
     var r = Buffer.alloc(e);
     return r.Read = BufRead.bind(r), r.Write = BufWrite.bind(r), r.len = 0, r;
 };
+
 function GetReadBuffer(e)
 {
     var r = Buffer.from(e);
     return r.Read = BufRead.bind(r), r.Write = BufWrite.bind(r), r.len = 0, r;
 };
+
 function GetObjectFromBuffer(e,r,t)
 {
     var n = Buffer.from(e);
     return n.len = 0, Read(n, r, void 0, t);
 };
+
 function GetBufferFromObject(e,r,t,n)
 {
     var l = Buffer.alloc(t);
     return l.len = 0, Write(l, e, r, void 0, n), l = l.slice(0, l.len);
 };
+
 function GetMiddleString(e)
 {
     return e.substr(1, e.length - 2);
 };
+
 function GetMiddleString2(e,r,t)
 {
     for(var n = 0, l = "", a = 0; a < e.length; a++)
@@ -279,6 +290,7 @@ function GetMiddleString2(e,r,t)
     }
     return l;
 };
+
 function GetAttributeStrings(e)
 {
     for(var r = 0, t = [], n = "", l = 0; l < e.length; l++)
@@ -303,6 +315,7 @@ function GetAttributeStrings(e)
     }
     return 0 < n.length && t.push(n), t;
 };
+
 function GetKeyValueStrings(e)
 {
     for(var r = "", t = 0; t < e.length; t++)
@@ -317,6 +330,7 @@ function GetKeyValueStrings(e)
     }
     throw "Error format Key:Value = " + e;
 };
+
 function GetAttributes(e)
 {
     for(var r = [], t = GetAttributeStrings(e), n = 0; n < t.length; n++)

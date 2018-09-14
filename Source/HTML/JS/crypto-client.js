@@ -9,12 +9,14 @@
 */
 
 var MAX_SUPER_VALUE_POW = 2 * (1 << 30);
+
 function GetHashWithValues(e,r,n,t)
 {
     var o;
     return (o = t ? e : e.slice())[0] = 255 & r, o[1] = r >>> 8 & 255, o[2] = r >>> 16 & 255, o[3] = r >>> 24 & 255, o[4] = 255 & n,
     o[5] = n >>> 8 & 255, o[6] = n >>> 16 & 255, o[7] = n >>> 24 & 255, shaarr(o);
 };
+
 function GetPowPower(e)
 {
     for(var r = 0, n = 0; n < e.length; n++)
@@ -25,11 +27,13 @@ function GetPowPower(e)
     }
     return r;
 };
+
 function GetPowValue(e)
 {
     var r = 2 * (e[0] << 23) + (e[1] << 16) + (e[2] << 8) + e[3];
     return r = 256 * (r = 256 * r + e[4]) + e[5];
 };
+
 function CreateNoncePOWExtern(e,r,n,t)
 {
     for(var o = [], E = 0; E < e.length; E++)
@@ -42,6 +46,7 @@ function CreateNoncePOWExtern(e,r,n,t)
     }
     return a;
 };
+
 function CreateHashBody(e,r,n)
 {
     var t = e.length - 12;
@@ -49,6 +54,7 @@ function CreateHashBody(e,r,n)
     e[(t = e.length - 6) + 0] = 255 & n, e[t + 1] = n >>> 8 & 255, e[t + 2] = n >>> 16 & 255, e[t + 3] = n >>> 24 & 255, e[t + 4] = 0,
     e[t + 5] = 0, shaarr(e);
 };
+
 function CreateHashBodyPOWInnerMinPower(e,r)
 {
     for(var n = GetCurrentBlockNumByTime(), t = 0; ; )

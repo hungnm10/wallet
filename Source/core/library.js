@@ -22,6 +22,76 @@ if(require("./constant.js"), global.USE_PARAM_JS)
             console.log(r);
         }
 }
+
+function ReadUintFromArr(r,t)
+{
+    void 0 === t && (t = r.len, r.len += 6);
+    var e = 2 * (r[t + 5] << 23) + (r[t + 4] << 16) + (r[t + 3] << 8) + r[t + 2];
+    return e = 256 * (e = 256 * e + r[t + 1]) + r[t];
+};
+
+function ReadUint32FromArr(r,t)
+{
+    return void 0 === t && (t = r.len, r.len += 4), 2 * (r[t + 3] << 23) + (r[t + 2] << 16) + (r[t + 1] << 8) + r[t];
+};
+
+function ReadUint16FromArr(r,t)
+{
+    return void 0 === t && (t = r.len, r.len += 2), (r[t + 1] << 8) + r[t];
+};
+
+function WriteUintToArr(r,t)
+{
+    var e = r.length;
+    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
+    var o = Math.floor(t / 4294967296);
+    r[e + 4] = 255 & o, r[e + 5] = o >>> 8 & 255;
+};
+
+function WriteUintToArrOnPos(r,t,e)
+{
+    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
+    var o = Math.floor(t / 4294967296);
+    r[e + 4] = 255 & o, r[e + 5] = o >>> 8 & 255;
+};
+
+function WriteUint32ToArr(r,t)
+{
+    var e = r.length;
+    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
+};
+
+function WriteUint32ToArrOnPos(r,t,e)
+{
+    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
+};
+
+function WriteArrToArr(r,t,e)
+{
+    for(var o = r.length, n = 0; n < e; n++)
+        r[o + n] = t[n];
+};
+
+function WriteArrToArrOnPos(r,t,e,o)
+{
+    for(var n = 0; n < o; n++)
+        r[e + n] = t[n];
+};
+
+function WriteArrToArrHOnPos(r,t,e,o)
+{
+    for(var n = 0; n < o; n++)
+        r[e + n] |= t[n] << 8;
+};
+
+function ConvertBufferToStr(r)
+{
+    for(var t in r)
+    {
+        var e = r[t];
+        e instanceof Buffer ? r[t] = GetHexFromArr(e) : "object" == typeof e && ConvertBufferToStr(e);
+    }
+};
 require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML/JS/sha3.js"), Number.prototype.toStringZ = function (r)
 {
     var t = this.toString();
@@ -29,33 +99,10 @@ require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML
 }, String.prototype.right = function (r)
 {
     return this.length > r ? this.substr(this.length - r, r) : this.substr(0, this.length);
-}, global.ReadUintFromArr = function (r,t)
-{
-    void 0 === t && (t = r.len, r.len += 6);
-    var e = 2 * (r[t + 5] << 23) + (r[t + 4] << 16) + (r[t + 3] << 8) + r[t + 2];
-    return e = 256 * (e = 256 * e + r[t + 1]) + r[t];
-}, global.WriteUintToArr = function (r,t)
-{
-    var e = r.length;
-    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
-    var o = Math.floor(t / 4294967296);
-    r[e + 4] = 255 & o, r[e + 5] = o >>> 8 & 255;
-}, global.WriteUint32ToArr = function (r,t)
-{
-    var e = r.length;
-    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
-}, global.WriteArrToArr = function (r,t,e)
-{
-    for(var o = r.length, n = 0; n < e; n++)
-        r[o + n] = t[n];
-}, global.ConvertBufferToStr = function (r)
-{
-    for(var t in r)
-    {
-        var e = r[t];
-        e instanceof Buffer ? r[t] = GetHexFromArr(e) : "object" == typeof e && ConvertBufferToStr(e);
-    }
-}, global.DelDir = function (r)
+}, global.ReadUint32FromArr = ReadUint32FromArr, global.ReadUintFromArr = ReadUintFromArr, global.ReadUint16FromArr = ReadUint16FromArr,
+global.WriteUintToArr = WriteUintToArr, global.WriteUint32ToArr = WriteUint32ToArr, global.WriteUint32ToArrOnPos = WriteUint32ToArrOnPos,
+global.WriteUintToArrOnPos = WriteUintToArrOnPos, global.WriteArrToArr = WriteArrToArr, global.WriteArrToArrOnPos = WriteArrToArrOnPos,
+global.WriteArrToArrHOnPos = WriteArrToArrHOnPos, global.ConvertBufferToStr = ConvertBufferToStr, global.DelDir = function (r)
 {
     if("/" === r.substr(r.length - 1, 1) && (r = r.substr(0, r.length - 1)), fs.existsSync(r))
         for(var t = fs.readdirSync(r), e = 0; e < t.length; e++)
@@ -83,7 +130,7 @@ require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML
 }, global.AddrLevelArrFromBegin = function (r,t)
 {
     for(var e = 0, o = 0; o < r.length; o++)
-        for(var n = r[o], a = t[o], l = 0; l < 8; l++)
+        for(var n = r[o], a = t[o], i = 0; i < 8; i++)
         {
             if((128 & n) != (128 & a))
                 return e;
@@ -93,7 +140,7 @@ require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML
 }, global.AddrLevelArr = function (r,t)
 {
     for(var e = 0, o = r.length - 1; 0 <= o; o--)
-        for(var n = r[o], a = t[o], l = 0; l < 8; l++)
+        for(var n = r[o], a = t[o], i = 0; i < 8; i++)
         {
             if((1 & n) != (1 & a))
                 return e;
@@ -191,6 +238,7 @@ var WasStartSaveConst = !(global.LOAD_CONST = function ()
         }
     return r;
 });
+
 function SaveConst()
 {
     for(var r = {}, t = 0; t < CONST_NAME_ARR.length; t++)
@@ -205,6 +253,7 @@ global.SAVE_CONST = function (r)
     r ? SaveConst() : (WasStartSaveConst || setTimeout(SaveConst, 1e4), WasStartSaveConst = !0);
 };
 var ntpClient = require("ntp-client");
+
 function CheckTime()
 {
     ntpClient.getNetworkTime("pool.ntp.org", 123, function (r,t)
@@ -219,12 +268,14 @@ function CheckTime()
         }
     }), SAVE_CONST();
 };
+
 function GetSecFromStrTime(r)
 {
     for(var t = r.split(":"), e = 3600, o = 0, n = 0; n < t.length; n++)
         o += e * parseInt(t[n]), e /= 60;
     return o;
 };
+
 function CopyObjValue(r,t)
 {
     if(t && 5 < t)
@@ -238,6 +289,7 @@ function CopyObjValue(r,t)
     }
     return e;
 };
+
 function DateFromBlock(r)
 {
     var t;

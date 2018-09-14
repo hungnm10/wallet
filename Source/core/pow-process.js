@@ -17,11 +17,13 @@ process.send && !global.DEBUGPROCESS ? (global.ToLog = function (e)
 var LastAlive = new Date - 0;
 setInterval(CheckAlive, 1e3);
 var idInterval = void 0, Block = {};
+
 function CheckAlive()
 {
     var e = new Date - LastAlive;
     3e3 < Math.abs(e) && PROCESS.exit(0);
 };
+
 function CalcPOWHash()
 {
     if(Block.SeqHash)
@@ -30,7 +32,7 @@ function CalcPOWHash()
             return clearInterval(idInterval), void (idInterval = void 0);
         var e = GetArrFromValue(Block.Account), o = CreateAddrPOW(Block.SeqHash, e, Block.Hash, Block.LastNonce, Block.RunCount, Block.BlockNum);
         Block.LastNonce = o.LastNonce, o.bFind && (Block.Hash = o.MaxHash, process.send({cmd:"POW", SeqHash:Block.SeqHash, Hash:Block.Hash,
-            AddrArr:e, Num:Block.Num}));
+            AddrArr:e, PowHash:Block.Hash, Num:Block.Num}));
     }
 };
 PROCESS.on("message", function (e)

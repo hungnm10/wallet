@@ -8,9 +8,8 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 517;
+global.UPDATE_CODE_VERSION_NUM = 521;
 global.MIN_CODE_VERSION_NUM = 508;
-global.START_NEW_ALGO = 60000000;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
 "STAT_MODE", "UPDATE_NUM_COMPLETE", "HTTP_IP_CONNECT", "HTTP_PORT_NUMBER", "HTTP_PORT_PASSWORD", "WALLET_NAME", "WALLET_DESCRIPTION",
@@ -77,6 +76,7 @@ global.BLOCK_COUNT_IN_MEMORY = 40;
 global.HISTORY_BLOCK_COUNT = 40;
 global.MAX_STAT_PERIOD = 1 * 3600;
 global.MAX_SIZE_LOG = 200 * 1024 * 1024;
+global.DECENTRALIZATION_LENGTH_FACTOR = 0;
 global.USE_CHECK_SAVE_DB = 0;
 global.USE_KEY_DB = 0;
 global.USE_CHECK_KEY_DB = 0;
@@ -148,6 +148,7 @@ if(typeof window === 'object')
 }
 global.RUN_CLIENT = 0;
 global.RUN_SERVER = 1;
+
 function InitParamsArg()
 {
     for(var i = 1; i < process.argv.length; i++)

@@ -1336,6 +1336,7 @@ module.exports = class CConnect extends require("./transfer-msg")
         return Str;
     }
 };
+
 function SortNodeBlockProcessCount(a,b)
 {
     if(b.BlockProcessCount !== a.BlockProcessCount)

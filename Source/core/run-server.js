@@ -81,6 +81,7 @@ if(global.ADDRLIST_MODE)
 {
     return ;
 }
+
 function RunStopPOWProcess(Mode)
 {
     if(!global.CountMiningCPU || global.CountMiningCPU <= 0)
@@ -144,11 +145,14 @@ function RunStopPOWProcess(Mode)
         return ;
     if(GENERATE_BLOCK_ACCOUNT < 8)
         return ;
+    var PathMiner = GetCodePath("../miner.js");
+    if(!fs.existsSync(PathMiner))
+        PathMiner = "./core/pow-process.js";
     const child_process = require('child_process');
     ToLog("START MINER PROCESS COUNT=" + CountMiningCPU);
     for(var R = 0; R < CountMiningCPU; R++)
     {
-        let Worker = child_process.fork("./core/pow-process.js");
+        let Worker = child_process.fork(PathMiner);
         console.log("Worker pid: " + Worker.pid);
         ArrMiningWrk.push(Worker);
         Worker.Num = ArrMiningWrk.length;
@@ -172,8 +176,8 @@ function RunStopPOWProcess(Mode)
                         {
                             BlockMining.Hash = msg.Hash;
                             BlockMining.AddrHash = msg.AddrArr;
-                            BlockMining.Power = GetPowPower(msg.Hash);
-                            ADD_TO_STAT("MAX:POWER", GetPowPower(msg.Hash));
+                            BlockMining.Power = GetPowPower(msg.PowHash);
+                            ADD_TO_STAT("MAX:POWER", GetPowPower(msg.PowHash));
                             SERVER.AddToMaxPOW(BlockMining, {SeqHash:BlockMining.SeqHash, AddrHash:BlockMining.AddrHash, PrevHash:BlockMining.PrevHash,
                                 TreeHash:BlockMining.TreeHash, });
                         }
@@ -203,6 +207,7 @@ function RunStopPOWProcess(Mode)
         });
     }
 };
+
 function SetCalcPOW(Block)
 {
     if(!global.USE_MINING)
@@ -222,6 +227,7 @@ function SetCalcPOW(Block)
 };
 global.SetCalcPOW = SetCalcPOW;
 global.RunStopPOWProcess = RunStopPOWProcess;
+
 function DoGetNodes()
 {
     if(!SERVER || SERVER.CanSend < 2)
@@ -251,6 +257,7 @@ function DoGetNodes()
         SERVER.StartGetNodes(Node);
     }
 };
+
 function DoConnectToNodes(Arr,Mode)
 {
     if(!SERVER || SERVER.CanSend < 2)
@@ -286,6 +293,7 @@ function DoConnectToNodes(Arr,Mode)
         }
     }
 };
+
 function RunServer(bVirtual)
 {
     idRunOnce = setInterval(RunOnce, 1000);
@@ -314,6 +322,7 @@ function RunServer(bVirtual)
     new CServer(KeyPair, START_IP, START_PORT_NUMBER, false, bVirtual);
     DoStartFindList();
 };
+
 function DoStartFindList()
 {
     var keyThisServer = SERVER.ip + ":" + SERVER.port;
@@ -331,6 +340,7 @@ function DoStartFindList()
         Node.StartFindList = 1;
     }
 };
+
 function RunOnce()
 {
     if(global.SERVER)
@@ -352,6 +362,7 @@ function RunOnce()
         }, 10000);
     }
 };
+
 function RunOnUpdate()
 {
     if(!UPDATE_NUM_COMPLETE)
@@ -368,12 +379,12 @@ function RunOnUpdate()
         }
         else
         {
-            CheckRewriteAllTr(5300000, "0A87F267DA4188CBA845C62060C4CF7541D5A701EF60CEE8417DAA934693697D");
         }
         ToLog("UPDATER Finish");
         global.SendLogToClient = 0;
     }
 };
+
 function CheckRewriteTr(Num,StrHash,StartRewrite)
 {
     if(SERVER.BlockNumDB < StartRewrite)
@@ -390,6 +401,7 @@ function CheckRewriteTr(Num,StrHash,StartRewrite)
         return "OK";
     }
 };
+
 function CheckRewriteAllTr(Num,StrHash)
 {
     var AccountsHash = DApps.Accounts.GetHashOrUndefined(Num);

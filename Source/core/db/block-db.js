@@ -151,8 +151,8 @@ module.exports = class CDB extends require("../code")
                 }
                 var PrevHash = CalcHashFromArray(arr, true);
                 var SeqHash = this.GetSeqHash(Block.BlockNum, PrevHash, Block.TreeHash);
-                var Hash = shaarrblock2(SeqHash, Block.AddrHash, Block.BlockNum);
-                if(CompareArr(Hash, Block.Hash) !== 0)
+                var Value = GetHashFromSeqAddr(SeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
+                if(CompareArr(Value.Hash, Block.Hash) !== 0)
                 {
                     ToLog("=================== FIND ERR Hash in " + Block.BlockNum + "  bCheckBody=" + bCheckBody)
                     return num > 0 ? num - 1 : 0;
@@ -338,7 +338,7 @@ module.exports = class CDB extends require("../code")
                 return false;
             }
             Block.SumHash = shaarr2(PrevBlock.SumHash, Block.Hash)
-            Block.SumPow = PrevBlock.SumPow + GetPowPower(Block.Hash)
+            Block.SumPow = PrevBlock.SumPow + GetPowPower(Block.PowHash)
             if(USE_CHECK_SAVE_DB)
                 if(!this.CheckSeqHashDB(Block, "WriteBlockHeaderDB"))
                     return false;
@@ -593,10 +593,15 @@ module.exports = class CDB extends require("../code")
         Block.BlockNum = Num
         Block.SeqHash = this.GetSeqHash(Block.BlockNum, Block.PrevHash, Block.TreeHash)
         if(Block.BlockNum >= BLOCK_PROCESSING_LENGTH2)
-            Block.Hash = shaarrblock2(Block.SeqHash, Block.AddrHash, Block.BlockNum)
+        {
+            CalcHashBlockFromSeqAddr(Block)
+        }
         else
+        {
             Block.Hash = this.GetHashGenesis(Block.BlockNum)
-        Block.Power = GetPowPower(Block.Hash)
+            Block.PowHash = Block.Hash
+        }
+        Block.Power = GetPowPower(Block.PowHash)
         if(IsZeroArr(Block.Hash))
             return undefined;
         return Block;
@@ -722,7 +727,7 @@ module.exports = class CDB extends require("../code")
                 var Block = this.ReadBlockHeaderDB(num);
                 if(Block)
                 {
-                    Power = GetPowPower(Block.Hash)
+                    Power = GetPowPower(Block.PowHash)
                     var Miner = ReadUintFromArr(Block.AddrHash, 0);
                     var Nonce = ReadUintFromArr(Block.AddrHash, 6);
                     if(Param.Miner < 0)
@@ -816,7 +821,7 @@ module.exports = class CDB extends require("../code")
                         var Block = this.ReadBlockHeaderDB(num);
                         if(Block)
                         {
-                            Power = GetPowPower(Block.Hash)
+                            Power = GetPowPower(Block.PowHash)
                             var Miner = ReadUintFromArr(Block.AddrHash, 0);
                             if(Miner === GENERATE_BLOCK_ACCOUNT)
                             {

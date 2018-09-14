@@ -8,6 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
+
 function $(id)
 {
     return document.getElementById(id);
@@ -93,6 +94,7 @@ else
     };
 }
 var MAX_SUM_CENT = 1e9;
+
 function ADD(Ret,Value2)
 {
     Ret.SumTER += Value2.SumTER;
@@ -103,6 +105,7 @@ function ADD(Ret,Value2)
         Ret.SumTER++;
     }
 };
+
 function SUM_TO_STRING(Value,bTerion)
 {
     var Str;
@@ -119,6 +122,7 @@ function SUM_TO_STRING(Value,bTerion)
     }
     return Str;
 };
+
 function GetArrFromHex(Str)
 {
     var array = [];
@@ -128,6 +132,7 @@ function GetArrFromHex(Str)
     }
     return array;
 };
+
 function GetHexFromArr(arr)
 {
     if(!(arr instanceof Array) && arr.data)
@@ -148,10 +153,12 @@ function GetHexFromArr(arr)
     }
     return Str.toUpperCase();
 };
+
 function GetStrFromAddr(arr)
 {
     return GetHexFromArr(arr);
 };
+
 function GetHexFromArrBlock(Arr,LenBlock)
 {
     var Str = "";
@@ -171,6 +178,7 @@ function GetHexFromArrBlock(Arr,LenBlock)
     }
     return Str;
 };
+
 function Rigth(Str,Count)
 {
     if(Str.length < Count)
@@ -178,6 +186,7 @@ function Rigth(Str,Count)
     else
         return Str.substr(Str.length - Count);
 };
+
 function toUTF8Array(str)
 {
     var utf8 = [];
@@ -205,6 +214,7 @@ function toUTF8Array(str)
     }
     return utf8;
 };
+
 function Utf8ArrayToStr(array)
 {
     var out, i, len, c;
@@ -249,10 +259,12 @@ function Utf8ArrayToStr(array)
     }
     return out;
 };
+
 function GetArr32FromStr(Str)
 {
     return GetArrFromStr(Str, 32);
 };
+
 function GetArrFromStr(Str,Len)
 {
     var arr = toUTF8Array(Str);
@@ -262,10 +274,12 @@ function GetArrFromStr(Str,Len)
     }
     return arr.slice(0, Len);
 };
+
 function WriteByte(arr,Num)
 {
     arr[arr.length] = Num & 0xFF;
 };
+
 function WriteUint(arr,Num)
 {
     var len = arr.length;
@@ -277,6 +291,7 @@ function WriteUint(arr,Num)
     arr[len + 4] = NumH & 0xFF;
     arr[len + 5] = (NumH >>> 8) & 0xFF;
 };
+
 function WriteUint32(arr,Num)
 {
     var len = arr.length;
@@ -285,6 +300,7 @@ function WriteUint32(arr,Num)
     arr[len + 2] = (Num >>> 16) & 0xFF;
     arr[len + 3] = (Num >>> 24) & 0xFF;
 };
+
 function WriteStr(arr,Str,ConstLength)
 {
     if(!Str)
@@ -310,6 +326,7 @@ function WriteStr(arr,Str,ConstLength)
         arr[len + i] = arrStr[i];
     }
 };
+
 function WriteArr(arr,arr2,ConstLength)
 {
     var len = arr.length;
@@ -318,6 +335,7 @@ function WriteArr(arr,arr2,ConstLength)
         arr[len + i] = arr2[i];
     }
 };
+
 function ReadUintFromArr(arr,len)
 {
     if(len === undefined)
@@ -330,6 +348,7 @@ function ReadUintFromArr(arr,len)
     value = value * 256 + arr[len];
     return value;
 };
+
 function ReadUintNext_DEL(arr)
 {
     var len = arr.len;
@@ -339,6 +358,7 @@ function ReadUintNext_DEL(arr)
     arr.len += 6;
     return value;
 };
+
 function ReadStr(arr)
 {
     var length = arr[arr.len] + arr[arr.len + 1] * 256;
@@ -348,6 +368,7 @@ function ReadStr(arr)
     arr.len += length;
     return Str;
 };
+
 function ReadArr(arr,length)
 {
     var Ret = [];
@@ -359,6 +380,7 @@ function ReadArr(arr,length)
     arr.len += length;
     return Ret;
 };
+
 function ParseNum(Str)
 {
     var Res = parseInt(Str);
@@ -370,6 +392,7 @@ function ParseNum(Str)
         Res = 0;
     return Res;
 };
+
 function CopyObjKeys(dest,src)
 {
     for(var key in src)
@@ -377,6 +400,7 @@ function CopyObjKeys(dest,src)
         dest[key] = src[key];
     }
 };
+
 function SaveToArr(Arr,Obj)
 {
     for(var key in Obj)
@@ -405,6 +429,7 @@ function SaveToArr(Arr,Obj)
         }
     }
 };
+
 function LoadFromArr(Arr,Obj)
 {
     if(!Arr.length)
@@ -445,6 +470,7 @@ function LoadFromArr(Arr,Obj)
         return false;
 };
 var entityMap = {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':'&quot;', "'":'&#39;', "/":'&#x2F;', "\n":'<BR>', " ":'&nbsp;', };
+
 function escapeHtml(string)
 {
     return String(string).replace(/[\s\n&<>"'\/]/g, function (s)
@@ -452,6 +478,7 @@ function escapeHtml(string)
         return entityMap[s];
     });
 };
+
 function ViewCurrent(Def,flag,This)
 {
     if(Def.BlockName)
@@ -481,6 +508,7 @@ function ViewCurrent(Def,flag,This)
     if(This)
         SetImg(This, Def.BlockName);
 };
+
 function ViewPrev(Def)
 {
     var item = document.getElementById(Def.NumName);
@@ -491,6 +519,7 @@ function ViewPrev(Def)
     item.value = Num;
     ViewCurrent(Def);
 };
+
 function ViewNext(Def,MaxNum)
 {
     var item = document.getElementById(Def.NumName);
@@ -513,16 +542,19 @@ function ViewNext(Def,MaxNum)
     }
     ViewCurrent(Def);
 };
+
 function ViewBegin(Def)
 {
     document.getElementById(Def.NumName).value = 0;
     ViewCurrent(Def);
 };
+
 function ViewEnd(Def,MaxNum)
 {
     document.getElementById(Def.NumName).value = MaxNum - MaxNum % CountViewRows;
     ViewCurrent(Def);
 };
+
 function DoStableScroll()
 {
     var scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight,
@@ -533,6 +565,7 @@ function DoStableScroll()
     item.style.top = "" + scrollHeight + "px";
 };
 var glWorkNum = 0;
+
 function SetGridData(arr,id_name,TotalSum,bclear,revert)
 {
     var htmlTable = document.getElementById(id_name);
@@ -614,6 +647,7 @@ function SetGridData(arr,id_name,TotalSum,bclear,revert)
     }
     DoStableScroll();
 };
+
 function ClearTable(htmlTable)
 {
     for(var i = htmlTable.rows.length - 1; i > 0; i--)
@@ -621,6 +655,7 @@ function ClearTable(htmlTable)
     htmlTable.ItemsMap = {};
     htmlTable.RowCount = 0;
 };
+
 function ViewGrid(serverpath,nameid,bClear,TotalSum)
 {
     GetData(serverpath, function (Data)
@@ -630,6 +665,7 @@ function ViewGrid(serverpath,nameid,bClear,TotalSum)
         SetGridData(Data.arr, nameid, TotalSum, bClear);
     });
 };
+
 function RetOpenBlock(BlockNum,TrDataLen)
 {
     if(BlockNum && TrDataLen)
@@ -637,10 +673,12 @@ function RetOpenBlock(BlockNum,TrDataLen)
     else
         return BlockNum;
 };
+
 function ViewTransaction(BlockNum)
 {
     window.Open('./HTML/blockviewer.html#' + BlockNum, 'viewer', 800, 800);
 };
+
 function DateFromBlock(BlockNum)
 {
     var Str;
@@ -655,6 +693,7 @@ function DateFromBlock(BlockNum)
         Str = "";
     return Str;
 };
+
 function SetCheckPoint(BlockNum)
 {
     if(!BlockNum)
@@ -670,6 +709,7 @@ function SetCheckPoint(BlockNum)
         }
     });
 };
+
 function AddDiagramToArr(Arr,Item)
 {
     var bWas = 0;
@@ -689,6 +729,7 @@ function AddDiagramToArr(Arr,Item)
         Arr.push(Item);
     }
 };
+
 function LoadValuesByArr(Arr)
 {
     if(localStorage["VerSave"] !== "3")
@@ -708,6 +749,7 @@ function LoadValuesByArr(Arr)
     }
     return 1;
 };
+
 function SaveValuesByArr(Arr)
 {
     localStorage["VerSave"] = "3";

@@ -256,6 +256,8 @@ class AccountApp extends require("./dapp")
     {
         if(Block.BlockNum < global.START_MINING)
             return ;
+        if(!Block.PowHash)
+            throw "#121 ERROR NO Block.PowHash";
         var SysData = this.ReadValue(0);
         var SysBalance = SysData.Value.SumTER;
         const REF_PERIOD_START = global.START_MINING;
@@ -266,7 +268,7 @@ class AccountApp extends require("./dapp")
         var Data = this.ReadValue(AccountID);
         if(Data && Data.Currency === 0 && Data.BlockNumCreate < Block.BlockNum)
         {
-            var Power = GetPowPower(Block.Hash);
+            var Power = GetPowPower(Block.PowHash);
             var Sum = Power * Power * SysBalance / TOTAL_TER_MONEY / 100;
             var CoinTotal = {SumTER:0, SumCENT:0};
             var CoinSum = this.COIN_FROM_FLOAT(Sum);

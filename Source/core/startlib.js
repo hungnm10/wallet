@@ -9,6 +9,7 @@
 */
 
 var fs = require("fs");
+
 function CopyFiles(l,o,t)
 {
     if(fs.existsSync(l))

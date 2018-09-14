@@ -450,6 +450,7 @@ global.CloseSocket = function (Socket,StrError,bHide)
     if(!bHide)
         AddNodeInfo(Node, "CLOSE " + StrNode + "  *" + Socket.ConnectID + " - " + StrError);
 };
+
 function SetSocketStatus(Socket,Status)
 {
     if(Socket && Socket.SocketStatus !== Status)
@@ -465,6 +466,7 @@ function SetSocketStatus(Socket,Status)
         Socket.TimeStatus = (new Date) - 0;
     }
 };
+
 function GetSocketStatus(Socket)
 {
     if(Socket && Socket.SocketStatus)
@@ -484,6 +486,7 @@ function GetSocketStatus(Socket)
         return 0;
     }
 };
+
 function SocketInfo(Socket)
 {
     if(Socket)
@@ -491,6 +494,7 @@ function SocketInfo(Socket)
     else
         return "";
 };
+
 function SocketStatistic(Socket)
 {
     if(!Socket)
@@ -510,6 +514,7 @@ function SocketStatistic(Socket)
         Str = "0";
     return Str;
 };
+
 function NodeInfo(Node)
 {
     if(Node)
@@ -517,6 +522,7 @@ function NodeInfo(Node)
     else
         return "";
 };
+
 function NodeName(Node)
 {
     if(!Node)
@@ -530,6 +536,7 @@ function NodeName(Node)
         return "" + Node.ip + ":" + Node.addrStr.substr(0, 6);
     }
 };
+
 function FindNodeByAddr(Addr,bConnect)
 {
     var Node = SERVER.NodesMap[Addr.trim()];
@@ -543,6 +550,7 @@ function FindNodeByAddr(Addr,bConnect)
     }
     return undefined;
 };
+
 function AddNodeInfo(Node,Str,bSet)
 {
     if(!Node)

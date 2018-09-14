@@ -121,6 +121,7 @@ class CApp extends require("./dapp")
         }
     }
 };
+
 function TestEncryptDecrypt()
 {
     const CMessager = module.exports;

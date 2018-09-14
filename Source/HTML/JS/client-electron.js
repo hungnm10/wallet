@@ -9,6 +9,7 @@
 */
 
 const ipcRenderer = require('electron').ipcRenderer;
+
 function GetDataElectron(Method,ObjPost,Func)
 {
     if(Func === undefined)
