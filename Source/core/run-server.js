@@ -171,13 +171,16 @@ function RunStopPOWProcess(Mode)
                 else
                     if(msg.cmd === "POW")
                     {
-                        if(BlockMining && BlockMining.Hash && BlockMining.SeqHash && CompareArr(BlockMining.SeqHash, msg.SeqHash) === 0 && CompareArr(BlockMining.Hash,
-                        msg.Hash) >= 0)
+                        if(BlockMining && BlockMining.Hash && BlockMining.SeqHash && CompareArr(BlockMining.SeqHash, msg.SeqHash) === 0 && CompareArr(BlockMining.PowHash,
+                        msg.PowHash) >= 0)
                         {
                             BlockMining.Hash = msg.Hash;
-                            BlockMining.AddrHash = msg.AddrArr;
+                            BlockMining.PowHash = msg.PowHash;
+                            BlockMining.AddrHash = msg.AddrHash;
                             BlockMining.Power = GetPowPower(msg.PowHash);
-                            ADD_TO_STAT("MAX:POWER", GetPowPower(msg.PowHash));
+                            if(!BlockMining.AddrHash)
+                                throw "ERROR !BlockMining.AddrHash";
+                            ADD_TO_STAT("MAX:POWER", BlockMining.Power);
                             SERVER.AddToMaxPOW(BlockMining, {SeqHash:BlockMining.SeqHash, AddrHash:BlockMining.AddrHash, PrevHash:BlockMining.PrevHash,
                                 TreeHash:BlockMining.TreeHash, });
                         }
@@ -220,9 +223,9 @@ function SetCalcPOW(Block)
         var CurWorker = ArrMiningWrk[i];
         if(!CurWorker.bOnline)
             continue;
-        CurWorker.send({cmd:"SetBlock", Account:GENERATE_BLOCK_ACCOUNT, BlockNum:Block.BlockNum, SeqHash:Block.SeqHash, Hash:Block.Hash,
-            Time:new Date() - 0, Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POWRunCount, Percent:global.POW_MAX_PERCENT,
-        });
+        CurWorker.send({cmd:"SetBlock", Account:GENERATE_BLOCK_ACCOUNT, MinerID:GENERATE_BLOCK_ACCOUNT, BlockNum:Block.BlockNum, SeqHash:Block.SeqHash,
+            Hash:Block.Hash, PrevHash:Block.PrevHash, Time:new Date() - 0, Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POWRunCount,
+            Percent:global.POW_MAX_PERCENT, });
     }
 };
 global.SetCalcPOW = SetCalcPOW;

@@ -9,7 +9,7 @@
 */
 
 const DELTA_LONG_MINING = 5000;
-const BLOCKNUM_ALGO2 = 7000000;
+var BLOCKNUM_ALGO2 = 6580000;
 require('./library.js');
 require('./crypto-library.js');
 
@@ -49,7 +49,7 @@ function GetHash(BlockHash,PrevHashNum,BlockNum,Miner,Nonce0,Nonce1,Nonce2,Delta
     var Hash1 = XORArr(HashBase, HashNonce1);
     var Hash2 = XORArr(HashCurrent, HashNonce2);
     var Ret = {Hash:Hash2};
-    if(CompareArr(Ret.Hash1, Ret.Hash2) > 0)
+    if(CompareArr(Hash1, Hash2) > 0)
     {
         Ret.PowHash = Hash1;
     }
@@ -58,43 +58,6 @@ function GetHash(BlockHash,PrevHashNum,BlockNum,Miner,Nonce0,Nonce1,Nonce2,Delta
         Ret.PowHash = Hash2;
     }
     return Ret;
-};
-global.GetHashFromSeqAddr = GetHashFromSeqAddr;
-global.CalcHashBlockFromSeqAddr = CalcHashBlockFromSeqAddr;
-global.CreateHashMinimal = CreateHashMinimal;
-global.StartNumNewAlgo = StartNumNewAlgo;
-
-function StartNumNewAlgo()
-{
-    return BLOCKNUM_ALGO2;
-};
-
-function CalcHashBlockFromSeqAddr(Block,PrevHash)
-{
-    var Value = GetHashFromSeqAddr(Block.SeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
-    Block.Hash = Value.Hash;
-    Block.PowHash = Value.PowHash;
-};
-
-function CreateHashMinimal(Block,MinerID)
-{
-    if(Block.BlockNum < BLOCKNUM_ALGO2)
-    {
-        return false;
-    }
-    var PrevHashNum = ReadUint32FromArr(Block.PrevHash, 28);
-    var Ret = GetHash(Block.SeqHash, PrevHashNum, Block.BlockNum, MinerID, 0, 0, 0, 0, 0);
-    Block.Hash = Ret.Hash;
-    Block.PowHash = Ret.PowHash;
-    Block.Power = GetPowPower(Block.PowHash);
-    Block.AddrHash = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    WriteUintToArrOnPos(Block.AddrHash, MinerID, 0);
-    WriteUint32ToArrOnPos(Block.AddrHash, PrevHashNum, 28);
-    return true;
-};
-
-function CreateAddrPOW2(SeqHash,AddrArr,MaxHash,Start,CountNonce,BlockNum)
-{
 };
 
 function XORArr(Arr1,Arr2)
@@ -132,4 +95,93 @@ function GetHashFromNum3(Value1,Value2,Value3)
     WriteUintToArrOnPos(MeshArr, Value2, 6);
     WriteUintToArrOnPos(MeshArr, Value3, 12);
     return sha3(MeshArr);
+};
+global.GetHashFromSeqAddr = GetHashFromSeqAddr;
+global.CalcHashBlockFromSeqAddr = CalcHashBlockFromSeqAddr;
+global.CreateHashMinimal = CreateHashMinimal;
+global.StartNumNewAlgo = StartNumNewAlgo;
+global.CreatePOWVersion0 = CreatePOWVersion0;
+
+function StartNumNewAlgo()
+{
+    return BLOCKNUM_ALGO2;
+};
+
+function CalcHashBlockFromSeqAddr(Block,PrevHash)
+{
+    var Value = GetHashFromSeqAddr(Block.SeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
+    Block.Hash = Value.Hash;
+    Block.PowHash = Value.PowHash;
+};
+
+function CreateHashMinimal(Block,MinerID)
+{
+    if(Block.BlockNum < BLOCKNUM_ALGO2)
+    {
+        return false;
+    }
+    Block.MinerID = MinerID;
+    Block.RunCount = 16;
+    CreatePOWVersion0(Block);
+    return true;
+    var PrevHashNum = ReadUint32FromArr(Block.PrevHash, 28);
+    var Ret = GetHash(Block.SeqHash, PrevHashNum, Block.BlockNum, MinerID, 0, 0, 0, 0, 0);
+    Block.Hash = Ret.Hash;
+    Block.PowHash = Ret.PowHash;
+    Block.Power = GetPowPower(Block.PowHash);
+    Block.AddrHash = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    WriteUintToArrOnPos(Block.AddrHash, MinerID, 0);
+    WriteUint32ToArrOnPos(Block.AddrHash, PrevHashNum, 28);
+    return true;
+};
+
+function CreatePOWVersion0(Block)
+{
+    if(!Block.MaxLider)
+    {
+        Block.MaxLider = {Nonce1:0, Nonce2:0, Hash1:[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255], Hash2:[255, 255, 255, 255, 255, 255, 255,
+            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
+        };
+    }
+    var MaxLider = Block.MaxLider;
+    var BlockNum = Block.BlockNum;
+    var Miner = Block.MinerID;
+    var PrevHashNum = ReadUint32FromArr(Block.PrevHash, 28);
+    var HashBase = GetHashFromNum2(BlockNum, PrevHashNum);
+    var HashCurrent = GetHashFromArrNum2(Block.SeqHash, Miner, 0);
+    for(var nonce = 0; nonce < Block.RunCount; nonce++)
+    {
+        var Nonce1 = Block.LastNonce + nonce;
+        var Nonce2 = Nonce1;
+        var HashNonce1 = GetHashFromNum3(BlockNum, Miner, Nonce1);
+        var HashNonce2 = GetHashFromNum3(BlockNum, Miner, Nonce2);
+        var Hash1 = XORArr(HashBase, HashNonce1);
+        var Hash2 = XORArr(HashCurrent, HashNonce2);
+        if(CompareArr(MaxLider.Hash1, Hash1) > 0)
+        {
+            MaxLider.Hash1 = Hash1;
+            MaxLider.Nonce1 = Nonce1;
+        }
+        if(CompareArr(MaxLider.Hash2, Hash2) > 0)
+        {
+            MaxLider.Hash2 = Hash2;
+            MaxLider.Nonce2 = Nonce2;
+        }
+    }
+    Block.LastNonce += Block.RunCount;
+    Block.AddrHash = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    WriteUintToArrOnPos(Block.AddrHash, Miner, 0);
+    WriteUintToArrOnPos(Block.AddrHash, MaxLider.Nonce1, 12);
+    WriteUintToArrOnPos(Block.AddrHash, MaxLider.Nonce2, 18);
+    WriteUint32ToArrOnPos(Block.AddrHash, PrevHashNum, 28);
+    Block.Hash = MaxLider.Hash2;
+    if(CompareArr(MaxLider.Hash1, MaxLider.Hash2) > 0)
+    {
+        Block.PowHash = MaxLider.Hash1;
+    }
+    else
+    {
+        Block.PowHash = MaxLider.Hash2;
+    }
 };

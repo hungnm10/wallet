@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.NWMODE = 1, require("./library"), require("./crypto-library");
+global.NWMODE = 1, require("./library"), require("./crypto-library"), require("./terahash");
 var PROCESS = process;
 process.send && !global.DEBUGPROCESS ? (global.ToLog = function (e)
 {
@@ -30,9 +30,15 @@ function CalcPOWHash()
     {
         if(new Date - Block.Time > Block.Period)
             return clearInterval(idInterval), void (idInterval = void 0);
-        var e = GetArrFromValue(Block.Account), o = CreateAddrPOW(Block.SeqHash, e, Block.Hash, Block.LastNonce, Block.RunCount, Block.BlockNum);
-        Block.LastNonce = o.LastNonce, o.bFind && (Block.Hash = o.MaxHash, process.send({cmd:"POW", SeqHash:Block.SeqHash, Hash:Block.Hash,
-            AddrArr:e, PowHash:Block.Hash, Num:Block.Num}));
+        if(Block.BlockNum >= StartNumNewAlgo())
+            CreatePOWVersion0(Block), process.send({cmd:"POW", SeqHash:Block.SeqHash, Hash:Block.Hash, PowHash:Block.PowHash, AddrHash:Block.AddrHash,
+                Num:Block.Num});
+        else
+        {
+            var e = GetArrFromValue(Block.Account), o = CreateAddrPOW(Block.SeqHash, e, Block.Hash, Block.LastNonce, Block.RunCount, Block.BlockNum);
+            Block.LastNonce = o.LastNonce, o.bFind && (Block.Hash = o.MaxHash, Block.PowHash = o.MaxHash, process.send({cmd:"POW", SeqHash:Block.SeqHash,
+                Hash:Block.Hash, AddrHash:e, PowHash:Block.PowHash, Num:Block.Num}));
+        }
     }
 };
 PROCESS.on("message", function (e)
