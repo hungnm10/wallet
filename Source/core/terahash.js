@@ -9,7 +9,7 @@
 */
 
 const DELTA_LONG_MINING = 5000;
-var BLOCKNUM_ALGO2 = 6580000;
+const BLOCKNUM_ALGO2 = 6560000;
 require('./library.js');
 require('./crypto-library.js');
 
@@ -40,8 +40,10 @@ function GetHashFromSeqAddr(SeqHash,AddrHash,BlockNum,PrevHash)
 
 function GetHash(BlockHash,PrevHashNum,BlockNum,Miner,Nonce0,Nonce1,Nonce2,DeltaNum1,DeltaNum2)
 {
-    if(DeltaNum1 > DELTA_LONG_MINING || DeltaNum2 > DELTA_LONG_MINING)
-        return undefined;
+    if(DeltaNum1 > DELTA_LONG_MINING)
+        DeltaNum1 = 0;
+    if(DeltaNum2 > DELTA_LONG_MINING)
+        DeltaNum2 = 0;
     var HashBase = GetHashFromNum2(BlockNum, PrevHashNum);
     var HashCurrent = GetHashFromArrNum2(BlockHash, Miner, Nonce0);
     var HashNonce1 = GetHashFromNum3(BlockNum - DeltaNum1, Miner, Nonce1);
