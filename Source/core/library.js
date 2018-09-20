@@ -328,4 +328,4 @@ global.NormalizeName = function (r)
         32 <= o && (t += code_base.charAt(o - 32));
     }
     return t;
-}, LOAD_CONST() || global.NWMODE || CheckTime(), global.AUTO_COORECT_TIME = 1;
+}, LOAD_CONST() || CheckTime(), global.AUTO_COORECT_TIME = 1;

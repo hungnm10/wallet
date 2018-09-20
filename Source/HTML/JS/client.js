@@ -30,6 +30,7 @@ if(window.nw)
     {
         if(Func === undefined)
         {
+            throw "OLD MODE (GetData)";
             Func = ObjPost;
             ObjPost = null;
         }
@@ -60,6 +61,7 @@ else
         var StrPost = null;
         if(Func === undefined)
         {
+            throw "OLD MODE (GetData)";
             Func = ObjPost;
             ObjPost = null;
         }

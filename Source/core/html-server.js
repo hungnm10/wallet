@@ -940,8 +940,9 @@ function OnGetData(arg)
 {
     var Path = arg.path;
     var obj = arg.obj;
+    if(Path.substr(0, 1) === "/")
+        Path = Path.substr(1);
     var params = Path.split('/', 5);
-    params.splice(0, 1);
     var Ret;
     var F = HTTPCaller[params[0]];
     if(F)
