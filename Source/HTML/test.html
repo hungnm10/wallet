@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <script type="text/javascript" src="../HTML/JS/client.js"></script>
+
+</head>
+<body>
+<img src="/HTML/PIC/wallet.png">
+<BR>
+
+
+
+TEST !!
+<INPUT type="button" onclick="RunTest()"  class="" value="Run">
+
+<script>
+    function $(id)
+    {
+        return document.getElementById(id);
+    }
+    function RunTest()
+    {
+          SendMessage("Test!!");
+    }
+    function SetStatus(Str)
+    {
+        var id = $("idStatus");
+        id.innerHTML=Str;
+    }
+
+    //Messages
+    var glSecret;
+    function SendMessage(Str)
+    {
+        var win = window.parent;
+
+        var Data=
+            {
+                Secret:glSecret,
+                Message:Str,
+            };
+        win.postMessage(Data, "*");
+
+    }
+    function listener(event)
+    {
+        var Data=event.data;
+        if(!Data || typeof Data!=="object")
+            return;
+        var StrFrom=window.location.protocol+"//"+window.location.host;
+        if (event.origin !== StrFrom)
+        {
+            SetStatus( "Err origin: " + event.origin);
+            return;
+        }
+
+        glSecret=Data.Secret;
+
+        //SetStatus( "получено: " + JSON.stringify(event.data));
+        SetStatus( "Получено: " + Data.Message);
+    }
+
+    if (window.addEventListener)
+    {
+        window.addEventListener("message", listener);
+    } else
+    {
+        // IE8
+        window.attachEvent("onmessage", listener);
+    }
+</script>
+
+<BR>
+<DIV id="idStatus"></DIV>
+
+</body>
+</html>

@@ -8,8 +8,8 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 523;
-global.MIN_CODE_VERSION_NUM = 521;
+global.UPDATE_CODE_VERSION_NUM = 551;
+global.MIN_CODE_VERSION_NUM = 539;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
 "STAT_MODE", "UPDATE_NUM_COMPLETE", "HTTP_IP_CONNECT", "HTTP_PORT_NUMBER", "HTTP_PORT_PASSWORD", "WALLET_NAME", "WALLET_DESCRIPTION",
@@ -28,8 +28,8 @@ global.WALLET_NAME = "TERA";
 global.WALLET_DESCRIPTION = "";
 global.USE_MINING = 0;
 global.POW_MAX_PERCENT = 50;
-global.POWRunCount = 5000;
-global.POWRunPeriod = 2;
+global.POWRunCount = 10000;
+global.POWRunPeriod = 1;
 global.CheckPointDelta = 20;
 global.ALL_LOG_TO_CLIENT = 1;
 global.USE_LOG_NETWORK = 0;
@@ -50,7 +50,6 @@ global.MAX_LEVEL_SPECIALIZATION = 24;
 global.MIN_CONNECT_CHILD = 2;
 global.MAX_CONNECT_CHILD = 7;
 global.MAX_NODES_RETURN = 100;
-global.USE_PACKET_STAT = 0;
 global.MAX_WAIT_PERIOD_FOR_STATUS = 10 * 1000;
 global.TR_LEN = 100;
 global.BLOCK_PROCESSING_LENGTH = 8;

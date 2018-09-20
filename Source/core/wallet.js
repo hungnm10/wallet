@@ -307,7 +307,7 @@ class CApp
     {
         return this.DBHistory.GetMaxNum();
     }
-    GetHistoryAct(start, count, Direct, Filter)
+    GetHistoryAct(start, count, Filter, Direct)
     {
         var arr = [];
         for(var num = start; true; num++)
@@ -315,7 +315,7 @@ class CApp
             var Item = this.DBHistory.Read(num);
             if(!Item)
                 break;
-            if(Direct !== "" && Direct !== Item.Direct)
+            if(Direct && Direct !== Item.Direct)
                 continue;
             if(Item.Direct === "+" && this.AccountMap[Item.ToID] === undefined)
                 continue;

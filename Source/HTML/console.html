@@ -38,7 +38,7 @@
     function UpdateData()
     {
 
-        GetData("/GetWalletInfo", function (Data)
+        GetData("GetWalletInfo",{}, function (Data)
         {
             if(Data && Data.result)
             {
@@ -190,7 +190,7 @@
     function SendServerCode(Value)
     {
         SetStatus("");
-        GetData("/SendDirectCode",Value, function (Data)
+        GetData("SendDirectCode",Value, function (Data)
         {
             if(Data)
             {
@@ -223,7 +223,7 @@
         if($("idSendAll").checked)
         {
             var Data={DeltaBlockNum:DeltaBlockNum,Code:Code,All:1};
-            GetData("/SendECode/",Data, function (Data)
+            GetData("SendECode",Data, function (Data)
             {
                 if(Data)
                 {
@@ -250,7 +250,7 @@
 
             MustSend++;
             var Data={DeltaBlockNum:DeltaBlockNum,Code:Code,Addr:CurAddr};
-            GetData("/SendECode/",Data, function (Data)
+            GetData("SendECode",Data, function (Data)
             {
                 if(Data && Data.result===1)
                 {
@@ -329,7 +329,7 @@
             var StrHex=GetHexFromArr(Body);
             SetStatus2(StrHex.substr(0,100));
 
-            GetData("/SendTransactionHex/"+StrHex, function (Data)
+            GetData("SendTransactionHex",StrHex, function (Data)
             {
                 if(Data)
                 {
@@ -380,7 +380,7 @@
 
     function CheckDevelop()
     {
-        GetData("/GetWalletInfo", function (Data)
+        GetData("GetWalletInfo",{}, function (Data)
         {
             if(Data && Data.result)
             {

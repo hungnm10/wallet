@@ -55,6 +55,8 @@ else
     };
     window.GetData = function (Method,ObjPost,Func)
     {
+        if(Method.substr(0, 1) !== "/")
+            Method = "/" + Method;
         var StrPost = null;
         if(Func === undefined)
         {
@@ -69,7 +71,7 @@ else
         }
         else
         {
-            serv.open("GET", Method, true);
+            throw "ERROR GET-TYPE";
         }
         serv.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
         serv.onreadystatechange = function ()
@@ -479,6 +481,16 @@ function escapeHtml(string)
     });
 };
 
+function ViewGrid(APIName,Params,nameid,bClear,TotalSum)
+{
+    GetData(APIName, Params, function (Data)
+    {
+        if(!Data || !Data.result)
+            return ;
+        SetGridData(Data.arr, nameid, TotalSum, bClear);
+    });
+};
+
 function ViewCurrent(Def,flag,This)
 {
     if(Def.BlockName)
@@ -502,7 +514,7 @@ function ViewCurrent(Def,flag,This)
     }
     if(!Def.Param3)
         Def.Param3 = "";
-    ViewGrid("/" + Def.APIName + "/" + ParseNum(item.value) + "/" + CountViewRows + "/" + Def.Param3 + "/" + Filter, Def.TabName,
+    ViewGrid(Def.APIName, {StartNum:ParseNum(item.value), CountNum:CountViewRows, Param3:Def.Param3, Filter:Filter, }, Def.TabName,
     1, Def.TotalSum);
     SaveValues();
     if(This)
@@ -656,16 +668,6 @@ function ClearTable(htmlTable)
     htmlTable.RowCount = 0;
 };
 
-function ViewGrid(serverpath,nameid,bClear,TotalSum)
-{
-    GetData(serverpath, function (Data)
-    {
-        if(!Data || !Data.result)
-            return ;
-        SetGridData(Data.arr, nameid, TotalSum, bClear);
-    });
-};
-
 function RetOpenBlock(BlockNum,TrDataLen)
 {
     if(BlockNum && TrDataLen)
@@ -701,7 +703,7 @@ function SetCheckPoint(BlockNum)
         SetError("Not set BlockNum");
         return ;
     }
-    GetData("/SetCheckPoint/", BlockNum, function (Data)
+    GetData("SetCheckPoint", BlockNum, function (Data)
     {
         if(Data)
         {

@@ -20,8 +20,7 @@ var CServer = require("./server");
 global.glCurNumFindArr = 0;
 global.ArrReconnect = [];
 global.ArrConnect = [];
-var FindList = [{"ip":"91.235.136.81", "port":30005}, {"ip":"91.235.136.173", "port":30000}, {"ip":"194.87.162.33", "port":30000},
-    {"ip":"195.133.75.9", "port":30000}, {"ip":"82.146.34.153", "port":30000}, {"ip":"185.244.173.211", "port":30000}, ];
+var FindList = [{"ip":"91.235.136.81", "port":30005}, {"ip":"149.154.70.158", "port":30000}, ];
 if(global.LOCAL_RUN)
 {
     FindList = [{"ip":"127.0.0.1", "port":50000}, {"ip":"127.0.0.1", "port":50001}];
@@ -29,8 +28,7 @@ if(global.LOCAL_RUN)
 else
     if(global.TEST_NETWORK)
     {
-        FindList = [{"ip":"194.1.239.210", "port":40000}, {"ip":"194.1.237.94", "port":40000}, {"ip":"91.235.136.150", "port":40000},
-            {"ip":"185.244.173.211", "port":40000}, {"ip":"185.244.173.220", "port":40000}, ];
+        FindList = [{"ip":"91.235.136.81", "port":40000}, {"ip":"82.146.34.153", "port":40000}, ];
     }
 global.SERVER = undefined;
 var idRunOnce;
@@ -171,19 +169,7 @@ function RunStopPOWProcess(Mode)
                 else
                     if(msg.cmd === "POW")
                     {
-                        if(BlockMining && BlockMining.Hash && BlockMining.SeqHash && CompareArr(BlockMining.SeqHash, msg.SeqHash) === 0 && CompareArr(BlockMining.PowHash,
-                        msg.PowHash) >= 0)
-                        {
-                            BlockMining.Hash = msg.Hash;
-                            BlockMining.PowHash = msg.PowHash;
-                            BlockMining.AddrHash = msg.AddrHash;
-                            BlockMining.Power = GetPowPower(msg.PowHash);
-                            if(!BlockMining.AddrHash)
-                                throw "ERROR !BlockMining.AddrHash";
-                            ADD_TO_STAT("MAX:POWER", BlockMining.Power);
-                            SERVER.AddToMaxPOW(BlockMining, {SeqHash:BlockMining.SeqHash, AddrHash:BlockMining.AddrHash, PrevHash:BlockMining.PrevHash,
-                                TreeHash:BlockMining.TreeHash, });
-                        }
+                        SERVER.MiningProcess(msg);
                     }
                     else
                         if(msg.cmd === "HASHRATE")

@@ -159,6 +159,7 @@ module.exports = class CCommon
         ADD_TO_STAT("MAX:DELTA_TIME_HOT", SumDeltaHot / CountHot)
         ADD_TO_STAT("MAX:DELTA_TIME_ACTUAL", SumDeltaActual / Count)
         ADD_TO_STAT("MAX:MEMORY_USAGE", process.memoryUsage().heapTotal / 1024 / 1024)
+        ADD_TO_STAT("MAX:MEMORY_FREE", os.freemem() / 1024 / 1024)
         var SumUser = 0;
         var SumSys = 0;
         var SumIdle = 0;

@@ -16,14 +16,19 @@ const os = require('os');
 const http = require('http'), net = require('net'), url = require('url'), fs = require('fs'), querystring = require('querystring');
 global.HTTPCaller = {};
 
-function DoCommand(response,Path,params)
+function DoCommand(response,Type,Path,params)
 {
     var F = HTTPCaller[params[0]];
     if(F)
     {
-        response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
+        if(Type !== "POST")
+        {
+            ToError("Error POST with path:" + Path);
+            response.end();
+            return ;
+        }
         response.writeHead(200, {'Content-Type':'application/json'});
-        var Ret = F(params[1], params[2], params[3], params[4]);
+        var Ret = F(params[1]);
         try
         {
             var Str = JSON.stringify(Ret);
@@ -31,7 +36,7 @@ function DoCommand(response,Path,params)
         }
         catch(e)
         {
-            ToLog("Path:" + Path);
+            ToLog("ERR PATH:" + Path);
             ToLog(e);
             response.end();
         }
@@ -44,32 +49,10 @@ function DoCommand(response,Path,params)
         case "":
             SendFileHTML(response, "./HTML/wallet.html");
             break;
-        case "sendcommand":
-            OnSendCommand(response, params[1], params[2], params[3]);
-            break;
-        case "sendtransaction":
-            SendTransaction(response, params[1], params[2], params[3], params[4]);
-            break;
-        case "createdump":
-            CreateDump(response);
-            break;
-        case "getnetparams":
-            GetNetParams(response);
-            break;
-        case "getblock":
-            GetBlockData(response, params[1]);
-            break;
-        case "getblockheaders":
-            GetBlockHeaders(response, params[1], params[2]);
-            break;
-        case "chain":
-            SendFileHTML(response, "./HTML/monitor.html");
-            break;
-        case "stat":
-            SendFileHTML(response, "./HTML/stat.html");
-            break;
         default:
             {
+                if(Path.indexOf(".") ===  - 1)
+                    ToError("Error path:" + Path);
                 var path = params[params.length - 1];
                 if(typeof path !== "string")
                     path = "ErrorPath";
@@ -107,22 +90,17 @@ function DoCommand(response,Path,params)
     }
 };
 var sessionid = GetHexFromAddres(crypto.randomBytes(20));
-HTTPCaller.RestartNode = function (id,Param2,Param3)
+HTTPCaller.RestartNode = function (Params)
 {
     global.RestartNode();
     return {result:1};
 };
-HTTPCaller.TestTest = function (id,Param2,Param3)
+HTTPCaller.ToLogServer = function (Str)
 {
-    DApps.Accounts.TestTest(parseInt(id));
+    ToLogClient(Str);
     return {result:1};
 };
-HTTPCaller.ToLogServer = function (Str,StrKey,Param3)
-{
-    ToLogClient(Str, StrKey);
-    return {result:1};
-};
-HTTPCaller.FindMyAccounts = function (Str,Param2,Param3)
+HTTPCaller.FindMyAccounts = function (Params)
 {
     WALLET.FindMyAccounts();
     return {result:1};
@@ -133,40 +111,29 @@ HTTPCaller.GetAccount = function (id)
     var arr = DApps.Accounts.GetRowsAccounts(id, 1);
     return {Item:arr[0], result:1};
 };
-HTTPCaller.GetAccountsAll = function (id,count,Param3,Filter)
+HTTPCaller.GetAccountsAll = function (Params)
 {
-    id = parseInt(id);
-    count = parseInt(count);
-    var arr = DApps.Accounts.GetRowsAccounts(id, count, Filter);
+    var arr = DApps.Accounts.GetRowsAccounts(Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
-HTTPCaller.GetBlockAll = function (num,count,Param3,Filter)
+HTTPCaller.GetBlockAll = function (Params)
 {
-    num = parseInt(num);
-    count = parseInt(count);
-    var arr = SERVER.GetRows(num, count, Filter);
+    var arr = SERVER.GetRows(Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
-HTTPCaller.GetTransactionAll = function (num,count,BlockNum)
+HTTPCaller.GetTransactionAll = function (Params)
 {
-    num = parseInt(num);
-    count = parseInt(count);
-    BlockNum = parseInt(BlockNum);
-    var arr = SERVER.GetTrRows(BlockNum, num, count);
+    var arr = SERVER.GetTrRows(Params.Param3, Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
-HTTPCaller.GetActsAll = function (num,count,Param3)
+HTTPCaller.GetActsAll = function (Params)
 {
-    num = parseInt(num);
-    count = parseInt(count);
-    var arr = DApps.Accounts.GetActsAll(num, count);
+    var arr = DApps.Accounts.GetActsAll(Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
-HTTPCaller.GetHashAll = function (num,count)
+HTTPCaller.GetHashAll = function (Params)
 {
-    num = parseInt(num);
-    count = parseInt(count);
-    var arr = DApps.Accounts.DBAccountsHash.GetRows(num, count);
+    var arr = DApps.Accounts.DBAccountsHash.GetRows(Params.StartNum, Params.CountNum, Params.Filter);
     for(var i = 0; i < arr.length; i++)
     {
         var item = arr[i];
@@ -176,13 +143,9 @@ HTTPCaller.GetHashAll = function (num,count)
     }
     return {arr:arr, result:1};
 };
-HTTPCaller.GetHistoryAct = function (num,count,Direct,Filter)
+HTTPCaller.GetHistoryAct = function (Params)
 {
-    num = parseInt(num);
-    count = parseInt(count);
-    if(!Direct)
-        Direct = "";
-    var arr = WALLET.GetHistoryAct(num, count, Direct, Filter);
+    var arr = WALLET.GetHistoryAct(Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
 var LastTimeGetHashRate = 0;
@@ -205,16 +168,15 @@ HTTPCaller.GetWalletInfo = function ()
         LastHashRate = global.HASH_RATE;
         LastTimeGetHashRate = (new Date) - 0;
     }
-    var Ret = {result:1, WalletOpen:WALLET.WalletOpen, CODE_VERSION:CODE_VERSION, VersionNum:Math.max(CODE_VERSION.VersionNum,
-        global.UPDATE_CODE_VERSION_NUM), RelayMode:SERVER.RelayMode, BlockNumDB:SERVER.BlockNumDB, CurBlockNum:GetCurrentBlockNumByTime(),
-        CurTime:(new Date()) - 0, IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr), AccountMap:WALLET.AccountMap, ArrLog:ArrLogClient,
-        MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE, MaxAccID:DApps.Accounts.GetMaxAccount(), MaxActNum:DApps.Accounts.GetActsMaxNum(),
-        NeedRestart:global.NeedRestart, ip:SERVER.ip, port:SERVER.port, NET_WORK_MODE:global.NET_WORK_MODE, INTERNET_IP_FROM_STUN:global.INTERNET_IP_FROM_STUN,
-        HistoryMaxNum:MaxHistory, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME,
-        DATA_PATH:(DATA_PATH.substr(1, 1) === ":" ? DATA_PATH : GetNormalPathString(process.cwd() + "/" + DATA_PATH)), NodeAddrStr:SERVER.addrStr,
-        STAT_MODE:global.STAT_MODE, HTTPPort:global.HTTP_PORT_NUMBER, HTTPPassword:HTTP_PORT_PASSWORD, CONSTANTS:Constants, CheckPointBlockNum:CHECK_POINT.BlockNum,
-        MiningAccount:global.GENERATE_BLOCK_ACCOUNT, CountMiningCPU:global.CountMiningCPU, CountRunCPU:global.ArrMiningWrk.length,
-        MiningPaused:global.MiningPaused, HashRate:HashRateOneSec, };
+    var Ret = {result:1, WalletOpen:WALLET.WalletOpen, CODE_VERSION:CODE_VERSION, VersionNum:global.UPDATE_CODE_VERSION_NUM, RelayMode:SERVER.RelayMode,
+        BlockNumDB:SERVER.BlockNumDB, CurBlockNum:GetCurrentBlockNumByTime(), CurTime:(new Date()) - 0, IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr),
+        AccountMap:WALLET.AccountMap, ArrLog:ArrLogClient, MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE, MaxAccID:DApps.Accounts.GetMaxAccount(),
+        MaxActNum:DApps.Accounts.GetActsMaxNum(), NeedRestart:global.NeedRestart, ip:SERVER.ip, port:SERVER.port, NET_WORK_MODE:global.NET_WORK_MODE,
+        INTERNET_IP_FROM_STUN:global.INTERNET_IP_FROM_STUN, HistoryMaxNum:MaxHistory, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK,
+        CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME, DATA_PATH:(DATA_PATH.substr(1, 1) === ":" ? DATA_PATH : GetNormalPathString(process.cwd() + "/" + DATA_PATH)),
+        NodeAddrStr:SERVER.addrStr, STAT_MODE:global.STAT_MODE, HTTPPort:global.HTTP_PORT_NUMBER, HTTPPassword:HTTP_PORT_PASSWORD,
+        CONSTANTS:Constants, CheckPointBlockNum:CHECK_POINT.BlockNum, MiningAccount:global.GENERATE_BLOCK_ACCOUNT, CountMiningCPU:global.CountMiningCPU,
+        CountRunCPU:global.ArrMiningWrk.length, MiningPaused:global.MiningPaused, HashRate:HashRateOneSec, };
     Ret.PrivateKey = WALLET.KeyPair.PrivKeyStr;
     Ret.PublicKey = WALLET.KeyPair.PubKeyStr;
     return Ret;
@@ -226,7 +188,7 @@ HTTPCaller.GetWalletAccounts = function ()
     Ret.PublicKey = WALLET.KeyPair.PubKeyStr;
     return Ret;
 };
-HTTPCaller.SetWalletKey = function (PrivateKeyStr,Param2,Param3)
+HTTPCaller.SetWalletKey = function (PrivateKeyStr)
 {
     WALLET.SetPrivateKey(PrivateKeyStr, true);
     return {result:1};
@@ -267,7 +229,7 @@ AddTrMap[1] = "OK";
 AddTrMap[2] = "Update OK";
 AddTrMap[3] = "Was send";
 AddTrMap[4] = "Added to time pool";
-HTTPCaller.SendTransactionHex = function (ValueHex,nonce,Num)
+HTTPCaller.SendTransactionHex = function (ValueHex)
 {
     var body = GetArrFromHex(ValueHex);
     var Result = {result:1};
@@ -295,7 +257,7 @@ HTTPCaller.SendDirectCode = function (StrCommand)
     var Struct = {result:1, sessionid:sessionid, text:Result};
     return Struct;
 };
-HTTPCaller.SetMining = function (MiningAccount,Param2,Param3)
+HTTPCaller.SetMining = function (MiningAccount)
 {
     WALLET.SetMiningAccount(parseInt(MiningAccount));
     return {result:1};
@@ -341,7 +303,7 @@ HTTPCaller.SendECode = function (Param)
     SERVER.SendECode(Param, Node);
     return {result:1, text:"Send"};
 };
-HTTPCaller.SetCheckPoint = function (BlockNum,Param2,Param3)
+HTTPCaller.SetCheckPoint = function (BlockNum)
 {
     var Ret = CheckCorrectDevKey();
     if(Ret !== true)
@@ -626,7 +588,7 @@ HTTPCaller.GetBlockchainStat = function (Param)
     Result.sessionid = sessionid;
     return Result;
 };
-HTTPCaller.GetAllCounters = function (SetObj)
+HTTPCaller.GetAllCounters = function ()
 {
     var Result = GET_STATS();
     Result.result = 1;
@@ -642,7 +604,7 @@ HTTPCaller.SetStatMode = function (flag)
     SAVE_CONST(true);
     return {result:1, sessionid:sessionid, STAT_MODE:global.STAT_MODE};
 };
-HTTPCaller.ClearStat = function (flag)
+HTTPCaller.ClearStat = function ()
 {
     global.ClearCommonStat();
     return {result:1, sessionid:sessionid, STAT_MODE:global.STAT_MODE};
@@ -746,97 +708,6 @@ HTTPCaller.GetBlockChain = function (type)
     arrLoadedChainList = [];
     arrLoadedBlocks = [];
     return obj;
-};
-
-function CreateDump(response)
-{
-    response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
-    response.writeHead(200, {'Content-Type':'application/json'});
-    var Result = {result:1, sessionid:sessionid, };
-    response.end(JSON.stringify(Result));
-};
-setInterval(function ()
-{
-    if(global.USE_PACKET_STAT)
-    {
-        if(!global.USE_PACKET_STAT_TIME)
-            global.USE_PACKET_STAT = 0;
-        else
-        {
-            var Time = process.hrtime(global.USE_PACKET_STAT_TIME);
-            var deltaTime = Math.floor(Time[0] * 1000 + Time[1] / 1e6);
-            if(deltaTime > 500 * 1000)
-            {
-                SERVER.ArrPacketStat = [];
-                global.USE_PACKET_STAT = 0;
-            }
-        }
-    }
-}, 500 * 1000);
-
-function GetNetParams(response)
-{
-    response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
-    response.writeHead(200, {'Content-Type':'application/json'});
-    var Result = {result:1, sessionid:sessionid, CurBlockNum:GetCurrentBlockNumByTime(), StartDateBlock:FIRST_TIME_BLOCK, addrArr:SERVER.addrArr,
-        ip:SERVER.ip, port:SERVER.port, DEF_NETWORK:GetNetworkName(), DEF_VERSION:DEF_VERSION, DEF_CLIENT:DEF_CLIENT, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME,
-        BLOCK_PROCESSING_LENGTH:BLOCK_PROCESSING_LENGTH};
-    response.end(JSON.stringify(Result));
-};
-
-function GetBlockHeaders(response)
-{
-    response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
-    response.writeHead(200, {'Content-Type':'application/json'});
-    var Block, Result;
-    var MaxNum = SERVER.CurrentBlockNum;
-    var arr = [];
-    for(var i = 0; i < BLOCK_PROCESSING_LENGTH * 2; i++)
-    {
-        var BlockNum = MaxNum - BLOCK_PROCESSING_LENGTH * 2 + i;
-        Block = SERVER.GetBlock(BlockNum, false);
-        if(Block)
-        {
-            arr.push(GetCopyBlock(Block));
-        }
-    }
-    var Result = {};
-    Result.ArrBlocks = arr;
-    Result.result = 1;
-    Result.sessionid = sessionid;
-    response.end(JSON.stringify(Result));
-};
-
-function GetBlockData(response,BlockNum)
-{
-    response.writeHead(200, {'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*'});
-    response.writeHead(200, {'Content-Type':'application/json'});
-    var Block, Result;
-    var MaxNum = SERVER.CurrentBlockNum;
-    if(BlockNum !== undefined)
-    {
-        BlockNum = parseInt(BlockNum);
-        if(BlockNum > MaxNum - BLOCK_PROCESSING_LENGTH)
-        {
-            Block = SERVER.GetBlock(BlockNum, false);
-        }
-        else
-            if(BlockNum === 0 || BlockNum > 0 || BlockNum <= MaxNum)
-            {
-                Block = SERVER.ReadBlockDB(BlockNum);
-            }
-    }
-    if(Block)
-    {
-        Result = GetCopyBlock(Block);
-        Result.result = 1;
-    }
-    else
-    {
-        Result = {result:0, };
-    }
-    Result.sessionid = sessionid;
-    response.end(JSON.stringify(Result));
 };
 
 function GetCopyBlock(Block)
@@ -1216,12 +1087,15 @@ if(global.HTTP_PORT_NUMBER)
                     Response.writeHead(405, {'Content-Type':'text/html'});
                     Response.end("Error data parsing");
                 }
-                DoCommand(response, Path, [Params[0], Data]);
+                if(Params[0] === "HTML")
+                    DoCommand(response, Type, Path, [Params[1], Data]);
+                else
+                    DoCommand(response, Type, Path, [Params[0], Data]);
             });
         }
         else
         {
-            DoCommand(response, Path, params);
+            DoCommand(response, Type, Path, params);
         }
     }).listen(port);
     ToLog("Run HTTP-server on port:" + port);

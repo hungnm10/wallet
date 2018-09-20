@@ -119,7 +119,7 @@
         {
             MiningAccount=ParseNum(document.getElementById("idMiningAccount").value);
         }
-        GetData("/SetMining/"+MiningAccount,function (Data)
+        GetData("SetMining",MiningAccount,function (Data)
         {
 
         });
@@ -234,7 +234,7 @@
         if(Select.value==="public" && PubKeyStr!==Str)
             SetStatus("Changed public key");
 
-        GetData("/SetWalletKey/"+Str, function (Data)
+        GetData("SetWalletKey",Str, function (Data)
         {
             if(Data && Data.result===1)
             {
@@ -288,7 +288,7 @@
     //ACCOUNTS
     function FindMyAccounts()
     {
-        GetData("/FindMyAccounts",function (Data)
+        GetData("FindMyAccounts",{},function (Data)
         {
            UpdatesData();
         });
@@ -360,7 +360,7 @@
 
         if(WN)
         {
-            GetData("/GetAccountKey",WN,function (Data)
+            GetData("GetAccountKey",WN,function (Data)
             {
                 if(Data && Data.result===1)
                 {
@@ -380,7 +380,7 @@
         SetStatus("Create: "+PubKey)
         var TR=
             {
-                Type:100,
+                Type:TYPE_TRANSACTION_CREATE,
                 Currency:0,
                 PubKey:PubKey,
                 Description:Description,
@@ -536,7 +536,7 @@
         var ToID = ParseNum(document.getElementById("idTo").value);
         if(!MapAccounts[ToID] || (MapAccounts[ToID].MustUpdate && MapAccounts[ToID].MustUpdate<=MaxBlockNum))
         {
-            GetData("/GetAccount/"+ToID,function (Data)
+            GetData("GetAccount",ToID,function (Data)
             {
                 if(Data && Data.result===1 && Data.Item)
                 {
@@ -636,7 +636,7 @@
         CurrentTR=TR;
 
 
-        GetData("/GetSignTransaction",CurrentTR, function (Data)
+        GetData("GetSignTransaction",CurrentTR, function (Data)
         {
             if(Data && Data.result===1)
             {
@@ -743,7 +743,7 @@
 
         CurrentTR=TR;
 
-        GetData("/GetSignTransaction",CurrentTR, function (Data)
+        GetData("GetSignTransaction",CurrentTR, function (Data)
         {
             if(Data && Data.result===1)
             {
@@ -764,7 +764,7 @@
         var Str;
         if(TR)
         {
-            if(TR.Type===100)
+            if(TR.Type===TYPE_TRANSACTION_CREATE)
             {
                 Str="New account "+TR.Description.substr(0,20);
             }
@@ -901,7 +901,7 @@
         SetStatus("START: "+Text);
 
 
-        GetData("/"+FuncName,Params, function (Data)
+        GetData(FuncName,Params, function (Data)
         {
             if(Data)
             {
@@ -921,7 +921,6 @@
     var DefAccounts={BlockName:"idPaginationAccount", NumName:"idViewAccountNum", TabName:"grid_accounts_all",APIName:"GetAccountsAll",Param3:"",FilterName:"idViewAccountFilter",TotalSum:"idTotalSum"};
     var DefBlock={BlockName:"idPaginationBlock", NumName:"idViewBlockNum", TabName:"grid_block_all",APIName:"GetBlockAll",Param3:"",FilterName:"idViewBlockFilter"};
 
-    //var DefTr={BlockName:"idTransactionBlock", NumName:"idViewTrNum", TabName:"grid_transaction_all",APIName:"GetTransactionAll",Param3:undefined};
 
     var DefHistory={BlockName:"idPaginationHistory", NumName:"idViewHistoryNum", TabName:"grid_history",APIName:"GetHistoryAct",Param3:"",FilterName:"idViewHistoryFilter",TotalSum:"idTotalSumH"};
     var DefActs={BlockName:"idPaginationAct", NumName:"idViewActNum", TabName:"grid_acts_all",APIName:"GetActsAll",Param3:""};
@@ -984,14 +983,14 @@
     /*Get data from server Get data from server Get data from server Get data from server Get data from server */
     function UpdatesConfigData()
     {
-        GetData("/GetWalletInfo", function (Data)
+        GetData("GetWalletInfo",{}, function (Data)
         {
             SetConfigData(Data);
         });
     }
     function UpdatesAccountsData()
     {
-        GetData("/GetWalletAccounts", function (Data)
+        GetData("/GetWalletAccounts",{}, function (Data)
         {
             SetAccountsData(Data);
         });
@@ -1203,7 +1202,7 @@
         else
             SetVisibleBlock("idMiningParams",0);
 
-        SetStatusMining(" Mining account:<B>"+MiningAccount+"</B>  HashRate:<B>"+Math.trunc(Data.HashRate/1000)+"</B>Kh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
+        SetStatusMining(" Mining account:<B>"+MiningAccount+"</B>  HashRate:<B>"+(Math.trunc(Data.HashRate/100000)/10)+"</B>Mh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
         if(CONFIG_DATA.CONSTANTS.USE_MINING && Data.CountRunCPU!==Data.CountMiningCPU)
         {
             $("idUseMining").className="checkbox checkbox_red";
@@ -1372,7 +1371,7 @@
 
         Mode.DoRestartNode=bRestart;
 
-        GetData("/SetNetMode",Mode, function (Data)
+        GetData("SetNetMode",Mode, function (Data)
         {
             if(Data && Data.result)
             {
@@ -1410,7 +1409,7 @@
 
         Data.DoRestartNode=bRestart;
 
-        GetData("/SaveConstant",Data, function (Data)
+        GetData("SaveConstant",Data, function (Data)
         {
             if(Data && Data.result)
             {
@@ -1443,7 +1442,7 @@
         var HTTPPort=ParseNum(document.getElementById("idHTTPPort").value);
         var HTTPPassword=document.getElementById("idHTTPPassword").value;
 
-        GetData("/SetHTTPParams",{HTTPPort:HTTPPort,HTTPPassword:HTTPPassword,DoRestartNode:bRestart}, function (Data)
+        GetData("SetHTTPParams",{HTTPPort:HTTPPort,HTTPPassword:HTTPPassword,DoRestartNode:bRestart}, function (Data)
         {
             if(!PrevHTTPPassword && HTTPPassword)
                 window.location.reload();
@@ -1485,7 +1484,7 @@
 
     function ToLogServer(Str)
     {
-        GetData("/ToLogServer",Str, function (Data)
+        GetData("ToLogServer",Str, function (Data)
         {
             UpdatesData();
         });
@@ -1560,10 +1559,8 @@
                 nonce=CreateHashBodyPOWInnerMinPower(Body,SumPow)
 
             var StrHex=GetHexFromArr(Body);
-//            SetStatus("StrHex: "+StrHex)
-//            return;
 
-            GetData("/SendTransactionHex/"+StrHex, function (Data)
+            GetData("SendTransactionHex",StrHex, function (Data)
             {
                 if(Data)
                 {
@@ -1808,7 +1805,7 @@
     {
         var Set=$("idUseAutoCheckPoint").checked;
         var Period=ParseNum($("idPeriodAutoCheckPoint").value);
-        GetData("/SetAutoCheckPoint/",{Set:Set,Period:Period},function (Data)
+        GetData("SetAutoCheckPoint",{Set:Set,Period:Period},function (Data)
         {
             if(Data)
             {
@@ -1818,7 +1815,7 @@
     }
     function UseAutoCorrTime()
     {
-        GetData("/SetAutoCorrTime",document.getElementById("idUseAutoCorrTime").checked,function (Data)
+        GetData("SetAutoCorrTime",document.getElementById("idUseAutoCorrTime").checked,function (Data)
         {
             if(Data)
             {
@@ -1863,7 +1860,7 @@
         }
         Data.addrArr=GetArrFromHex(Data.addrArr);
 
-        GetData("/SetNewCodeVersion",Data,function (Data)
+        GetData("SetNewCodeVersion",Data,function (Data)
         {
             if(Data)
             {
@@ -1905,7 +1902,7 @@
         }
 
 
-        GetData("/SetCheckDeltaTime",Data,function (Data)
+        GetData("SetCheckDeltaTime",Data,function (Data)
         {
             if(Data)
             {
@@ -1917,7 +1914,7 @@
 
     function RestartNode()
     {
-        GetData("/RestartNode");
+        GetData("RestartNode");
     }
 
 
@@ -1932,7 +1929,7 @@
         }
         var Data={USE_MINING:document.getElementById("idUseMining").checked,DoMining:1};
 
-        GetData("/SaveConstant",Data, function (Data)
+        GetData("SaveConstant",Data, function (Data)
         {
             if(Data && Data.result)
             {
@@ -1944,7 +1941,7 @@
     {
         var Data={POW_MAX_PERCENT: document.getElementById("idPercentMining").value};
 
-        GetData("/SaveConstant",Data, function (Data)
+        GetData("SaveConstant",Data, function (Data)
         {
             if(Data && Data.result)
             {
@@ -1968,7 +1965,7 @@
     {
         if(WalletOpen===true)
         {
-            GetData("/CloseWallet/",function (Data)
+            GetData("CloseWallet",{},function (Data)
             {
                 if(Data && Data.result===1)
                 {
@@ -2001,7 +1998,7 @@
     function OpenWallet()
     {
         var Passwd1=itemPassword1.value;
-        GetData("/OpenWallet/",Passwd1, function (Data)
+        GetData("OpenWallet",Passwd1, function (Data)
         {
             if(Data && Data.result===1)
             {
@@ -2062,7 +2059,7 @@
         itemPassword1.value="";
         itemPassword2.value="";
 
-        GetData("/SetWalletPasswordNew/",Passwd1, function (Data)
+        GetData("SetWalletPasswordNew",Passwd1, function (Data)
         {
             if(Data && Data.result===1)
             {
@@ -2648,6 +2645,67 @@
             <BR>
 
         </DIV>
+
+        <!--DApp:<BR>-->
+        <!--<iframe src="test.html" name="dapp" width="795" height="400" sandbox="allow-scripts"> </iframe>-->
+        <script>
+
+
+
+            var glSecret;
+            setTimeout(function ()
+            //setInterval(function ()
+            {
+                SendMessage("Hi from WALLET");
+            },1000)
+
+
+            function SendMessage(Str)
+            {
+                glSecret=GetHexFromArr(sha3("secret"));
+
+                var win = window.frames.dapp;
+                if(!win)
+                    return;
+                var Data=
+                    {
+                        Secret:glSecret,
+                        Message:Str,
+                    };
+                win.postMessage(Data, "*");
+            }
+
+
+
+
+            function listener(event)
+            {
+                var Data=event.data;
+                if(!Data || typeof Data!=="object")
+                    return;
+
+                if (Data.Secret !==glSecret)
+                {
+                    SetError("Error Data.Secret: " + Data.Secret);
+                    return;
+                }
+
+                SetStatus( "Получено: " + Data.Message);
+            }
+
+            if (window.addEventListener)
+            {
+                window.addEventListener("message", listener);
+            } else
+            {
+                // IE8
+                window.attachEvent("onmessage", listener);
+            }
+
+        </script>
+
+
+
     </DIV>
 
 

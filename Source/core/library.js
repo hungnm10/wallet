@@ -66,6 +66,11 @@ function WriteUint32ToArrOnPos(r,t,e)
     r[e] = 255 & t, r[e + 1] = t >>> 8 & 255, r[e + 2] = t >>> 16 & 255, r[e + 3] = t >>> 24 & 255;
 };
 
+function WriteUint16ToArrOnPos(r,t,e)
+{
+    r[e] = 255 & t, r[e + 1] = t >>> 8 & 255;
+};
+
 function WriteArrToArr(r,t,e)
 {
     for(var o = r.length, n = 0; n < e; n++)
@@ -101,8 +106,9 @@ require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML
     return this.length > r ? this.substr(this.length - r, r) : this.substr(0, this.length);
 }, global.ReadUint32FromArr = ReadUint32FromArr, global.ReadUintFromArr = ReadUintFromArr, global.ReadUint16FromArr = ReadUint16FromArr,
 global.WriteUintToArr = WriteUintToArr, global.WriteUint32ToArr = WriteUint32ToArr, global.WriteUint32ToArrOnPos = WriteUint32ToArrOnPos,
-global.WriteUintToArrOnPos = WriteUintToArrOnPos, global.WriteArrToArr = WriteArrToArr, global.WriteArrToArrOnPos = WriteArrToArrOnPos,
-global.WriteArrToArrHOnPos = WriteArrToArrHOnPos, global.ConvertBufferToStr = ConvertBufferToStr, global.DelDir = function (r)
+global.WriteUint16ToArrOnPos = WriteUint16ToArrOnPos, global.WriteUintToArrOnPos = WriteUintToArrOnPos, global.WriteArrToArr = WriteArrToArr,
+global.WriteArrToArrOnPos = WriteArrToArrOnPos, global.WriteArrToArrHOnPos = WriteArrToArrHOnPos, global.ConvertBufferToStr = ConvertBufferToStr,
+global.DelDir = function (r)
 {
     if("/" === r.substr(r.length - 1, 1) && (r = r.substr(0, r.length - 1)), fs.existsSync(r))
         for(var t = fs.readdirSync(r), e = 0; e < t.length; e++)

@@ -102,6 +102,7 @@ class AccountApp extends require("./dapp")
     constructor()
     {
         super()
+        this.CreateTrCount = 0
         this.FORMAT_ACCOUNT_ROW = "{\
             Currency:uint,\
             PubKey:arr33,\
@@ -193,6 +194,7 @@ class AccountApp extends require("./dapp")
     }
     OnWriteBlockStart(Block)
     {
+        this.CreateTrCount = 0
         if(Block.BlockNum < 1)
             return ;
         this.OnDeleteBlock(Block)
@@ -424,6 +426,14 @@ class AccountApp extends require("./dapp")
     {
         if(Body.length < 90)
             return "Error length transaction (retry transaction)";
+        if(BlockNum >= 7000000)
+        {
+            if(BlockNum % 10 !== 0)
+                return "The create transaction is not possible in this block: " + BlockNum;
+            if(this.CreateTrCount > 0)
+                return "The account creation transaction was already in this block: " + BlockNum;
+        }
+        this.CreateTrCount++
         var HASH = shaarr(Body);
         var power = GetPowPower(HASH);
         var MinPower;
@@ -933,10 +943,6 @@ class AccountApp extends require("./dapp")
             Map[Id] = Adviser
         }
         return Adviser;
-    }
-    TestTest(BlockNum)
-    {
-        this.DeleteAct(BlockNum)
     }
 };
 module.exports = AccountApp;

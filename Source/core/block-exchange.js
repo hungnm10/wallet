@@ -834,7 +834,7 @@ module.exports = class CConsensus extends require("./block-loader")
             Block.StartMining = true
             this.MiningBlock = Block
             if(global.SetCalcPOW)
-                global.SetCalcPOW(Block)
+                global.SetCalcPOW(this.MiningBlock)
         }
         return true;
     }
@@ -1182,6 +1182,21 @@ module.exports = class CConsensus extends require("./block-loader")
         }
         this.AddToMaxPOW(Block, {SeqHash:Block.SeqHash, AddrHash:Block.AddrHash, PrevHash:Block.PrevHash, TreeHash:Block.TreeHash,
         })
+    }
+    MiningProcess(msg)
+    {
+        var BlockMining = this.MiningBlock;
+        if(BlockMining && BlockMining.Hash && BlockMining.SeqHash && CompareArr(BlockMining.SeqHash, msg.SeqHash) === 0 && CompareArr(BlockMining.PowHash,
+        msg.PowHash) >= 0)
+        {
+            BlockMining.Hash = msg.Hash
+            BlockMining.PowHash = msg.PowHash
+            BlockMining.AddrHash = msg.AddrHash
+            BlockMining.Power = GetPowPower(msg.PowHash)
+            ADD_TO_STAT("MAX:POWER", BlockMining.Power)
+            SERVER.AddToMaxPOW(BlockMining, {SeqHash:BlockMining.SeqHash, AddrHash:BlockMining.AddrHash, PrevHash:BlockMining.PrevHash,
+                TreeHash:BlockMining.TreeHash, })
+        }
     }
 };
 global.GetCurrentBlockNumByTime = function GetCurrentBlockNumByTime()

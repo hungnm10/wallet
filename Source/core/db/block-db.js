@@ -330,6 +330,8 @@ module.exports = class CDB extends require("../code")
     {
         if(Block.BlockNum > 0)
         {
+            this.TruncateBlockDBInner(Block)
+            this.BlockNumDB = Block.BlockNum - 1
             var PrevBlock = this.ReadBlockHeaderDB(Block.BlockNum - 1);
             if(!PrevBlock)
             {
@@ -346,10 +348,6 @@ module.exports = class CDB extends require("../code")
         var BufWrite = BufLib.GetNewBuffer(BLOCK_HEADER_SIZE);
         this.BlockHeaderToBuf(BufWrite, Block)
         var Res = this.WriteBufHeaderDB(BufWrite, Block.BlockNum);
-        if(Res)
-        {
-            this.TruncateBlockDBInner(Block, 1)
-        }
         return Res;
     }
     WriteBufHeaderDB(BufWrite, BlockNum)

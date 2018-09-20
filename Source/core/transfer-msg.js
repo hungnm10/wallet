@@ -166,7 +166,6 @@ module.exports = class CMessages extends require("./transaction-validator")
         var Res = this.IsValidTransaction(Tr, this.CurrentBlockNum);
         if(Res <= 0 && Res !==  - 3)
             return Res;
-        this.SendTransaction(Tr)
         if(Res ===  - 3)
         {
             var delta = Tr.num - this.CurrentBlockNum;
@@ -177,6 +176,7 @@ module.exports = class CMessages extends require("./transaction-validator")
                 return 4;
             }
         }
+        this.SendTransaction(Tr)
         Res = this.AddTrToQuote(this.TreePoolTr, Tr, MAX_TRANSACTION_COUNT)
         ToLogContext("Add " + TrName(Tr) + " for Block: " + this.CurrentBlockNum + " Res=" + Res)
         return Res;
@@ -186,7 +186,7 @@ module.exports = class CMessages extends require("./transaction-validator")
         for(var i = this.TimePoolTransaction.length - 1; i >= 0; i--)
         {
             var Tr = this.TimePoolTransaction[i];
-            if(Tr.num <= this.CurrentBlockNum)
+            if(Tr.num <= this.CurrentBlockNum + 1)
             {
                 this.TimePoolTransaction.splice(i, 1)
                 var Res = this.AddTrToQuote(this.TreePoolTr, Tr, MAX_TRANSACTION_COUNT);

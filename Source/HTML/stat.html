@@ -174,13 +174,13 @@
         if(!StatMode)
             StatMode=0;
         StatMode=(StatMode+1)%3;
-        GetData("/SetStatMode",StatMode,function (Data)
+        GetData("SetStatMode",StatMode,function (Data)
         {
         });
     }
     function ClearStat()
     {
-        GetData("/ClearStat",function (Data)
+        GetData("ClearStat",{},function (Data)
         {
             ClearTableStat(TabbleStat);
             ClearTableStat(TableError);
@@ -217,7 +217,7 @@
     {
         if(bPause)
             return;
-        GetData("/GetAllCounters",function (Data)
+        GetData("GetAllCounters",{},function (Data)
         {
             SetResult(Data);
             SetStatInfo(Data);

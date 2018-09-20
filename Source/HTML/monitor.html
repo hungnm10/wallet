@@ -99,13 +99,13 @@
         if(!StatMode)
             StatMode=0;
         StatMode=(StatMode+1)%2;
-        GetData("/SetStatMode",StatMode,function (Data)
+        GetData("SetStatMode",StatMode,function (Data)
         {
         });
     }
     function ClearStat()
     {
-        GetData("/ClearStat",function (Data)
+        GetData("ClearStat",{},function (Data)
         {
         });
     }
@@ -457,9 +457,10 @@
         [
             {isLine:true,text:"SYSTEM"},
             {name:"MAX:MEMORY_USAGE",text:"Mem usage, Mbyte",value:300},
+            {name:"MAX:MEMORY_FREE",text:"Mem free, Mbyte",value:0,red:"#a1c3b9"},
             {name:"MAX:CPU",text:"CPU ALL WORK, ms",value:0,red:"#06A"},
             {name:"HASHRATE",text:"Hash Rate",value:0,red:"#95d6b9"},
-            //{name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#95d6b9"},
+            {name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#597e6e"},
             {name:"POWER_MY_WIN",text:"POWER MY WIN",value:0,red:"#088a4a"},
             {name:"POWER_BLOCKCHAIN",text:"POWER Blockchain",value:0,red:"#2b6311"},
 
@@ -589,6 +590,7 @@
 
             {isLine:true,text:"SYSTEM"},
             {name:"MAX:MEMORY_USAGE",text:"Используемая память, Mb",value:300},
+        {name:"MAX:MEMORY_FREE",text:"Mem free, Mbyte",value:0,red:"#a1c3b9"},
             {name:"MAX:CPU",text:"CPU WORK, мс",value:0,red:"#06A"},
 //            {name:"MAX:CPU_USER_MODE",text:"USER MODE, мс",value:0,red:"#06A"},
 //            {name:"MAX:CPU_SYS_MODE",text:"USER SYS, мс",value:0,red:"#06A"},
@@ -596,8 +598,8 @@
 
             {name:"HASHRATE",text:"Hash Rate",value:0,red:"#95d6b9"},
 //            {name:"MINING-COUNT",text:"MINING-COUNT",value:0,red:"#95d6b9"},
-//            {name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#95d6b9"},
-            {name:"POWER_MY_WIN",text:"POWER MY WIN",value:0,red:"#088a4a"},
+            {name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#597e6e"},
+            //{name:"POWER_MY_WIN",text:"POWER MY WIN",value:0,red:"#088a4a"},
             {name:"POWER_BLOCKCHAIN",text:"POWER Blockchain",value:0,red:"#2b6311"},
 
 
@@ -940,7 +942,7 @@
                 arrNames.push(Item.name);
             }
         }
-        GetData("/GetArrStats",arrNames,function (Data)
+        GetData("GetArrStats",arrNames,function (Data)
         {
             if(!Data || !Data.result)
                 return;
@@ -1018,7 +1020,7 @@
 
 
 
-        GetData("/GetWalletInfo", function (Data)
+        GetData("GetWalletInfo",{}, function (Data)
         {
             if(Data && Data.result)
             {
@@ -1079,7 +1081,7 @@
     }
     function GetBlockchainEnd()
     {
-        GetData("/GetWalletInfo", function (Data)
+        GetData("GetWalletInfo",{}, function (Data)
         {
             if(Data && Data.result)
             {
@@ -1111,7 +1113,7 @@
             Miner=-1;
 
 
-        GetData("/GetBlockchainStat",{BlockNum:BlockNum,Count:Count,Miner:Miner,Adviser:Adviser,bNonce:bNonce}, function (Data)
+        GetData("GetBlockchainStat",{BlockNum:BlockNum,Count:Count,Miner:Miner,Adviser:Adviser,bNonce:bNonce}, function (Data)
         {
             if(Data && Data.result)
             {

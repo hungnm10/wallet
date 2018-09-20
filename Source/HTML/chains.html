@@ -162,7 +162,7 @@
         SetPause(1);
         setTimeout(function ()
         {
-            GetData("/GetNodes",function (Data,Str)
+            GetData("GetNodes",{},function (Data,Str)
             {
                 if(!Data || !Data.result)
                     return;
@@ -1242,7 +1242,7 @@
 
     function CallDataChain(ResDataArr,NumArr,strReload)
     {
-        GetData(domenlist[NumArr].name+"/GetBlockChain/"+strReload,function (Data,Str)
+        GetData("GetBlockChain",strReload,function (Data,Str)
         {
             if(typeof Data==="object" && Data.result)
             {

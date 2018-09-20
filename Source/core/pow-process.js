@@ -30,14 +30,14 @@ function CalcPOWHash()
     {
         if(new Date - Block.Time > Block.Period)
             return clearInterval(idInterval), void (idInterval = void 0);
-        if(Block.BlockNum >= StartNumNewAlgo())
-            CreatePOWVersion0(Block), process.send({cmd:"POW", SeqHash:Block.SeqHash, Hash:Block.Hash, PowHash:Block.PowHash, AddrHash:Block.AddrHash,
-                Num:Block.Num});
-        else
+        try
         {
-            var e = GetArrFromValue(Block.Account), o = CreateAddrPOW(Block.SeqHash, e, Block.Hash, Block.LastNonce, Block.RunCount, Block.BlockNum);
-            Block.LastNonce = o.LastNonce, o.bFind && (Block.Hash = o.MaxHash, Block.PowHash = o.MaxHash, process.send({cmd:"POW", SeqHash:Block.SeqHash,
-                Hash:Block.Hash, AddrHash:e, PowHash:Block.PowHash, Num:Block.Num}));
+            CreatePOWVersionX(Block) && process.send({cmd:"POW", SeqHash:Block.SeqHash, Hash:Block.Hash, PowHash:Block.PowHash, AddrHash:Block.AddrHash,
+                Num:Block.Num});
+        }
+        catch(e)
+        {
+            ToError(e);
         }
     }
 };
@@ -46,7 +46,7 @@ PROCESS.on("message", function (e)
     if(LastAlive = new Date - 0, "SetBlock" === e.cmd)
     {
         var o = 1e7 * (1 + e.Num);
-        Block.LastNonce && process.send({cmd:"HASHRATE", CountNonce:Block.LastNonce - o, Hash:Block.Hash}), (Block = e).Time = new Date - 0,
+        Block.HashCount && process.send({cmd:"HASHRATE", CountNonce:Block.HashCount, Hash:Block.Hash}), Block.HashCount = 0, (Block = e).Time = new Date - 0,
         Block.LastNonce = o, Block.Period = CONSENSUS_PERIOD_TIME * Block.Percent / 100, 0 < Block.Period && 0 < Block.RunPeriod && (CalcPOWHash(),
         void 0 !== idInterval && clearInterval(idInterval), idInterval = setInterval(CalcPOWHash, Block.RunPeriod));
     }
