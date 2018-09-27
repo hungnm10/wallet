@@ -141,9 +141,9 @@ I do not recommend installing the test network on the same computer for the foll
 
 * Name: TERA
 * Consensus: PoW
-* Algorithm:  sha3 + meshhash (ASIC resistent hashing)
+* Algorithm:  Terahash (sha3 + Optimize RAM hashing)
 * Max emission: 1 Bln
-* Reward for block: 1-20 coins, depends on miner power (one billionth of the remainder of undistributed amount of coins and multiplied by the hundredth part of the square of the logarithm of the network power)
+* Reward for block: 1-20 coins, depends on miner power (one billionth of the remainder of undistributed amount of coins and multiplied by the hundredth part of the square of the logarithm of the miner power)
 * Block size 120 KB
 * Premine: 5%
 * Development fund: 1% of the mining amount
