@@ -19,7 +19,7 @@ class CApp extends require("./dapp")
         this.CurrentNameArr = ""
         global.NAMES = this
     }
-    OnWriteTransaction(Body, BlockNum, TrNum)
+    OnWriteTransaction(Block, Body, BlockNum, TrNum)
     {
         return ;
         if(Body[0] === NAMES_TYPE_TRANSACTION)

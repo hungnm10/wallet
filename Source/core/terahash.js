@@ -9,7 +9,11 @@
 */
 
 const DELTA_LONG_MINING = 5000;
-const BLOCKNUM_ALGO2 = 6560000;
+var BLOCKNUM_ALGO2 = 6560000;
+if(global.LOCAL_RUN || global.TEST_NETWORK)
+{
+    BLOCKNUM_ALGO2 = 0;
+}
 require('./library.js');
 require('./crypto-library.js');
 const os = require('os');
@@ -19,7 +23,7 @@ function GetHashFromSeqAddr(SeqHash,AddrHash,BlockNum,PrevHash)
     if(BlockNum < BLOCKNUM_ALGO2)
     {
         var Hash = shaarrblock2(SeqHash, AddrHash, BlockNum);
-        return {Hash:Hash, PowHash:Hash};
+        return {Hash:Hash, PowHash:Hash, Hash1:Hash, Hash2:Hash};
     }
     var MinerID = ReadUintFromArr(AddrHash, 0);
     var Nonce0 = ReadUintFromArr(AddrHash, 6);
@@ -298,8 +302,18 @@ function InitVer2()
     {
         Memory -= 500 * 1000000;
         MAX_MEMORY = Math.min(Math.trunc(Memory / 40 / CountMiningCPU), 2000000000 / 32);
-        NonceArr2 = new Uint8Array(MAX_MEMORY * 32);
-        BlockNumArr2 = new Uint32Array(MAX_MEMORY);
+        try
+        {
+            NonceArr2 = new Uint8Array(MAX_MEMORY * 32);
+            BlockNumArr2 = new Uint32Array(MAX_MEMORY);
+        }
+        catch(e)
+        {
+            NonceArr2 = undefined;
+            BlockNumArr2 = undefined;
+            MAX_MEMORY = 0;
+            return ;
+        }
     }
 };
 var HashNonceConst = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -309,6 +323,8 @@ function CreatePOWVersion2(Block)
     if(!bWasInitVer2)
         InitVer2();
     if(!MAX_MEMORY)
+        return false;
+    if(!BlockNumArr2)
         return false;
     if(!Block.LastNonce)
         Block.LastNonce = 0;

@@ -162,7 +162,6 @@ module.exports = class CConsensus extends require("./block-loader")
         {
             AddInfoBlock(Block0, "Was Active")
         }
-        this.ToStrBlocks("")
         var Block = this.GetBlockContext(StartBlockNum);
         Block.MLevelSend = Block.StartLevel
         if(!Block.bSave)
@@ -440,10 +439,6 @@ module.exports = class CConsensus extends require("./block-loader")
         }
         return 0;
     }
-    IsGPUMiner(Num)
-    {
-        return 0;
-    }
     AddToMaxPOW(Block, item, Node)
     {
         if(Block && item)
@@ -455,10 +450,6 @@ module.exports = class CConsensus extends require("./block-loader")
             CalcHashBlockFromSeqAddr(item, Block.PrevHash)
             var MinerID = ReadUintFromArr(item.AddrHash, 0);
             if(this.IsPoolMiner(MinerID, Block.BlockNum))
-            {
-                return ;
-            }
-            if(this.IsGPUMiner(MinerID))
             {
                 return ;
             }
@@ -653,11 +644,6 @@ module.exports = class CConsensus extends require("./block-loader")
         {
             Sum = Math.trunc(Sum / 2)
         }
-        else
-            if(this.IsGPUMiner(MinerID))
-            {
-                Sum = Math.trunc(Sum / 2)
-            }
         return Sum;
     }
     GetArrayFromTree(Block)
@@ -1100,8 +1086,6 @@ module.exports = class CConsensus extends require("./block-loader")
                 }
                 if(Block.MaxPOW && Block.MaxPOW.SeqHash && Block.MaxPOW.AddrHash && Block.MaxPOW.LocalSeqHash)
                 {
-                    if(!Block.PowHash)
-                        throw "#122 ERROR:  NOT Block.PowHash";
                     if(CompareArr(Block.SeqHash, Block.MaxPOW.SeqHash) === 0 && CompareArr(Block.AddrHash, Block.MaxPOW.AddrHash) !== 0)
                     {
                         Block.AddrHash = Block.MaxPOW.AddrHash

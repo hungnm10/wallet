@@ -36,15 +36,15 @@ function GetPowValue(r)
 
 function CreateNoncePOWExtern(r,e,n,t)
 {
-    for(var E = [], o = 0; o < r.length; o++)
-        E[o] = r[o];
+    for(var E = [], _ = 0; _ < r.length; _++)
+        E[_] = r[_];
     t || (t = 0);
-    for(var T = 0, a = MAX_SUPER_VALUE_POW, _ = t; _ <= t + n; _++)
+    for(var o = 0, T = MAX_SUPER_VALUE_POW, a = t; a <= t + n; a++)
     {
-        var u = GetPowValue(GetHashWithValues(E, _, e, !0));
-        u < a && (T = _, a = u);
+        var u = GetPowValue(GetHashWithValues(E, a, e, !0));
+        u < T && (o = a, T = u);
     }
-    return T;
+    return o;
 };
 
 function CreateHashBody(r,e,n)
@@ -68,18 +68,20 @@ function GetBlockNumTr(r)
 
 function CreateHashBodyPOWInnerMinPower(r,e)
 {
-    for(var n = GetBlockNumTr(r), t = 0; ; )
+    var n = GetBlockNumTr(r);
+    void 0 === e && (e = MIN_POWER_POW_TR + Math.log2(r.length / 128));
+    for(var t = 0; ; )
     {
         if(e <= GetPowPower(CreateHashBody(r, n, t)))
             return t;
         ++t % 1e3 == 0 && (n = GetBlockNumTr(r));
     }
 };
-window.TYPE_TRANSACTION_CREATE = 100, window.SetBlockChainConstant = function (r)
+window.TYPE_TRANSACTION_CREATE = 100, window.MIN_POWER_POW_TR = 0, window.SetBlockChainConstant = function (r)
 {
     var e = new Date - r.CurTime;
-    r.DELTA_CURRENT_TIME || (r.DELTA_CURRENT_TIME = 0), window.DELTA_CURRENT_TIME2 = r.DELTA_CURRENT_TIME - e, window.FIRST_TIME_BLOCK = r.FIRST_TIME_BLOCK,
-    window.CONSENSUS_PERIOD_TIME = r.CONSENSUS_PERIOD_TIME, window.GetCurrentBlockNumByTime = function ()
+    r.DELTA_CURRENT_TIME || (r.DELTA_CURRENT_TIME = 0), window.DELTA_CURRENT_TIME2 = r.DELTA_CURRENT_TIME - e, window.MIN_POWER_POW_TR = r.MIN_POWER_POW_TR,
+    window.FIRST_TIME_BLOCK = r.FIRST_TIME_BLOCK, window.CONSENSUS_PERIOD_TIME = r.CONSENSUS_PERIOD_TIME, window.GetCurrentBlockNumByTime = function ()
     {
         var r = new Date -  - DELTA_CURRENT_TIME2 - FIRST_TIME_BLOCK - CONSENSUS_PERIOD_TIME / 2;
         return Math.floor((r + CONSENSUS_PERIOD_TIME) / CONSENSUS_PERIOD_TIME);

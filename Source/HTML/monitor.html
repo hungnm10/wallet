@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <title>Monitor</title>
+    <title>=Monitor=</title>
     <meta charset='utf-8' />
 
     <link rel="shortcut icon" href="/HTML/PIC/monitor.png" type="image/png">
@@ -18,6 +18,7 @@
     }
 </script>
 
+<script type="text/javascript" src="/HTML/JS/coinlib.js"></script>
 <script type="text/javascript" src="../HTML/JS/client.js"></script>
 
 <script>
@@ -459,8 +460,8 @@
             {name:"MAX:MEMORY_USAGE",text:"Mem usage, Mbyte",value:300},
             {name:"MAX:MEMORY_FREE",text:"Mem free, Mbyte",value:0,red:"#a1c3b9"},
             {name:"MAX:CPU",text:"CPU ALL WORK, ms",value:0,red:"#06A"},
-            {name:"HASHRATE",text:"Hash Rate",value:0,red:"#95d6b9"},
-            {name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#597e6e"},
+            {name:"HASHRATE",text:"Hash Rate, Mh/s",value:0,red:"#95d6b9"},
+            //{name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#95d6b9"},
             {name:"POWER_MY_WIN",text:"POWER MY WIN",value:0,red:"#088a4a"},
             {name:"POWER_BLOCKCHAIN",text:"POWER Blockchain",value:0,red:"#2b6311"},
 
@@ -590,13 +591,13 @@
 
             {isLine:true,text:"SYSTEM"},
             {name:"MAX:MEMORY_USAGE",text:"Используемая память, Mb",value:300},
-        {name:"MAX:MEMORY_FREE",text:"Mem free, Mbyte",value:0,red:"#a1c3b9"},
+            {name:"MAX:MEMORY_FREE",text:"Mem free, Mbyte",value:0,red:"#a1c3b9"},
             {name:"MAX:CPU",text:"CPU WORK, мс",value:0,red:"#06A"},
 //            {name:"MAX:CPU_USER_MODE",text:"USER MODE, мс",value:0,red:"#06A"},
 //            {name:"MAX:CPU_SYS_MODE",text:"USER SYS, мс",value:0,red:"#06A"},
 //            {name:"MAX:CPU_IDLE_MODE",text:"USER IDLE, мс",value:0,red:"#0A6"},
 
-            {name:"HASHRATE",text:"Hash Rate",value:0,red:"#95d6b9"},
+            {name:"HASHRATE",text:"Hash Rate, Mh/s",value:0,red:"#95d6b9"},
 //            {name:"MINING-COUNT",text:"MINING-COUNT",value:0,red:"#95d6b9"},
             {name:"MAX:POWER",text:"MAX:POWER",value:0,red:"#597e6e"},
             //{name:"POWER_MY_WIN",text:"POWER MY WIN",value:0,red:"#088a4a"},
@@ -1108,12 +1109,13 @@
         var Miner=ParseNum(document.getElementById("idMiner").value);
         var Adviser=ParseNum(document.getElementById("idAdviser").value);
         var bNonce=document.getElementById("idNonce").checked;
+        var bMinerLess=document.getElementById("idMinerLess").checked;
 
         if(document.getElementById("idMiner").value==="")
             Miner=-1;
 
 
-        GetData("GetBlockchainStat",{BlockNum:BlockNum,Count:Count,Miner:Miner,Adviser:Adviser,bNonce:bNonce}, function (Data)
+        GetData("GetBlockchainStat",{BlockNum:BlockNum,Count:Count,Miner:Miner,bMinerLess:bMinerLess,Adviser:Adviser,bNonce:bNonce}, function (Data)
         {
             if(Data && Data.result)
             {
@@ -1125,12 +1127,13 @@
                 ItemClient.startnumber=BlockNum;
 
                 var bNonce=document.getElementById("idNonce").checked;
+
                 if(bNonce)
                 {
-                    var arr=ItemClient.arr;
+                    var arr=ItemClient.ArrList;
                     for(var i=0;i<arr.length;i++)
                     {
-                        arr[i]=arr[i]%10000000;
+                        arr[i]=arr[i]/10000000;
                     }
                 }
 
@@ -1199,9 +1202,11 @@
     <BR>
     <BR>
     <DIV style="text-align: center;">Blockchain Power</DIV>
-    Adviser:<INPUT type="search" id="idAdviser" style="width:50px" value="0">
-    Miner:<INPUT type="search" id="idMiner" style="width:50px" value="0">
-    Nonce:<INPUT type="checkbox" id="idNonce" style="margin:1px" value="0">
+    Adviser:<INPUT type="search" id="idAdviser" style="width:50px" >
+    Miner:
+    &lt;=<INPUT type="checkbox" id="idMinerLess" style="margin:1px" >
+    <INPUT type="search" id="idMiner" style="width:50px" value="">
+    Nonce:<INPUT type="checkbox" id="idNonce" style="margin:1px" >
 
     Block start:<INPUT type="number" id="idBlockNum" style="width:80px" value="0"> length:<INPUT type="number" id="idBlockCount" style="width:80px" value="100">
     <INPUT type="button" onclick="GetBlockchainPrev()" value="Prev">

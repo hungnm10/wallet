@@ -28,12 +28,6 @@ if(window.nw)
     };
     window.GetData = function (Method,ObjPost,Func)
     {
-        if(Func === undefined)
-        {
-            throw "OLD MODE (GetData)";
-            Func = ObjPost;
-            ObjPost = null;
-        }
         window.nw.global.RunRPC({path:Method, obj:ObjPost}, Func);
     };
     let ServerHTTP = undefined;
@@ -59,12 +53,6 @@ else
         if(Method.substr(0, 1) !== "/")
             Method = "/" + Method;
         var StrPost = null;
-        if(Func === undefined)
-        {
-            throw "OLD MODE (GetData)";
-            Func = ObjPost;
-            ObjPost = null;
-        }
         var serv = new XMLHttpRequest();
         if(ObjPost !== null)
         {
@@ -97,32 +85,26 @@ else
         serv.send(StrPost);
     };
 }
-var MAX_SUM_CENT = 1e9;
 
-function ADD(Ret,Value2)
-{
-    Ret.SumTER += Value2.SumTER;
-    Ret.SumCENT += Value2.SumCENT;
-    if(Ret.SumCENT >= MAX_SUM_CENT)
-    {
-        Ret.SumCENT -= MAX_SUM_CENT;
-        Ret.SumTER++;
-    }
-};
-
-function SUM_TO_STRING(Value,bTerion)
+function SUM_TO_STRING(Value,Currency,bFloat)
 {
     var Str;
-    if(Value.SumTER || Value.SumCENT)
-        Str = "" + Value.SumTER + "." + Rigth("000000000" + Value.SumCENT, 9);
+    if(Value.SumCOIN || Value.SumCENT)
+        if(bFloat)
+        {
+            Str = "" + FLOAT_FROM_COIN(Value);
+        }
+        else
+        {
+            Str = "" + Value.SumCOIN + "." + Rigth("000000000" + Value.SumCENT, 9);
+        }
     else
         Str = "";
-    if(bTerion)
+    if(Currency !== undefined)
     {
         if(Str === "")
-            Str = "0 TERA";
-        else
-            Str += " TERA";
+            Str = "0";
+        Str += " " + CurrencyName(Currency);
     }
     return Str;
 };
@@ -296,6 +278,13 @@ function WriteUint(arr,Num)
     arr[len + 5] = (NumH >>> 8) & 0xFF;
 };
 
+function WriteUint16(arr,Num)
+{
+    var len = arr.length;
+    arr[len] = Num & 0xFF;
+    arr[len + 1] = (Num >>> 8) & 0xFF;
+};
+
 function WriteUint32(arr,Num)
 {
     var len = arr.length;
@@ -335,6 +324,19 @@ function WriteArr(arr,arr2,ConstLength)
 {
     var len = arr.length;
     for(var i = 0; i < ConstLength; i++)
+    {
+        arr[len + i] = arr2[i];
+    }
+};
+
+function WriteTr(arr,arr2)
+{
+    var len2 = arr2.length;
+    var len = arr.length;
+    arr[len] = len2 & 0xFF;
+    arr[len + 1] = (len2 >>> 8) & 0xFF;
+    len += 2;
+    for(var i = 0; i < len2; i++)
     {
         arr[len + i] = arr2[i];
     }
@@ -477,6 +479,8 @@ var entityMap = {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':'&quot;', "'":'&#39;',
 
 function escapeHtml(string)
 {
+    string = string.replace(/\\n/g, "\n");
+    string = string.replace(/\\"/g, "\"");
     return String(string).replace(/[\s\n&<>"'\/]/g, function (s)
     {
         return entityMap[s];
@@ -508,16 +512,20 @@ function ViewCurrent(Def,flag,This)
         if(!IsVisibleBlock(Def.BlockName))
             return ;
     }
-    var item = document.getElementById(Def.NumName);
-    var Filter = "";
+    var item = $(Def.NumName);
+    var Filter = "", Filter2 = "";
     if(Def.FilterName)
     {
-        Filter = document.getElementById(Def.FilterName).value;
+        Filter = $(Def.FilterName).value;
+    }
+    if(Def.FilterName2)
+    {
+        Filter2 = $(Def.FilterName2).value;
     }
     if(!Def.Param3)
         Def.Param3 = "";
-    ViewGrid(Def.APIName, {StartNum:ParseNum(item.value), CountNum:CountViewRows, Param3:Def.Param3, Filter:Filter, }, Def.TabName,
-    1, Def.TotalSum);
+    ViewGrid(Def.APIName, {StartNum:ParseNum(item.value), CountNum:GetCountViewRows(Def), Param3:Def.Param3, Filter:Filter, Filter2:Filter2,
+    }, Def.TabName, 1, Def.TotalSum);
     SaveValues();
     if(This)
         SetImg(This, Def.BlockName);
@@ -527,7 +535,7 @@ function ViewPrev(Def)
 {
     var item = document.getElementById(Def.NumName);
     var Num = ParseNum(item.value);
-    Num -= CountViewRows;
+    Num -= GetCountViewRows(Def);
     if(Num < 0)
         Num = 0;
     item.value = Num;
@@ -538,7 +546,7 @@ function ViewNext(Def,MaxNum)
 {
     var item = document.getElementById(Def.NumName);
     var Num = ParseNum(item.value);
-    Num += CountViewRows;
+    Num += GetCountViewRows(Def);
     if(Def.FilterName)
     {
         if(document.getElementById(Def.FilterName).value)
@@ -552,7 +560,7 @@ function ViewNext(Def,MaxNum)
     }
     else
     {
-        item.value = MaxNum - MaxNum % CountViewRows;
+        item.value = MaxNum - MaxNum % GetCountViewRows(Def);
     }
     ViewCurrent(Def);
 };
@@ -565,18 +573,40 @@ function ViewBegin(Def)
 
 function ViewEnd(Def,MaxNum)
 {
-    document.getElementById(Def.NumName).value = MaxNum - MaxNum % CountViewRows;
+    document.getElementById(Def.NumName).value = MaxNum - MaxNum % GetCountViewRows(Def);
     ViewCurrent(Def);
+};
+
+function GetCountViewRows(Def)
+{
+    if(Def.CountViewRows)
+        return Def.CountViewRows;
+    else
+        return CountViewRows;
 };
 
 function DoStableScroll()
 {
+    var item = $("idStableScroll");
+    if(!item)
+        return ;
     var scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight,
     document.documentElement.offsetHeight, document.body.clientHeight, document.documentElement.clientHeight);
-    var item = document.getElementById("idStableScroll");
     var itemlHeight = Math.max(item.scrollHeight, item.offsetHeight, item.clientHeight);
     scrollHeight = scrollHeight - itemlHeight;
     item.style.top = "" + scrollHeight + "px";
+};
+var glEvalMap = {};
+
+function CreateEval(formula,StrParams)
+{
+    var Ret = glEvalMap[formula];
+    if(!Ret)
+    {
+        eval("function M(" + StrParams + "){return " + formula + "}; Ret=M;");
+        glEvalMap[formula] = Ret;
+    }
+    return Ret;
 };
 var glWorkNum = 0;
 
@@ -592,7 +622,7 @@ function SetGridData(arr,id_name,TotalSum,bclear,revert)
     }
     var map = htmlTable.ItemsMap;
     glWorkNum++;
-    var ValueTotal = {SumTER:0, SumCENT:0};
+    var ValueTotal = {SumCOIN:0, SumCENT:0};
     var row0 = htmlTable.rows[0];
     var row0cells = row0.cells;
     var colcount = row0cells.length;
@@ -615,6 +645,9 @@ function SetGridData(arr,id_name,TotalSum,bclear,revert)
                 var cell0 = row0cells[n];
                 if(cell0.innerText == "")
                     continue;
+                cell0.F = CreateEval(cell0.id, "Item");
+                if(cell0.id.substr(0, 1) === "(")
+                    cell0.H = 1;
                 var cell = row.insertCell(n);
                 cell.className = cell0.className;
             }
@@ -626,23 +659,22 @@ function SetGridData(arr,id_name,TotalSum,bclear,revert)
             if(!cell)
                 continue;
             var cell0 = row0cells[n];
-            var formula = cell0.id;
-            if(formula.substr(0, 1) === "(")
+            if(cell0.H)
             {
-                var text = "" + eval(formula);
+                var text = "" + cell0.F(Item);
                 text.trim();
                 if(cell.innerHTML !== text)
                     cell.innerHTML = text;
             }
             else
             {
-                var text = "" + eval(formula);
+                var text = "" + cell0.F(Item);
                 text.trim();
                 if(cell.innerText !== text)
                     cell.innerText = text;
             }
         }
-        if(TotalSum)
+        if(TotalSum && Item.Currency === 0)
             ADD(ValueTotal, Item.Value);
     }
     for(var key in map)
@@ -657,7 +689,7 @@ function SetGridData(arr,id_name,TotalSum,bclear,revert)
     if(TotalSum)
     {
         var id = document.getElementById(TotalSum);
-        id.innerText = "Total: " + SUM_TO_STRING(ValueTotal, 1);
+        id.innerText = "Total: " + SUM_TO_STRING(ValueTotal, 0);
     }
     DoStableScroll();
 };
@@ -676,6 +708,103 @@ function RetOpenBlock(BlockNum,TrDataLen)
         return '<INPUT type="button" onclick="ViewTransaction(' + BlockNum + ')" class="" value="' + BlockNum + '">';
     else
         return BlockNum;
+};
+
+function RetBool(Value)
+{
+    if(Value)
+        return "✔";
+    else
+        return "";
+};
+
+function RetNumDapp(Item)
+{
+    return Item.Num;
+};
+
+function RetOpenDapps(Item,bNum)
+{
+    var Name = escapeHtml(Item.Name);
+    if(bNum)
+        Name = "" + Item.Num + "." + Name;
+    if(Item.HTMLLength > 0)
+    {
+        if(Item.IconBlockNum)
+            return '<button class="bt_open_dapp" onclick="OpenDapps(' + Item.Num + ')"><img src="/file/' + Item.IconBlockNum + '/' + Item.IconTrNum + '" style="vertical-align:middle; max-width: 32px;"> ' + Name + '</button>';
+        else
+            return '<button class="bt_open_dapp" onclick="OpenDapps(' + Item.Num + ')">' + Name + '</button>';
+    }
+    else
+        if(Item.IconBlockNum)
+            return '<img src="/file/' + Item.IconBlockNum + '/' + Item.IconTrNum + '" style="vertical-align:middle; max-width: 32px;"> ' + Name;
+        else
+            return Name;
+};
+
+function RetDirect(Value)
+{
+    if(Value === "-")
+        return "<B style='color:red'>-</B>";
+    else
+        if(Value === "+")
+            return "<B style='color:green;'>+</B>";
+        else
+            return "";
+};
+
+function RetCategory(Item)
+{
+    var Str = "";
+    var Num = 0;
+    if(Item.Category1 && MapCategory[Item.Category1])
+    {
+        Num++;
+        Str += "" + Num + "." + MapCategory[Item.Category1] + "<BR>";
+    }
+    if(Item.Category2 && MapCategory[Item.Category2])
+    {
+        Num++;
+        Str += "" + Num + "." + MapCategory[Item.Category2] + "<BR>";
+    }
+    if(Item.Category3 && MapCategory[Item.Category3])
+    {
+        Num++;
+        Str += "" + Num + "." + MapCategory[Item.Category3] + "<BR>";
+    }
+    Str = Str.substr(0, Str.length - 4);
+    return Str;
+};
+
+function RetChangeSmart(Item)
+{
+    var Name = "";
+    var State = "";
+    var bOpen = 0;
+    if(Item.SmartObj)
+    {
+        if(Item.SmartObj.HTMLLength)
+        {
+            Name = RetOpenDapps(Item.SmartObj, 1);
+            bOpen = 1;
+        }
+        else
+            Name = "" + Item.SmartObj.Num + "." + escapeHtml(Item.SmartObj.Name) + "<BR>";
+        if(window.DEBUG_WALLET)
+            State = "<BR>State:" + JSON.stringify(Item.SmartState);
+    }
+    if(bOpen)
+        return '<DIV style="width: 200px">' + Name + '<button onclick="ChangeSmart(' + Item.Num + ',' + Item.Value.Smart + ')" style="height: 40px; padding-top: 0px;" class="button">Set</button>' + State + '</DIV>';
+    else
+        return Name + '<button onclick="ChangeSmart(' + Item.Num + ',' + Item.Value.Smart + ')" style="" class="button">Set</button>' + State;
+};
+
+function RetBaseAccount(Item)
+{
+    var Str = "" + Item.Account;
+    if(Item.AccountLength > 1)
+        Str += "-" + (Item.Account + Item.AccountLength - 1);
+    return Str;
 };
 
 function ViewTransaction(BlockNum)
@@ -734,36 +863,396 @@ function AddDiagramToArr(Arr,Item)
     }
 };
 
-function LoadValuesByArr(Arr)
+function SetVisibleBlock(name,bSet)
 {
+    var Item = document.getElementById(name);
+    if(bSet && typeof bSet === "string")
+        Item.style.display = bSet;
+    else
+        if(bSet)
+        {
+            Item.style.display = 'block';
+        }
+        else
+        {
+            Item.style.display = 'none';
+        }
+    return Item;
+};
+
+function IsVisibleBlock(name)
+{
+    var Item = document.getElementById(name);
+    if(Item.style.display === 'block' || Item.style.display === "table-row")
+        return true;
+    else
+        return false;
+};
+
+function LoadValuesByArr(Arr,DopStr)
+{
+    if(!DopStr)
+        DopStr = "";
     if(localStorage["VerSave"] !== "3")
         return 0;
     for(var i = 0; i < Arr.length; i++)
     {
         var name = Arr[i];
         var Item = document.getElementById(name);
-        if(Item.nodeName === "SELECT")
-        {
-            LoadMapAfter[name] = localStorage.getItem(name);
-        }
+        var name2 = DopStr + name;
         if(Item.type === "checkbox")
-            Item.checked = parseInt(localStorage.getItem(name));
+            Item.checked = parseInt(localStorage.getItem(name2));
         else
-            Item.value = localStorage.getItem(name);
+            Item.value = localStorage.getItem(name2);
     }
     return 1;
 };
 
-function SaveValuesByArr(Arr)
+function SaveValuesByArr(Arr,DopStr)
 {
+    if(!DopStr)
+        DopStr = "";
     localStorage["VerSave"] = "3";
     for(var i = 0; i < Arr.length; i++)
     {
         var name = Arr[i];
+        var name2 = DopStr + name;
         var Item = $(name);
         if(Item.type === "checkbox")
-            window.localStorage.setItem(name, 0 + Item.checked);
+            window.localStorage.setItem(name2, 0 + Item.checked);
         else
-            window.localStorage.setItem(name, Item.value);
+            window.localStorage.setItem(name2, Item.value);
     }
+};
+var MapCurrency = {};
+MapCurrency[0] = "TERA";
+var MapCategory = {};
+MapCategory[0] = "-";
+MapCategory[1] = "Art & Music";
+MapCategory[2] = "Big Data & AI";
+MapCategory[3] = "Business";
+MapCategory[4] = "Commerce & Advertising";
+MapCategory[5] = "Communications";
+MapCategory[6] = "Content Management";
+MapCategory[7] = "Crowdfunding";
+MapCategory[8] = "Data Storage";
+MapCategory[9] = "Drugs & Healthcare";
+MapCategory[10] = "Education";
+MapCategory[11] = "Energy & Utilities";
+MapCategory[12] = "Events & Entertainment";
+MapCategory[13] = "eСommerce";
+MapCategory[14] = "Finance";
+MapCategory[15] = "Gambling & Betting";
+MapCategory[16] = "Gaming & VR";
+MapCategory[17] = "Healthcare";
+MapCategory[18] = "Identity & Reputation";
+MapCategory[19] = "Industry";
+MapCategory[20] = "Infrastructure";
+MapCategory[21] = "Investment";
+MapCategory[22] = "Live Streaming";
+MapCategory[23] = "Machine Learning & AI";
+MapCategory[24] = "Marketing";
+MapCategory[25] = "Media";
+MapCategory[26] = "Mining";
+MapCategory[27] = "Payments";
+MapCategory[28] = "Platform";
+MapCategory[29] = "Provenance & Notary";
+MapCategory[30] = "Real Estate";
+MapCategory[31] = "Recruitment";
+MapCategory[32] = "Service";
+MapCategory[33] = "Social Network";
+MapCategory[34] = "Social project";
+MapCategory[35] = "Supply & Logistics";
+MapCategory[36] = "Trading & Investing";
+MapCategory[37] = "Transport";
+MapCategory[38] = "Travel & Tourisim";
+MapCategory[39] = "Bounty";
+MapCategory[40] = "Code-library";
+
+function GetTokenName(Num,Name)
+{
+    if(!Name)
+        Name = "Token";
+    return "(" + Num + "." + Name + ")";
+    return "{" + Num + "." + Name + "}";
+};
+
+function CurrencyNameItem(Item)
+{
+    var Name = MapCurrency[Item.Currency];
+    if(!Name)
+    {
+        if(Item.CurrencyObj)
+            Name = GetTokenName(Item.Currency, Item.CurrencyObj.ShortName);
+        else
+            Name = GetTokenName(Item.Currency, "");
+        MapCurrency[Item.Currency] = Name;
+    }
+    return Name;
+};
+
+function CurrencyName(Num)
+{
+    var Name = MapCurrency[Num];
+    if(!Name)
+    {
+        GetData("GetDappsAll", {StartNum:Num, CountNum:1}, function (Data)
+        {
+            if(Data && Data.result)
+            {
+                var Smart = Data.arr[0];
+                Name = GetTokenName(Smart.Num, Smart.ShortName);
+                MapCurrency[Smart.Num] = Name;
+            }
+        });
+        Name = GetTokenName(Num, "");
+    }
+    return Name;
+};
+
+function FillSelect(IdName,arr,bNatural)
+{
+    var Select = $(IdName);
+    var Value = Select.value;
+    var Options = Select.options;
+    var strJSON = JSON.stringify(arr);
+    if(Select.strJSON === strJSON)
+        return ;
+    Select.strJSON = strJSON;
+    var Value = Select.value;
+    if(bNatural)
+    {
+        Options.length = 0;
+        for(var key in arr)
+        {
+            var name = arr[key];
+            Options[Options.length] = new Option(name, key);
+            if(key == Value)
+                Select.value = key;
+        }
+    }
+    else
+    {
+        Options.length = 0;
+        for(var i = 0; i < arr.length; i++)
+        {
+            var item = arr[i];
+            Options[Options.length] = new Option(item.text, item.value);
+            if(item.value == Value)
+                Select.value = item.value;
+        }
+        if(!arr.length)
+            for(var key in arr)
+            {
+                var item = arr[key];
+                Options[Options.length] = new Option(item.text, item.value);
+                if(item.value == Value)
+                    Select.value = item.value;
+            }
+    }
+};
+
+function GetArrFromSelect(IdName)
+{
+    var Select = $(IdName);
+    var Options = Select.options;
+    var arr = [];
+    for(var i = 0; i < Options.length; i++)
+    {
+        var item = Options[i];
+        arr.push({text:item.text, value:item.value});
+    }
+    return arr;
+};
+
+function FillCategory(IdName)
+{
+    var arr = [];
+    for(var key in MapCategory)
+    {
+        arr.push({sort:MapCategory[key].toUpperCase(), text:MapCategory[key], value:key});
+    }
+    arr.sort(function (a,b)
+    {
+        if(a.sort < b.sort)
+            return  - 1;
+        if(a.sort > b.sort)
+            return 1;
+        return 0;
+    });
+    FillSelect(IdName, arr);
+};
+
+function AddToInvoiceList(Item)
+{
+    var arr;
+    var Str = localStorage["InvoiceList"];
+    if(Str)
+    {
+        arr = JSON.parse(Str);
+    }
+    else
+    {
+        arr = [];
+    }
+    arr.unshift(Item);
+    localStorage["InvoiceList"] = JSON.stringify(arr);
+};
+
+function OpenDapps(Num)
+{
+    window.Open('./dapp/' + Num, 'dapp', 1200);
+};
+
+function ParseFileName(Str)
+{
+    var Ret = {BlockNum:0, TrNum:0};
+    var index1 = Str.indexOf("file/");
+    if(index1)
+    {
+        var index2 = Str.indexOf("/", index1 + 6);
+        Ret.BlockNum = parseInt(Str.substr(index1 + 5, index2 - index1 - 5));
+        Ret.TrNum = parseInt(Str.substr(index2 + 1));
+    }
+    return Ret;
+};
+var glTrSendNum = 0;
+window.MapSendTransaction = {};
+
+function SendTransaction(Body,TR,SumPow,F)
+{
+    if(Body.length > 16000)
+    {
+        if(window.SetStatus)
+            SetStatus("Error length transaction =" + Body.length + " (max size=16000)");
+        if(F)
+            F(1, TR, Body);
+        return ;
+    }
+    glTrSendNum++;
+    CreateNonceAndSend(1, 0);
+    
+function CreateNonceAndSend(bCreateNonce,startnonce)
+    {
+        var CurTrNum = glTrSendNum;
+        var nonce = startnonce;
+        if(bCreateNonce)
+            nonce = CreateHashBodyPOWInnerMinPower(Body, SumPow);
+        var StrHex = GetHexFromArr(Body);
+        GetData("SendTransactionHex", StrHex, function (Data)
+        {
+            if(Data)
+            {
+                var key = GetHexFromArr(shaarr(Body));
+                if(window.SetStatus)
+                    SetStatus("Send '" + key.substr(0, 8) + "' result:" + Data.text);
+                if(Data.text === "Not add")
+                {
+                    CreateNonceAndSend(1, nonce + 1);
+                }
+                else
+                    if(Data.text === "Bad time")
+                    {
+                        if(window.SetStatus)
+                            SetStatus("Next send...");
+                        setTimeout(function ()
+                        {
+                            if(CurTrNum === glTrSendNum)
+                                CreateNonceAndSend(0, nonce);
+                        }, 100);
+                    }
+                    else
+                    {
+                        var key = GetHexFromArr(shaarr(Body));
+                        MapSendTransaction[key] = TR;
+                        if(F)
+                            F(0, TR, Body);
+                    }
+            }
+        });
+    };
+};
+var MapSendID = {};
+
+function SendCallMethod(Account,MethodName,Params,FromNum,FromSmartNum)
+{
+    var TR = {Type:135};
+    let Body = [TR.Type];
+    WriteUint(Body, Account);
+    WriteStr(Body, MethodName);
+    WriteStr(Body, JSON.stringify(Params));
+    WriteUint(Body, FromNum);
+    if(FromNum)
+    {
+        GetData("GetAccount", FromNum, function (Data)
+        {
+            if(!Data || Data.result !== 1)
+            {
+                SetStatus("Error account number: " + FromNum);
+                return ;
+            }
+            if(Data.Item.Value.Smart !== FromSmartNum)
+            {
+                SetStatus("Error - The account:" + FromNum + " does not belong to a smart contract:" + FromSmartNum);
+                return ;
+            }
+            var OperationID = Data.Item.Value.OperationID;
+            if(!MapSendID[FromNum] || (new Date() - MapSendID[FromNum].Date) > 8 * 1000)
+            {
+                MapSendID[FromNum] = {OperationID:OperationID + 10};
+            }
+            else
+            {
+                OperationID = MapSendID[FromNum].OperationID;
+            }
+            MapSendID[FromNum].OperationID++;
+            MapSendID[FromNum].Date = (new Date()) - 0;
+            WriteUint(Body, OperationID);
+            Body.length += 10;
+            var StrHex = GetHexFromArr(Body);
+            GetData("GetSignFromHEX", {Hex:StrHex, Account:Account}, function (Data)
+            {
+                if(Data && Data.result)
+                {
+                    var Arr = GetArrFromHex(Data.Sign);
+                    WriteArr(Body, Arr, 64);
+                    Body.length += 12;
+                    SendTransaction(Body, TR);
+                }
+            });
+        });
+    }
+    else
+    {
+        WriteUint(Body, 0);
+        Body.length += 10;
+        Body.length += 64;
+        Body.length += 12;
+        SendTransaction(Body, TR);
+    }
+};
+
+function GetTrCreateAcc(Currency,PubKey,Description,Adviser,Smart)
+{
+    var TR = {Type:TYPE_TRANSACTION_CREATE, Currency:Currency, PubKey:PubKey, Name:Description, Adviser:Adviser, Smart:Smart, };
+    return TR;
+};
+
+function GetBodyCreateAcc(TR)
+{
+    var Body = [];
+    WriteByte(Body, TR.Type);
+    WriteUint(Body, TR.Currency);
+    WriteArr(Body, GetArrFromHex(TR.PubKey), 33);
+    WriteStr(Body, TR.Name, 40);
+    WriteUint(Body, TR.Adviser);
+    WriteUint32(Body, TR.Smart);
+    Body.length += 3;
+    Body.length += 12;
+    return Body;
+};
+
+function RetJSON(Item)
+{
+    return JSON.stringify(Item);
 };

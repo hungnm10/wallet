@@ -8,14 +8,15 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 553;
-global.MIN_CODE_VERSION_NUM = 551;
+global.UPDATE_CODE_VERSION_NUM = 667;
+global.MIN_CODE_VERSION_NUM = 664;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
 "STAT_MODE", "UPDATE_NUM_COMPLETE", "HTTP_IP_CONNECT", "HTTP_PORT_NUMBER", "HTTP_PORT_PASSWORD", "WALLET_NAME", "WALLET_DESCRIPTION",
-"COUNT_VIEW_ROWS", "ADDRLIST_MODE", "CheckPointDelta", "USE_MINING", "POW_MAX_PERCENT", "USE_LOG_NETWORK", "ALL_LOG_TO_CLIENT",
-"LIMIT_SEND_TRAFIC", "MAX_WNUM", "MIN_VER_STAT", "MAX_STAT_PERIOD", "STOPGETBLOCK", "RESTART_PERIOD_SEC", "HARD_PACKET_PERIOD120",
-"MINING_START_TIME", "MINING_PERIOD_TIME", "TRANSACTION_PROOF_COUNT", "USE_AUTO_UPDATE"];
+"COUNT_VIEW_ROWS", "ADDRLIST_MODE", "CheckPointDelta", "USE_MINING", "POW_MAX_PERCENT", "ALL_LOG_TO_CLIENT", "LIMIT_SEND_TRAFIC",
+"MAX_WNUM", "MIN_VER_STAT", "MAX_STAT_PERIOD", "STOPGETBLOCK", "RESTART_PERIOD_SEC", "HARD_PACKET_PERIOD120", "MINING_START_TIME",
+"MINING_PERIOD_TIME", "TRANSACTION_PROOF_COUNT", "USE_AUTO_UPDATE", "DEBUG_WALLET", ];
+global.DEBUG_WALLET = 0;
 global.AUTO_COORECT_TIME = 1;
 global.DELTA_CURRENT_TIME = 0;
 global.NODES_NAME = "";
@@ -32,7 +33,6 @@ global.POWRunCount = 10000;
 global.POWRunPeriod = 1;
 global.CheckPointDelta = 20;
 global.ALL_LOG_TO_CLIENT = 1;
-global.USE_LOG_NETWORK = 0;
 global.LIMIT_SEND_TRAFIC = 0;
 global.COUNT_VIEW_ROWS = 20;
 global.MAX_WNUM = undefined;
@@ -42,6 +42,8 @@ global.RESTART_PERIOD_SEC = 0;
 global.HARD_PACKET_PERIOD120 = 160;
 global.MINING_START_TIME = "";
 global.MINING_PERIOD_TIME = "";
+global.CHECK_RUN_MINING = 21 * 1000;
+global.CHECK_STOP_MINING = 10 * 1000;
 require("./startlib.js");
 global.MIN_POWER_POW_HANDSHAKE = 12;
 global.MIN_POWER_POW_MSG = 2;
@@ -83,8 +85,14 @@ global.START_NETWORK_DATE = 1530446400000;
 var NETWORK = "TERA-MAIN";
 global.DEF_MAJOR_VERSION = "0001";
 InitParamsArg();
+global.SMART_BLOCKNUM_START = 10000000;
+global.PRICE_DAO = function (BlockNum)
+{
+    return {NewAccount:10, NewSmart:100, NewTokenSmart:10000};
+};
 if(global.LOCAL_RUN)
 {
+    global.SMART_BLOCKNUM_START = 0;
     global.START_MINING = 60;
     global.REF_PERIOD_MINING = 10;
     var Num = (new Date) - 0 - 50 * 1000;
@@ -93,18 +101,25 @@ if(global.LOCAL_RUN)
     global.TEST_TRANSACTION_GENERATE = 0;
     global.MIN_POWER_POW_TR = 0;
     global.MIN_POWER_POW_ACC_CREATE = 0;
-    console.log("************************* LOCAL RUN - START_NETWORK_DATE: " + START_NETWORK_DATE);
-    NETWORK = "LOCAL-R3";
+    console.log("LOCAL RUN - START_NETWORK_DATE: " + START_NETWORK_DATE);
+    NETWORK = "LOCAL";
 }
 else
     if(global.TEST_NETWORK)
     {
+        var Num = (new Date) - 0 - 50 * 1000;
+        console.log("CURRENT NUM: " + (Math.trunc(Num / 1000) * 1000));
+        global.SMART_BLOCKNUM_START = 0;
+        global.START_NETWORK_DATE = 1540245284000;
+        global.START_MINING = 1000;
+        global.REF_PERIOD_MINING = 1000;
         global.MIN_POWER_POW_TR = 8;
         global.MIN_POWER_POW_ACC_CREATE = 8;
         global.AVG_TRANSACTION_COUNT = 10;
         global.TRANSACTION_PROOF_COUNT = 200 * 1000;
         global.MAX_SIZE_LOG = 20 * 1024 * 1024;
-        global.PERIOD_ACCOUNT_HASH = 100;
+        global.DELTA_BLOCK_ACCOUNT_HASH = 1000;
+        global.PERIOD_ACCOUNT_HASH = 50;
         global.WALLET_NAME = "TEST";
         NETWORK = "TERA-TEST";
         if(global.START_PORT_NUMBER === undefined)
@@ -184,13 +199,16 @@ function InitParamsArg()
                                         if(str == "LOCALRUN")
                                             global.LOCAL_RUN = 1;
                                         else
-                                            if(str == "NOLOCALRUN")
-                                                global.LOCAL_RUN = 0;
+                                            if(str == "TESTRUN")
+                                                global.TEST_NETWORK = 1;
                                             else
-                                                if(str == "NOAUTOUPDATE")
-                                                    global.USE_AUTO_UPDATE = 0;
+                                                if(str == "NOLOCALRUN")
+                                                    global.LOCAL_RUN = 0;
                                                 else
-                                                    if(str == "NOPARAMJS")
-                                                        global.USE_PARAM_JS = 0;
+                                                    if(str == "NOAUTOUPDATE")
+                                                        global.USE_AUTO_UPDATE = 0;
+                                                    else
+                                                        if(str == "NOPARAMJS")
+                                                            global.USE_PARAM_JS = 0;
     }
 };

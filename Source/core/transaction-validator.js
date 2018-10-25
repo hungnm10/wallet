@@ -12,6 +12,7 @@
 require("../dapp/dapp");
 require("../dapp/accounts");
 require("../dapp/smart");
+require("../dapp/file");
 require("../dapp/messager");
 require("../dapp/names");
 require("./wallet");
@@ -93,10 +94,30 @@ module.exports = class CSmartContract extends require("./block-exchange")
                 {
                     continue;
                 }
-                var App = DAppByType[arr[i][0]];
+                var type = arr[i][0];
+                var App = DAppByType[type];
                 if(App)
                 {
-                    var Result = App.OnWriteTransaction(arr[i], BlockNum, i);
+                    DApps.Accounts.BeginTransaction()
+                    var Result = App.OnWriteTransaction(Block, arr[i], BlockNum, i);
+                    var item = WALLET.ObservTree.find({HASH:shaarr(arr[i])});
+                    if(item)
+                    {
+                        var ResultStr = Result;
+                        if(Result === true)
+                        {
+                            ResultStr = "Add to blockchain"
+                            if(type === global.TYPE_TRANSACTION_FILE)
+                                ResultStr += ": file/" + BlockNum + "/" + i
+                        }
+                        item.result = ResultStr
+                        ToLogClient(ResultStr, GetHexFromArr(item.HASH), true)
+                        WALLET.ObservTree.remove(item)
+                    }
+                    if(Result === true)
+                        DApps.Accounts.CommitTransaction(BlockNum, i)
+                    else
+                        DApps.Accounts.RollBackTransaction()
                 }
             }
         if(COUNT_MEM_BLOCKS)

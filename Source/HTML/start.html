@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Start Tera</title>
+
+    <script>
+        function $(id)
+        {
+            return document.getElementById(id);
+        }
+        window.onload=function ()
+        {
+            $("idAutoconnect").checked=parseInt(localStorage.getItem("idAutoconnect"));
+            if($("idAutoconnect").checked)
+                Connect();
+        }
+        function SaveValues()
+        {
+            localStorage.setItem("idAutoconnect",0+$("idAutoconnect").checked);
+        }
+
+        function Connect()
+        {
+
+        }
+    </script>
+    <style type="text/css">
+        body
+        {
+            background-color: #22547f;
+            color: white;
+        }
+        .item
+        {
+            z-index:1000;
+            position:fixed;
+            top:20%;
+            left:40%;
+            height:250px;
+            width:250px;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid white;
+            border-radius: 4px;
+        }
+        .title
+        {
+            font-size: xx-large;
+            padding-top: 20px;
+            margin-bottom: 80px;
+        }
+        .button
+        {
+            height:50px;
+            width:150px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            font-size: large;
+        }
+
+
+    </style>
+</head>
+<body>
+<DIV class="item">
+    <DIV class="title">TERA</DIV>
+
+    <button class="button">Connect</button><BR>
+    <input type="checkbox" id="idAutoconnect" onchange = "SaveValues()"/> Autoconnect on start
+</DIV>
+
+</body>
+</html>

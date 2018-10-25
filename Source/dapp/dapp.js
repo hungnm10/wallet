@@ -14,7 +14,6 @@ class DApp
 {
     constructor()
     {
-        this.CurrentBlockNum = 0
     }
     Name()
     {
@@ -32,6 +31,10 @@ class DApp
     {
         return "";
     }
+    GetVerifyTransaction(BlockNum, TrNum, Body)
+    {
+        return 1;
+    }
     ClearDataBase()
     {
     }
@@ -44,7 +47,7 @@ class DApp
     OnDeleteBlock(Block)
     {
     }
-    OnWriteTransaction(Body, BlockNum, TrNum)
+    OnWriteTransaction(Block, Body, BlockNum, TrNum)
     {
     }
     OnMessage(Msg)

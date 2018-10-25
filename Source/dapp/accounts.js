@@ -16,24 +16,26 @@ const MAX_SUM_CENT = 1e9;
 const TYPE_TRANSACTION_CREATE = 100;
 const TYPE_TRANSACTION_TRANSFER = 105;
 const TYPE_TRANSACTION_TRANSFER2 = 110;
+const TYPE_TRANSACTION_TRANSFER3 = 111;
 global.TYPE_TRANSACTION_ACC_HASH = 119;
 global.FORMAT_CREATE = "{\
     Type:byte,\
     Currency:uint,\
     PubKey:arr33,\
-    Description:str40,\
+    Name:str40,\
     Adviser:uint,\
-    Reserve:arr7,\
+    Smart:uint32,\
+    Reserve:arr3,\
     }";
-global.FORMAT_MONEY_TRANSFER = "{\
+global.FORMAT_MONEY_TRANSFER = '{\
     Type:byte,\
     Currency:uint,\
     FromID:uint,\
-    To:[{ID:uint,SumTER:uint,SumCENT:uint32}],\
+    To:[{ID:uint,SumCOIN:uint,SumCENT:uint32}],\
     Description:str,\
     OperationID:uint,\
     Sign:arr64,\
-    }";
+    }';
 const WorkStructTransfer = {};
 global.FORMAT_MONEY_TRANSFER_BODY = FORMAT_MONEY_TRANSFER.replace("Sign:arr64,", "");
 global.FORMAT_MONEY_TRANSFER2 = "{\
@@ -41,13 +43,26 @@ global.FORMAT_MONEY_TRANSFER2 = "{\
     Version:byte,\
     Currency:uint,\
     FromID:uint,\
-    To:[{ID:uint,SumTER:uint,SumCENT:uint32}],\
+    To:[{ID:uint,SumCOIN:uint,SumCENT:uint32}],\
     Description:str,\
     OperationID:uint,\
     Sign:arr64,\
     }";
 const WorkStructTransfer2 = {};
 global.FORMAT_MONEY_TRANSFER_BODY2 = FORMAT_MONEY_TRANSFER2.replace("Sign:arr64,", "");
+global.FORMAT_MONEY_TRANSFER3 = "{\
+    Type:byte,\
+    Version:byte,\
+    Reserve:uint,\
+    FromID:uint,\
+    To:[{PubKey:tr,ID:uint,SumCOIN:uint,SumCENT:uint32}],\
+    Description:str,\
+    OperationID:uint,\
+    Body:tr,\
+    Sign:arr64,\
+    }";
+const WorkStructTransfer3 = {};
+global.FORMAT_MONEY_TRANSFER_BODY3 = FORMAT_MONEY_TRANSFER3.replace("Sign:arr64,", "");
 global.FORMAT_ACCOUNT_HASH = "{\
     Type:byte,\
     BlockNum:uint,\
@@ -60,22 +75,24 @@ class MerkleDBRow extends DBRow
         super(FileName, DataSize, Format)
         this.MerkleTree
         this.MerkleArr = []
-        this.MerkleCalc = []
+        this.MerkleCalc = {}
     }
     CalcMerkleTree()
     {
         if(!this.MerkleTree)
         {
-            this.MerkleTree = {LevelsArr:[this.MerkleArr], LevelsCalc:[this.MerkleCalc], RecalcCount:0}
+            this.MerkleCalc = {}
+            this.MerkleTree = {LevelsHash:[this.MerkleArr], RecalcCount:0}
             for(var num = 0; num <= this.GetMaxNum(); num++)
             {
                 var Buf = this.Read(num, 1);
                 this.MerkleArr[num] = shaarr(Buf)
-                this.MerkleCalc[num] = 0
+                this.MerkleCalc[num] = 1
             }
         }
         this.MerkleTree.RecalcCount = 0
-        UpdateMerklTree(this.MerkleTree, 0)
+        UpdateMerklTree(this.MerkleTree, this.MerkleCalc, 0)
+        this.MerkleCalc = {}
         return this.MerkleTree.Root;
     }
     Write(Data)
@@ -86,15 +103,18 @@ class MerkleDBRow extends DBRow
         {
             var Hash = shaarr(RetBuf.Buf);
             this.MerkleArr[Data.Num] = Hash
-            this.MerkleCalc[Data.Num] = 0
+            this.MerkleCalc[Data.Num] = 1
         }
         return bRes;
     }
     Truncate(LastNum)
     {
         DBRow.prototype.Truncate.call(this, LastNum)
-        this.MerkleArr.length = LastNum + 1
-        this.MerkleCalc.length = LastNum + 1
+        if(this.MerkleArr.length !== LastNum + 1)
+        {
+            this.MerkleArr.length = LastNum + 1
+            this.MerkleCalc[LastNum] = 1
+        }
     }
 };
 class AccountApp extends require("./dapp")
@@ -106,15 +126,15 @@ class AccountApp extends require("./dapp")
         this.FORMAT_ACCOUNT_ROW = "{\
             Currency:uint,\
             PubKey:arr33,\
-            Description:str40,\
-            Value:{SumTER:uint,SumCENT:uint32, OperationID:uint,Reserve:arr84},\
+            Name:str40,\
+            Value:{SumCOIN:uint,SumCENT:uint32, OperationID:uint,Smart:uint32,Data:arr80},\
             BlockNumCreate:uint,\
             Adviser:uint,\
             Reserve:arr9,\
             }"
         this.ACCOUNT_ROW_SIZE = 6 + 33 + 40 + (6 + 4 + 6 + 84) + 6 + 6 + 9
         this.DBState = new MerkleDBRow("accounts-state", this.ACCOUNT_ROW_SIZE, this.FORMAT_ACCOUNT_ROW)
-        this.DBAct = new DBRow("accounts-act", 6 + 6 + (6 + 4 + 6 + 6 + 84) + 1 + 11, "{ID:uint, BlockNum:uint,PrevValue:{SumTER:uint,SumCENT:uint32, BlockNum:uint, OperationID:uint,Reserve:arr84}, Mode:byte, TrNum:uint16, Reserve: arr9}")
+        this.DBAct = new DBRow("accounts-act", 6 + 6 + (6 + 4 + 6 + 6 + 84) + 1 + 11, "{ID:uint, BlockNum:uint,PrevValue:{SumCOIN:uint,SumCENT:uint32, Reserve0:uint, OperationID:uint,Smart:uint32,Data:arr80}, Mode:byte, TrNum:uint16, Reserve: arr9}")
         this.DBActPrev = new DBRow("accounts-act-prev", this.DBAct.DataSize, this.DBAct.Format)
         this.DBAccountsHash = new DBRow("accounts-hash", 6 + 32 + 12, "{BlockNum:uint,Hash:hash, Reserve: arr12}")
         this.Start()
@@ -129,13 +149,13 @@ class AccountApp extends require("./dapp")
         this.DBAct.Truncate( - 1)
         this.DBActPrev.Truncate( - 1)
         this.DBAccountsHash.Truncate( - 1)
-        this.DBState.Write({Num:0, PubKey:[], Value:{BlockNum:1, SumTER:0.95 * TOTAL_TER_MONEY}, Description:"System account"})
+        this.DBState.Write({Num:0, PubKey:[], Value:{BlockNum:1, SumCOIN:0.95 * TOTAL_TER_MONEY}, Name:"System account"})
         for(var i = 1; i < 8; i++)
-            this.DBState.Write({Num:i, PubKey:[], Value:{BlockNum:1}, Description:""})
-        this.DBState.Write({Num:8, PubKey:GetArrFromHex(ARR_PUB_KEY[0]), Value:{BlockNum:1, SumTER:0.05 * TOTAL_TER_MONEY}, Description:"Founder account"})
-        this.DBState.Write({Num:9, PubKey:GetArrFromHex(ARR_PUB_KEY[1]), Value:{BlockNum:1, SumTER:0}, Description:"Developer account"})
+            this.DBState.Write({Num:i, PubKey:[], Value:{BlockNum:1}, Name:""})
+        this.DBState.Write({Num:8, PubKey:GetArrFromHex(ARR_PUB_KEY[0]), Value:{BlockNum:1, SumCOIN:0.05 * TOTAL_TER_MONEY}, Name:"Founder account"})
+        this.DBState.Write({Num:9, PubKey:GetArrFromHex(ARR_PUB_KEY[1]), Value:{BlockNum:1, SumCOIN:0}, Name:"Developer account"})
         for(var i = 10; i < BLOCK_PROCESSING_LENGTH2; i++)
-            this.DBState.Write({Num:i, PubKey:GetArrFromHex(ARR_PUB_KEY[i - 8]), Value:{BlockNum:1}, Description:""})
+            this.DBState.Write({Num:i, PubKey:GetArrFromHex(ARR_PUB_KEY[i - 8]), Value:{BlockNum:1}, Name:""})
         ToLog("MAX_NUM:" + this.DBState.GetMaxNum())
     }
     ClearDataBase()
@@ -165,46 +185,48 @@ class AccountApp extends require("./dapp")
             return ;
         this.DeleteAct(Block.BlockNum)
     }
-    SendMoney(FromID, ToID, CoinSum, BlockNum, Description)
-    {
-        if(CoinSum.SumCENT >= 1e9)
-        {
-            throw "ERROR SumCENT>=1e9";
-        }
-        var FromData = this.ReadValue(FromID);
-        var OperationID = FromData.Value.OperationID;
-        var TR = {FromID:FromID, To:[{ID:ToID, SumTER:CoinSum.SumTer, SumCENT:CoinSum.SumCent}], Description:Description, OperationID:OperationID};
-        FromData.PrevValue = CopyObjValue(FromData.Value)
-        FromData.ActDirect = "-"
-        FromData.ActSumTER = CoinSum.SumTER
-        FromData.ActSumCENT = CoinSum.SumCENT
-        var Result = this.SUB(FromData.Value, CoinSum);
-        if(!Result)
-            return false;
-        FromData.Value.OperationID++
-        this.WriteValue(TR, FromData, BlockNum, 0xFFFF)
-        var ToData = this.ReadValue(ToID);
-        ToData.PrevValue = CopyObjValue(ToData.Value)
-        ToData.ActDirect = "+"
-        ToData.ActSumTER = CoinSum.SumTER
-        ToData.ActSumCENT = CoinSum.SumCENT
-        this.ADD(ToData.Value, CoinSum)
-        this.WriteValue(TR, ToData, BlockNum, 0xFFFF)
-        return true;
-    }
     OnWriteBlockStart(Block)
     {
         this.CreateTrCount = 0
         if(Block.BlockNum < 1)
             return ;
         this.OnDeleteBlock(Block)
+        this.BeginBlock()
     }
     OnWriteBlockFinish(Block)
     {
-        this.DoCoinBaseTR(Block)
+        try
+        {
+            this.BeginTransaction()
+            this.DoCoinBaseTR(Block)
+            this.CommitTransaction(Block.BlockNum, 0xFFFF)
+        }
+        catch(e)
+        {
+            this.RollBackTransaction()
+            ToError("DoCoinBaseTR: " + e)
+        }
+        this.CommitBlock(Block.BlockNum)
         this.CalcHash(Block.BlockNum)
     }
-    OnWriteTransaction(Body, BlockNum, TrNum)
+    OnWriteTransaction(Block, Body, BlockNum, TrNum, ContextFrom)
+    {
+        var Result;
+        try
+        {
+            Result = this.OnWriteTransactionTR(Block, Body, BlockNum, TrNum, ContextFrom)
+        }
+        catch(e)
+        {
+            Result = e
+        }
+        if(Result !== true)
+        {
+            this.RollBackTransaction()
+        }
+        return Result;
+    }
+    OnWriteTransactionTR(Block, Body, BlockNum, TrNum, ContextFrom)
     {
         var Type = Body[0];
         var Result;
@@ -212,45 +234,42 @@ class AccountApp extends require("./dapp")
         {
             case TYPE_TRANSACTION_CREATE:
                 {
-                    Result = this.TRCreateAccount(Body, BlockNum, TrNum)
+                    Result = this.TRCreateAccount(Body, BlockNum, TrNum, ContextFrom)
                     break;
                 }
             case TYPE_TRANSACTION_TRANSFER:
                 {
-                    Result = this.TRTransferMoney(Body, BlockNum, TrNum, FORMAT_MONEY_TRANSFER, WorkStructTransfer)
+                    Result = this.TRTransferMoney(Block, Body, BlockNum, TrNum, FORMAT_MONEY_TRANSFER, WorkStructTransfer)
                     break;
                 }
             case TYPE_TRANSACTION_TRANSFER2:
                 {
-                    Result = this.TRTransferMoney(Body, BlockNum, TrNum, FORMAT_MONEY_TRANSFER2, WorkStructTransfer2)
+                    Result = this.TRTransferMoney(Block, Body, BlockNum, TrNum, FORMAT_MONEY_TRANSFER2, WorkStructTransfer2)
+                    break;
+                }
+            case TYPE_TRANSACTION_TRANSFER3:
+                {
+                    Result = this.TRTransferMoney(Block, Body, BlockNum, TrNum, FORMAT_MONEY_TRANSFER3, WorkStructTransfer3)
                     break;
                 }
             case TYPE_TRANSACTION_ACC_HASH:
                 {
                     var BlockNumHash = BlockNum - DELTA_BLOCK_ACCOUNT_HASH;
-                    Result = this.TRCheckAccountHash(Body, BlockNum, TrNum)
-                    if(!Result)
+                    if(!this.TRCheckAccountHash(Body, BlockNum, TrNum))
                     {
+                        Result = "BAD ACCOUNT HASH"
                         ToLog("2. ****FIND BAD ACCOUNT HASH IN BLOCK: " + BlockNumHash + " DO BLOCK=" + BlockNum)
                         ToLog("Need to Rewrite transactions from: " + (BlockNum - 2 * DELTA_BLOCK_ACCOUNT_HASH))
                         SERVER.SetTruncateBlockDB(BlockNumHash - 1)
                     }
                     else
                     {
+                        Result = true
                         this.NexdDeltaAccountNum = DELTA_BLOCK_ACCOUNT_HASH
                         SERVER.LastNumAccountHashOK = BlockNumHash
                     }
                     break;
                 }
-        }
-        var item = WALLET.ObservTree.find({HASH:shaarr(Body)});
-        if(item)
-        {
-            if(Result === true)
-                Result = "Add to blockchain"
-            item.result = Result
-            ToLogClient(Result, GetHexFromArr(item.HASH), true)
-            WALLET.ObservTree.remove(item)
         }
         return Result;
     }
@@ -260,40 +279,40 @@ class AccountApp extends require("./dapp")
             return ;
         if(!Block.PowHash)
             throw "#121 ERROR NO Block.PowHash";
-        var SysData = this.ReadValue(0);
-        var SysBalance = SysData.Value.SumTER;
+        var SysData = this.ReadStateTR(0);
+        var SysBalance = SysData.Value.SumCOIN;
         const REF_PERIOD_START = global.START_MINING;
         const REF_PERIOD_END = 30 * 1000 * 1000;
         var AccountID = ReadUintFromArr(Block.AddrHash, 0);
         if(AccountID < 8)
             return ;
-        var Data = this.ReadValue(AccountID);
+        var Data = this.ReadStateTR(AccountID);
         if(Data && Data.Currency === 0 && Data.BlockNumCreate < Block.BlockNum)
         {
             var Power = GetPowPower(Block.PowHash);
             var Sum = Power * Power * SysBalance / TOTAL_TER_MONEY / 100;
-            var CoinTotal = {SumTER:0, SumCENT:0};
-            var CoinSum = this.COIN_FROM_FLOAT(Sum);
-            if(!this.ISZERO(CoinSum))
+            var CoinTotal = {SumCOIN:0, SumCENT:0};
+            var CoinSum = COIN_FROM_FLOAT(Sum);
+            if(!ISZERO(CoinSum))
             {
                 if(Data.Adviser >= 8 && Block.BlockNum < REF_PERIOD_END)
                 {
-                    var RefData = this.ReadValue(Data.Adviser);
+                    var RefData = this.ReadStateTR(Data.Adviser);
                     if(RefData && RefData.BlockNumCreate < Block.BlockNum - REF_PERIOD_MINING)
                     {
                         var K = (REF_PERIOD_END - Block.BlockNum) / (REF_PERIOD_END - REF_PERIOD_START);
-                        var CoinAdv = this.COIN_FROM_FLOAT(Sum * K);
-                        this.SendMoney(0, Data.Adviser, CoinAdv, Block.BlockNum, "Adviser coin base [" + AccountID + "]")
-                        this.ADD(CoinTotal, CoinAdv)
-                        this.ADD(CoinSum, CoinAdv)
+                        var CoinAdv = COIN_FROM_FLOAT(Sum * K);
+                        this.SendMoneyTR(Block, 0, Data.Adviser, CoinAdv, Block.BlockNum, 0xFFFF, "", "Adviser coin base [" + AccountID + "]", 1)
+                        ADD(CoinTotal, CoinAdv)
+                        ADD(CoinSum, CoinAdv)
                     }
                 }
-                this.SendMoney(0, AccountID, CoinSum, Block.BlockNum, "Coin base")
-                this.ADD(CoinTotal, CoinSum)
+                this.SendMoneyTR(Block, 0, AccountID, CoinSum, Block.BlockNum, 0xFFFF, "", "Coin base", 1)
+                ADD(CoinTotal, CoinSum)
                 var CoinDevelop = CopyObjValue(CoinTotal);
-                this.DIV(CoinDevelop, 100)
-                if(!this.ISZERO(CoinDevelop))
-                    this.SendMoney(0, 9, CoinDevelop, Block.BlockNum, "Developers support")
+                DIV(CoinDevelop, 100)
+                if(!ISZERO(CoinDevelop))
+                    this.SendMoneyTR(Block, 0, 9, CoinDevelop, Block.BlockNum, 0xFFFF, "", "Developers support", 1)
             }
         }
     }
@@ -304,16 +323,9 @@ class AccountApp extends require("./dapp")
         switch(Type)
         {
             case TYPE_TRANSACTION_CREATE:
-                {
-                    Find = 1
-                    break;
-                }
             case TYPE_TRANSACTION_TRANSFER:
-                {
-                    Find = 1
-                    break;
-                }
             case TYPE_TRANSACTION_TRANSFER2:
+            case TYPE_TRANSACTION_TRANSFER3:
                 {
                     Find = 1
                     break;
@@ -380,6 +392,11 @@ class AccountApp extends require("./dapp")
                     format = FORMAT_MONEY_TRANSFER2
                     break;
                 }
+            case TYPE_TRANSACTION_TRANSFER3:
+                {
+                    format = FORMAT_MONEY_TRANSFER3
+                    break;
+                }
             case TYPE_TRANSACTION_ACC_HASH:
                 {
                     format = FORMAT_ACCOUNT_HASH
@@ -395,6 +412,14 @@ class AccountApp extends require("./dapp")
         catch(e)
         {
             return "";
+        }
+        if(TR.Body && TR.Body.length)
+        {
+            var App = DAppByType[TR.Body[0]];
+            if(App)
+            {
+                TR.Body = JSON.parse(App.GetScriptTransaction(TR.Body))
+            }
         }
         ConvertBufferToStr(TR)
         return JSON.stringify(TR, "", 2);
@@ -422,126 +447,192 @@ class AccountApp extends require("./dapp")
         else
             return 2;
     }
-    TRCreateAccount(Body, BlockNum, TrNum)
+    TRCreateAccount(Body, BlockNum, TrNum, ContextFrom)
     {
         if(Body.length < 90)
-            return "Error length transaction (retry transaction)";
-        if(BlockNum >= 7000000)
+            return "Error length transaction";
+        var CheckMinPower = 1;
+        if(BlockNum >= 7000000 || global.LOCAL_RUN || global.TEST_NETWORK)
         {
-            if(BlockNum % 10 !== 0)
-                return "The create transaction is not possible in this block: " + BlockNum;
-            if(this.CreateTrCount > 0)
-                return "The account creation transaction was already in this block: " + BlockNum;
+            if(ContextFrom && ContextFrom.To.length === 1 && ContextFrom.To[0].ID === 0 && ContextFrom.To[0].SumCOIN >= PRICE_DAO(BlockNum).NewAccount)
+            {
+                CheckMinPower = 0
+            }
+            else
+            {
+                if(BlockNum % 10 !== 0)
+                    return "The create transaction is not possible in this block: " + BlockNum;
+                if(this.CreateTrCount > 0)
+                    return "The account creation transaction was already in this block: " + BlockNum;
+            }
         }
         this.CreateTrCount++
         var HASH = shaarr(Body);
         var power = GetPowPower(HASH);
-        var MinPower;
-        if(BlockNum < 2500000)
-            MinPower = MIN_POWER_POW_ACC_CREATE
-        else
-            if(BlockNum < 2800000)
-                MinPower = MIN_POWER_POW_ACC_CREATE + 2
+        if(CheckMinPower)
+        {
+            var MinPower;
+            if(BlockNum < 2500000)
+                MinPower = MIN_POWER_POW_ACC_CREATE
             else
-                MinPower = MIN_POWER_POW_ACC_CREATE + 3
-        if(power < MinPower)
-            return "Error min power POW for create account (update client)";
+                if(BlockNum < 2800000)
+                    MinPower = MIN_POWER_POW_ACC_CREATE + 2
+                else
+                    MinPower = MIN_POWER_POW_ACC_CREATE + 3
+            if(power < MinPower)
+                return "Error min power POW for create account (update client)";
+        }
         try
         {
             var TR = BufLib.GetObjectFromBuffer(Body, FORMAT_CREATE, {});
         }
         catch(e)
         {
-            return "Error transaction format (retry transaction)";
+            return "Error transaction format";
         }
-        if(BlockNum >= 3500000 && !TR.Description)
+        if(BlockNum >= 3500000 && !TR.Name)
             return "Account name required";
-        if(BlockNum >= 5700000 && !TR.Description.trim())
+        if(BlockNum >= 5700000 && !TR.Name.trim())
             return "Account name required";
-        var Data = TR;
-        Data.Num = undefined
-        Data.Value = {}
-        Data.BlockNumCreate = BlockNum
-        if(Data.Adviser > this.GetMaxAccount())
-            Data.Adviser = 0
-        this.DBState.CheckNewNum(Data)
-        var Act = {ID:Data.Num, BlockNum:BlockNum, PrevValue:{}, Mode:1, TrNum:TrNum};
-        this.DBAct.Write(Act)
-        this.DBState.Write(Data)
-        if(CompareArr(Data.PubKey, WALLET.PubKeyArr) === 0)
+        var Account = this.NewAccountTR(BlockNum, TrNum);
+        Account.Currency = TR.Currency
+        Account.PubKey = TR.PubKey
+        Account.Name = TR.Name
+        Account.Adviser = TR.Adviser
+        Account.Value.Smart = TR.Smart
+        this.WriteStateTR(Account, TrNum)
+        if(CompareArr(Account.PubKey, WALLET.PubKeyArr) === 0)
         {
-            WALLET.OnCreateAccount(Data)
+            WALLET.OnCreateAccount(Account)
         }
         return true;
     }
-    TRTransferMoney(Body, BlockNum, TrNum, format_money_transfer, workstructtransfer)
+    TRTransferMoney(Block, Body, BlockNum, TrNum, format_money_transfer, workstructtransfer)
     {
         if(Body.length < 103)
-            return "Error length transaction (retry transaction)";
+            return "Error length transaction";
         try
         {
             var TR = BufLib.GetObjectFromBuffer(Body, format_money_transfer, workstructtransfer);
         }
         catch(e)
         {
-            return "Error transaction format (retry transaction)";
+            return "Error transaction format";
         }
-        var Data = this.ReadValue(TR.FromID);
+        if(!TR.Version)
+            TR.Version = 0
+        var Data = this.ReadStateTR(TR.FromID);
         if(!Data)
-            return "Error sender account ID";
-        if(TR.Currency !== Data.Currency)
-            return "Error sender currency";
-        if(TR.OperationID !== Data.Value.OperationID)
-            return "Error OperationID (expected: " + Data.Value.OperationID + " for ID: " + TR.FromID + "). Create new transaction!";
-        var TotalSum = {SumTER:0, SumCENT:0};
+            return "Error sender's account ID: " + TR.FromID;
+        if(TR.Version < 3 && TR.Currency !== Data.Currency)
+            return "Error sender's currency";
+        if(TR.Version < 3)
+        {
+            if(TR.OperationID !== Data.Value.OperationID)
+                return "Error OperationID (expected: " + Data.Value.OperationID + " for ID: " + TR.FromID + ")";
+        }
+        else
+        {
+            if(TR.OperationID < Data.Value.OperationID)
+                return "Error OperationID (expected: " + Data.Value.OperationID + " for ID: " + TR.FromNum + ")";
+            if(TR.OperationID > Data.Value.OperationID + 100)
+                return "Error too much OperationID (expected max: " + (Data.Value.OperationID + 100) + " for ID: " + TR.FromNum + ")";
+        }
+        if(BlockNum >= SMART_BLOCKNUM_START)
+        {
+            if(TR.To.length > 10)
+                return "The number of recipients has been exceeded (max=5, current count=" + TR.To.length + ")";
+        }
+        if(TR.Body && TR.Body.length && TR.To.length > 1)
+        {
+            return "Error - dapps transaction can not be used in a multiple transaction";
+        }
+        var TotalSum = {SumCOIN:0, SumCENT:0};
         var MapItem = {};
         var bWas = 0;
         for(var i = 0; i < TR.To.length; i++)
         {
             var Item = TR.To[i];
-            if(Item.SumTER > MAX_SUM_TER)
-                return "Error MAX_SUM_TER";
+            if(Item.SumCOIN > MAX_SUM_TER)
+                return "Error MAX_SUM_COIN";
             if(Item.SumCENT >= MAX_SUM_CENT)
                 return "Error MAX_SUM_CENT";
-            if(Item.ID === TR.FromID || MapItem[Item.ID])
-                continue;
-            MapItem[Item.ID] = 1
+            if(TR.Version < 3)
+            {
+                if(Item.ID === TR.FromID || MapItem[Item.ID])
+                    continue;
+                MapItem[Item.ID] = 1
+            }
             bWas = 1
-            this.ADD(TotalSum, Item)
+            ADD(TotalSum, Item)
         }
-        if(!bWas)
+        if(!bWas && TR.Version < 3)
             return "No significant recipients";
-        if(TotalSum.SumTER === 0 && TotalSum.SumCENT === 0)
-            return "No money transaction";
-        if(Data.Value.SumTER < TotalSum.SumTER || (Data.Value.SumTER === TotalSum.SumTER && Data.Value.SumCENT < TotalSum.SumCENT))
+        var ZeroSum = 0;
+        if(TotalSum.SumCOIN === 0 && TotalSum.SumCENT === 0)
+        {
+            if(TR.Version < 3)
+                return "No money transaction";
+            else
+                ZeroSum = 1
+        }
+        if(Data.Value.SumCOIN < TotalSum.SumCOIN || (Data.Value.SumCOIN === TotalSum.SumCOIN && Data.Value.SumCENT < TotalSum.SumCENT))
             return "Not enough money on the account";
+        Data.Value.OperationID++
+        TR.Value = TotalSum
         var arr = [];
         MapItem = {}
         var arrpub = [];
         for(var i = 0; i < TR.To.length; i++)
         {
             var Item = TR.To[i];
-            var DataTo = this.ReadValue(Item.ID);
+            var DataTo = this.ReadStateTR(Item.ID);
             if(!DataTo)
-                return "Error receiver account ID";
-            if(TR.Currency !== DataTo.Currency)
+                return "Error receiver account ID: " + Item.ID;
+            if(!ZeroSum && Data.Currency !== DataTo.Currency)
                 return "Error receiver currency";
             for(var j = 0; j < 33; j++)
                 arrpub[arrpub.length] = DataTo.PubKey[j]
-            if(Item.ID === TR.FromID || MapItem[Item.ID])
-                continue;
-            MapItem[Item.ID] = 1
-            DataTo.PrevValue = CopyObjValue(DataTo.Value)
-            DataTo.ActDirect = "+"
-            DataTo.ActSumTER = Item.SumTER
-            DataTo.ActSumCENT = Item.SumCENT
-            this.ADD(DataTo.Value, Item)
-            arr.push(DataTo)
+            if(DataTo.Value.Smart)
+            {
+                if(TR.To.length > 1)
+                    return "Error - smart accounts can not be used in a multiple transaction";
+            }
+            if(TR.Version === 3 && Item.ID === 0 && Item.PubKey && Item.PubKey.length === 33)
+            {
+                if(Item.SumCOIN < PRICE_DAO(BlockNum).NewAccount)
+                    return "Not enough money for create account with index: " + i;
+                var name = TR.Description;
+                var index = name.indexOf("\n");
+                if(index !==  - 1)
+                    name = name.substr(0, index)
+                var Account = this.NewAccountTR(BlockNum, TrNum);
+                Account.PubKey = Item.PubKey
+                Account.Name = name
+                this.WriteStateTR(Account, TrNum)
+                Item.ID = Account.Num
+                this.SendMoneyTR(Block, Data.Num, Account.Num, {SumCOIN:Item.SumCOIN, SumCENT:Item.SumCENT}, BlockNum, TrNum, TR.Description,
+                TR.Description, 1)
+                this.SendMoneyTR(Block, Account.Num, 0, {SumCOIN:PRICE_DAO(BlockNum).NewAccount, SumCENT:0}, BlockNum, TrNum, "Fee for create account",
+                "", 1)
+            }
+            else
+            {
+                if(TR.Version < 3)
+                {
+                    if(Item.ID === TR.FromID || MapItem[Item.ID])
+                        continue;
+                    MapItem[Item.ID] = 1
+                }
+                this.SendMoneyTR(Block, Data.Num, DataTo.Num, {SumCOIN:Item.SumCOIN, SumCENT:Item.SumCENT}, BlockNum, TrNum, TR.Description,
+                TR.Description, 0)
+                arr.push(DataTo)
+            }
         }
-        if(arr.length === 0)
+        if(TR.Version < 3 && arr.length === 0)
             return "No recipients";
         var hash;
-        if(TR.Version === 2)
+        if(TR.Version === 2 || TR.Version === 3)
         {
             for(var j = 0; j < Body.length - 64 - 12; j++)
                 arrpub[arrpub.length] = Body[j]
@@ -569,94 +660,18 @@ class AccountApp extends require("./dapp")
         {
             return "Error sign transaction";
         }
-        Data.PrevValue = CopyObjValue(Data.Value)
-        Data.ActDirect = "-"
-        Data.ActSumTER = TotalSum.SumTER
-        Data.ActSumCENT = TotalSum.SumCENT
-        this.SUB(Data.Value, TotalSum)
-        arr.push(Data)
-        Data.Value.OperationID++
-        arr.sort(function (a,b)
+        if(TR.Body && TR.Body.length)
         {
-            return a.Num - b.Num;
-        })
-        for(var i = 0; i < arr.length; i++)
-        {
-            this.WriteValue(TR, arr[i], BlockNum, TrNum)
+            var App = DAppByType[TR.Body[0]];
+            if(App)
+            {
+                TR.FromPubKey = Data.PubKey
+                var Result = App.OnWriteTransaction(Block, TR.Body, BlockNum, TrNum, TR);
+                if(Result !== true)
+                    return Result;
+            }
         }
         return true;
-    }
-    ADD(Coin, Value2)
-    {
-        Coin.SumTER += Value2.SumTER
-        Coin.SumCENT += Value2.SumCENT
-        if(Coin.SumCENT >= MAX_SUM_CENT)
-        {
-            Coin.SumCENT -= MAX_SUM_CENT
-            Coin.SumTER++
-        }
-        return true;
-    }
-    SUB(Coin, Value2)
-    {
-        Coin.SumTER -= Value2.SumTER
-        if(Coin.SumCENT >= Value2.SumCENT)
-        {
-            Coin.SumCENT -= Value2.SumCENT
-        }
-        else
-        {
-            Coin.SumCENT = MAX_SUM_CENT + Coin.SumCENT - Value2.SumCENT
-            Coin.SumTER--
-        }
-        if(Coin.SumTER < 0)
-        {
-            return false;
-        }
-        return true;
-    }
-    DIV(Coin, Value)
-    {
-        Coin.SumTER = Coin.SumTER / Value
-        Coin.SumCENT = Math.trunc(Coin.SumCENT / Value)
-        var SumTER = Math.trunc(Coin.SumTER);
-        var SumCENT = Math.trunc((Coin.SumTER - SumTER) * MAX_SUM_CENT);
-        Coin.SumTER = SumTER
-        Coin.SumCENT = Coin.SumCENT + SumCENT
-        if(Coin.SumCENT >= MAX_SUM_CENT)
-        {
-            Coin.SumCENT -= MAX_SUM_CENT
-            Coin.SumTER++
-        }
-        return true;
-    }
-    FLOAT_FROM_COIN(Coin)
-    {
-        var Sum = Coin.SumTER + Coin.SumCENT / 1e9;
-        return Sum;
-    }
-    COIN_FROM_FLOAT(Sum)
-    {
-        var SumTER = Math.trunc(Sum);
-        var SumCENT = Math.trunc((Sum - SumTER) * MAX_SUM_CENT);
-        var Coin = {SumTER:SumTER, SumCENT:SumCENT};
-        var Sum2 = this.FLOAT_FROM_COIN(Coin);
-        if(Sum2 !== Sum2)
-        {
-            throw "ERR CHECK COIN_FROM_FLOAT";
-        }
-        return Coin;
-    }
-    ISZERO(Coin)
-    {
-        if(Coin.SumTER === 0 && Coin.SumCENT === 0)
-            return true;
-        else
-            return false;
-    }
-    WriteState(Data)
-    {
-        this.DBState.Write(Data)
     }
     ReadState(Num)
     {
@@ -664,20 +679,6 @@ class AccountApp extends require("./dapp")
         if(Data)
             Data.WN = ""
         return Data;
-    }
-    WriteValue(TR, Data, BlockNum, TrNum)
-    {
-        Data.Value.BlockNum = BlockNum
-        this.DBState.CheckNewNum(Data)
-        var Act = {Num:undefined, ID:Data.Num, BlockNum:BlockNum, Description:TR.Description, PrevValue:Data.PrevValue, TrNum:TrNum};
-        this.DBAct.Write(Act)
-        this.WriteState(Data)
-        if(WALLET.AccountMap[Act.ID] !== undefined)
-            WALLET.OnDoHistoryAct(TR, Data, BlockNum)
-    }
-    ReadValue(Num)
-    {
-        return this.ReadState(Num);
     }
     GetMinBlockAct()
     {
@@ -744,7 +745,7 @@ class AccountApp extends require("./dapp")
             {
                 var Data = this.DBState.Read(Item.ID);
                 Data.Value = Item.PrevValue
-                this.WriteState(Data)
+                this.DBState.Write(Data)
             }
         }
         if(bWas)
@@ -804,7 +805,23 @@ class AccountApp extends require("./dapp")
                     Data.PubKeyStr = GetHexFromArr(Data.PubKey)
                 arr.push(Data)
                 Data.WN = map[key]
-                Data.Description = NormalizeName(Data.Description)
+                Data.Name = NormalizeName(Data.Name)
+                if(Data.Currency)
+                    Data.CurrencyObj = DApps.Smart.ReadSimple(Data.Currency)
+                if(Data.Value.Smart)
+                {
+                    Data.SmartObj = DApps.Smart.ReadSimple(Data.Value.Smart)
+                    try
+                    {
+                        Data.SmartState = BufLib.GetObjectFromBuffer(Data.Value.Data, Data.SmartObj.StateFormat, {})
+                        if(typeof Data.SmartState === "object")
+                            Data.SmartState.Num = Num
+                    }
+                    catch(e)
+                    {
+                        Data.SmartState = {}
+                    }
+                }
             }
         }
         return arr;
@@ -813,8 +830,21 @@ class AccountApp extends require("./dapp")
     {
         return this.DBState.GetMaxNum();
     }
-    GetRowsAccounts(start, count, Filter)
+    GetRowsAccounts(start, count, Filter, bGetState)
     {
+        var F;
+        if(Filter)
+        {
+            try
+            {
+                F = CreateEval(Filter, "Cur,ID,Operation,Amount,Adviser,Name,PubKey")
+            }
+            catch(e)
+            {
+                F = undefined
+                ToLog(e)
+            }
+        }
         var WasError = 0;
         var arr = [];
         for(var num = start; true; num++)
@@ -826,19 +856,19 @@ class AccountApp extends require("./dapp")
                 break;
             if(!Data.PubKeyStr)
                 Data.PubKeyStr = GetHexFromArr(Data.PubKey)
-            Data.Description = NormalizeName(Data.Description)
-            if(Filter)
+            Data.Name = NormalizeName(Data.Name)
+            if(F)
             {
-                var Cur = "TERA";
+                var Cur = 0;
                 var ID = Data.Num;
                 var Operation = Data.Value.OperationID;
-                var Amount = this.FLOAT_FROM_COIN(Data.Value);
+                var Amount = FLOAT_FROM_COIN(Data.Value);
                 var Adviser = Data.Adviser;
-                var Name = Data.Description;
+                var Name = Data.Name;
                 var PubKey = GetHexFromArr(Data.PubKey);
                 try
                 {
-                    if(!eval(Filter))
+                    if(!F(Cur, ID, Operation, Amount, Adviser, Name, PubKey))
                         continue;
                 }
                 catch(e)
@@ -848,9 +878,28 @@ class AccountApp extends require("./dapp")
                     WasError = 1
                 }
             }
+            if(bGetState)
+            {
+                if(Data.Currency)
+                    Data.CurrencyObj = DApps.Smart.ReadSimple(Data.Currency)
+                if(Data.Value.Smart)
+                {
+                    Data.SmartObj = DApps.Smart.ReadSimple(Data.Value.Smart)
+                    try
+                    {
+                        Data.SmartState = BufLib.GetObjectFromBuffer(Data.Value.Data, Data.SmartObj.StateFormat, {})
+                        if(typeof Data.SmartState === "object")
+                            Data.SmartState.Num = num
+                    }
+                    catch(e)
+                    {
+                        Data.SmartState = {}
+                    }
+                }
+            }
             arr.push(Data)
             count--
-            if(count < 0)
+            if(count < 1)
                 break;
         }
         return arr;
@@ -892,8 +941,14 @@ class AccountApp extends require("./dapp")
     }
     GetHashOrUndefined(BlockNum)
     {
-        if(BlockNum < 5300000)
-            return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        if(global.LOCAL_RUN || global.TEST_NETWORK)
+        {
+            if(BlockNum < 100)
+                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        }
+        else
+            if(BlockNum < 5300000)
+                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         var Item = this.DBAccountsHash.Read(BlockNum);
         if(Item)
             return Item.Hash;
@@ -913,8 +968,14 @@ class AccountApp extends require("./dapp")
     }
     CalcHash(BlockNum)
     {
-        if(BlockNum < 5300000)
-            return ;
+        if(global.LOCAL_RUN || global.TEST_NETWORK)
+        {
+            if(BlockNum < 100)
+                return ;
+        }
+        else
+            if(BlockNum < 5300000)
+                return ;
         if(this.DBState.WasUpdate)
         {
             this.DBState.MerkleHash = this.DBState.CalcMerkleTree()
@@ -924,11 +985,6 @@ class AccountApp extends require("./dapp")
         var Data = {Num:BlockNum, BlockNum:BlockNum, Hash:Hash};
         this.DBAccountsHash.Write(Data)
         this.DBAccountsHash.Truncate(BlockNum)
-    }
-    GetHashFromKeyDescription(Item)
-    {
-        var DescArr = shaarr(Item.Description);
-        return shaarr2(Item.PubKey, DescArr);
     }
     GetAdviserByMiner(Map, Id)
     {
@@ -944,6 +1000,189 @@ class AccountApp extends require("./dapp")
         }
         return Adviser;
     }
+    BeginBlock()
+    {
+        this.DBChanges = {BlockMap:{}, BlockMaxAccount:this.GetMaxAccount(), BlockHistory:[], BlockEvent:[], }
+    }
+    BeginTransaction()
+    {
+        global.TickCounter = 35000
+        this.DBChanges.TRMap = {}
+        this.DBChanges.TRMaxAccount = this.DBChanges.BlockMaxAccount
+        this.DBChanges.RollBackTransaction = 0
+        this.DBChanges.TRHistory = []
+        this.DBChanges.TREvent = []
+    }
+    RollBackTransaction()
+    {
+        this.DBChanges.RollBackTransaction = 1
+    }
+    CommitBlock(BlockNum)
+    {
+        var DBChanges = this.DBChanges;
+        var arr = [];
+        for(var key in DBChanges.BlockMap)
+        {
+            var Data = DBChanges.BlockMap[key];
+            if(Data.Changed)
+            {
+                arr.push(Data)
+            }
+        }
+        arr.sort(function (a,b)
+        {
+            return a.Num - b.Num;
+        })
+        for(var i = 0; i < arr.length; i++)
+        {
+            var Account = arr[i];
+            var BackLog = {Num:undefined, ID:Account.Num, BlockNum:BlockNum, PrevValue:Account.BackupValue, TrNum:Account.ChangeTrNum,
+                Mode:Account.New};
+            this.DBAct.Write(BackLog)
+            this.DBState.Write(Account)
+        }
+        for(var i = 0; i < DBChanges.BlockHistory.length; i++)
+            WALLET.OnDoHistoryAct(DBChanges.BlockHistory[i], BlockNum)
+        for(var i = 0; i < DBChanges.BlockEvent.length; i++)
+        {
+            var Data = DBChanges.BlockEvent[i];
+            var Arr = global.EventMap[Data.Smart];
+            if(Arr && Arr.length < 1000)
+            {
+                Arr.push(Data)
+            }
+        }
+        global.TickCounter = 0
+        this.DBChanges = undefined
+    }
+    CommitTransaction(BlockNum, TrNum)
+    {
+        var DBChanges = this.DBChanges;
+        if(DBChanges.RollBackTransaction)
+            return ;
+        DBChanges.BlockMaxAccount = DBChanges.TRMaxAccount
+        for(var key in DBChanges.TRMap)
+        {
+            var Data = DBChanges.TRMap[key];
+            if(Data.Changed)
+            {
+                DBChanges.BlockMap[key] = Data
+                if(Data.New)
+                    this.OnWriteNewAccountTR(Data, BlockNum, TrNum)
+            }
+        }
+        for(var i = 0; i < DBChanges.TRHistory.length; i++)
+            DBChanges.BlockHistory.push(DBChanges.TRHistory[i])
+        for(var i = 0; i < DBChanges.TREvent.length; i++)
+        {
+            DBChanges.BlockEvent.push(DBChanges.TREvent[i])
+        }
+        global.TickCounter = 0
+    }
+    OnWriteNewAccountTR(Data, BlockNum, TrNum)
+    {
+        if(BlockNum < SMART_BLOCKNUM_START)
+            Data.Value.Smart = 0
+        Data.BlockNumCreate = BlockNum
+        if(Data.Adviser > this.GetMaxAccount())
+            Data.Adviser = 0
+        if(Data.Value.Smart > DApps.Smart.GetMaxNum())
+            Data.Value.Smart = 0
+        if(Data.Currency > DApps.Smart.GetMaxNum())
+            Data.Currency = 0
+        if(Data.Currency)
+        {
+            var Smart = DApps.Smart.ReadSmart(Data.Currency);
+            if(!Smart || !Smart.TokenGenerate)
+                Data.Currency = 0
+        }
+    }
+    NewAccountTR(BlockNum, TrNum)
+    {
+        var DBChanges = this.DBChanges;
+        DBChanges.TRMaxAccount++
+        var Data = {Num:DBChanges.TRMaxAccount, New:1, Changed:1, ChangeTrNum:TrNum, BackupValue:{}, PubKey:[], Currency:0, Adviser:0,
+            Value:{SumCOIN:0, SumCENT:0, OperationID:0, Smart:0, Data:[]}};
+        this.DBChanges.TRMap[Data.Num] = Data
+        return Data;
+    }
+    ReadStateTR(Num)
+    {
+        var TRMap = this.DBChanges.TRMap;
+        var Data = TRMap[Num];
+        if(!Data)
+        {
+            var Value;
+            var BlockMap = this.DBChanges.BlockMap;
+            var BData = BlockMap[Num];
+            if(!BData)
+            {
+                BData = this.DBState.Read(Num)
+                if(!BData)
+                    return undefined;
+                BData.Num = Num
+                Value = BData.Value
+                BData.BackupValue = {SumCOIN:Value.SumCOIN, SumCENT:Value.SumCENT, OperationID:Value.OperationID, Smart:Value.Smart, Data:Value.Data}
+                BlockMap[Num] = BData
+            }
+            Value = BData.Value
+            Data = {Num:Num, Currency:BData.Currency, PubKey:BData.PubKey, Name:BData.Name, BlockNumCreate:BData.BlockNumCreate, Adviser:BData.Adviser,
+                Value:{SumCOIN:Value.SumCOIN, SumCENT:Value.SumCENT, OperationID:Value.OperationID, Smart:Value.Smart, Data:CopyArr(Value.Data)},
+                BackupValue:BData.BackupValue}
+            TRMap[Num] = Data
+        }
+        return Data;
+    }
+    WriteStateTR(Data, TrNum)
+    {
+        Data.Changed = 1
+        Data.ChangeTrNum = TrNum
+    }
+    SendMoneyTR(Block, FromID, ToID, CoinSum, BlockNum, TrNum, DescriptionFrom, DescriptionTo, OperationCount)
+    {
+        if(CoinSum.SumCENT >= 1e9)
+        {
+            throw "ERROR SumCENT>=1e9";
+        }
+        var FromData = this.ReadStateTR(FromID);
+        if(!FromData)
+        {
+            throw "Send: Error account FromNum: " + FromID;
+        }
+        if(!SUB(FromData.Value, CoinSum))
+        {
+            throw "Not enough money on the account ID:" + FromID;
+        }
+        this.WriteStateTR(FromData, TrNum)
+        if(WALLET.AccountMap[FromID] !== undefined)
+        {
+            this.DBChanges.TRHistory.push({Direct:"-", FromID:FromID, ToID:ToID, SumCOIN:CoinSum.SumCOIN, SumCENT:CoinSum.SumCENT, Description:DescriptionFrom,
+                FromOperationID:FromData.Value.OperationID, Currency:FromData.Currency})
+        }
+        var ToData = this.ReadStateTR(ToID);
+        if(!ToData)
+        {
+            throw "Send: Error account ToNum: " + ToID;
+        }
+        ADD(ToData.Value, CoinSum)
+        this.WriteStateTR(ToData, TrNum)
+        if(WALLET.AccountMap[ToID] !== undefined)
+        {
+            this.DBChanges.TRHistory.push({Direct:"+", FromID:FromID, ToID:ToID, SumCOIN:CoinSum.SumCOIN, SumCENT:CoinSum.SumCENT, Description:DescriptionTo,
+                FromOperationID:FromData.Value.OperationID, Currency:ToData.Currency})
+        }
+        FromData.Value.OperationID += OperationCount
+        if(FromData.Value.Smart)
+        {
+            var Context = {FromID:FromID, ToID:ToID, Description:DescriptionFrom, Value:CoinSum};
+            RunSmartMethod(Block, FromData.Value.Smart, FromData, BlockNum, TrNum, Context, "OnSend")
+        }
+        if(ToData.Value.Smart)
+        {
+            var Context = {FromID:FromID, ToID:ToID, Description:DescriptionTo, Value:CoinSum};
+            RunSmartMethod(Block, ToData.Value.Smart, ToData, BlockNum, TrNum, Context, "OnGet")
+        }
+    }
 };
 module.exports = AccountApp;
 var App = new AccountApp;
@@ -951,4 +1190,5 @@ DApps["Accounts"] = App;
 DAppByType[TYPE_TRANSACTION_CREATE] = App;
 DAppByType[TYPE_TRANSACTION_TRANSFER] = App;
 DAppByType[TYPE_TRANSACTION_TRANSFER2] = App;
+DAppByType[TYPE_TRANSACTION_TRANSFER3] = App;
 DAppByType[TYPE_TRANSACTION_ACC_HASH] = App;

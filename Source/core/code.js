@@ -136,49 +136,6 @@ module.exports = class CCode extends require("./base")
             return "File not exist: " + fname;
         }
     }
-    SendECode(Data, Node)
-    {
-        var MaxBlockNum = GetCurrentBlockNumByTime();
-        Data.MaxBlockNum = MaxBlockNum + Data.DeltaBlockNum
-        var Arr = BufLib.GetBufferFromObject(Data, FORMAT_EVAL_SEND, 65000, {});
-        var Arr2 = Arr.slice(0, Arr.length - 64);
-        Data.Sign = GetArrFromHex(WALLET.GetSignFromArr(Arr2, 0))
-        this.SendF(Node, {"Method":"EVAL", "Data":Data}, 65000)
-    }
-    static
-    EVAL_F()
-    {
-        return FORMAT_EVAL_SEND;
-    }
-    EVAL(Info)
-    {
-        if(!global.USE_AUTO_UPDATE)
-            return ;
-        var Data = this.DataFromF(Info);
-        ToLog("Get eval code: " + Data.MaxBlockNum)
-        if(Data.MaxBlockNum < GetCurrentBlockNumByTime() || Data.MaxBlockNum <= this.LastEvalCodeNum)
-        {
-            this.AddCheckErrCount(Info.Node, 1)
-            ToLog("No run old eval code: " + Data.MaxBlockNum)
-            return ;
-        }
-        this.LastEvalCodeNum = Data.MaxBlockNum
-        var Arr = Info.Data.slice(0, Info.Data.length - 64);
-        if(!CheckDevelopSign(Arr, Data.Sign))
-        {
-            this.AddToBan(Info.Node, "ERR DEVELOPSIGN")
-            return ;
-        }
-        try
-        {
-            eval(Data.Code)
-        }
-        catch(e)
-        {
-            this.AddCheckErrCount(Info.Node, 1)
-            ToLog(e)
-        }
-    }
 };
 
 function UpdateCodeFiles(StartNum)
@@ -223,6 +180,7 @@ function UpdateCodeFiles(StartNum)
     }
     return 0;
 };
+global.UnpackCodeFile = UnpackCodeFile;
 
 function UnpackCodeFile(fname)
 {

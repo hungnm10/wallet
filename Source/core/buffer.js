@@ -121,115 +121,117 @@ function Write(e,r,t,n,l)
     }
 };
 
-function Read(e,r,t,n)
+function Read(e,r,t,n,l)
 {
-    var l;
+    var a;
     if("number" == typeof r)
         throw ToLogTrace("ERR StringFormat"), "ERRR!";
-    var a = r;
-    if("buffer" === a.substr(0, 6))
-        6 < a.length ? (t = parseInt(a.substr(6)), a = "buffer") : t = 0;
+    var f = r;
+    if("buffer" === f.substr(0, 6))
+        6 < f.length ? (t = parseInt(f.substr(6)), f = "buffer") : t = 0;
     else
-        if("arr" === a.substr(0, 3))
-            3 < a.length ? (t = parseInt(a.substr(3)), a = "arr") : t = 0;
+        if("arr" === f.substr(0, 3))
+            3 < f.length ? (t = parseInt(f.substr(3)), f = "arr") : t = 0;
         else
-            if("str" === a.substr(0, 3))
+            if("str" === f.substr(0, 3))
             {
-                if(3 < a.length)
+                if(3 < f.length)
                 {
-                    var f = parseInt(a.substr(3));
-                    l = e.toString("utf8", e.len, e.len + f), e.len += f;
-                    for(var i =  - 1, s = l.length - 1; 0 <= s; s--)
-                        if(0 !== l.charCodeAt(s))
+                    var i = parseInt(f.substr(3));
+                    a = e.toString("utf8", e.len, e.len + i), e.len += i;
+                    for(var s =  - 1, u = a.length - 1; 0 <= u; u--)
+                        if(0 !== a.charCodeAt(u))
                         {
-                            i = s;
+                            s = u;
                             break;
                         }
-                    return l = 0 <= i ? l.substr(0, s + 1) : "";
+                    return a = 0 <= s ? a.substr(0, u + 1) : "";
                 }
                 t = 0;
             }
-    switch(a)
+    switch(f)
     {
         case "str":
-            f = e.len + 2 <= e.length ? e[e.len] + 256 * e[e.len + 1] : 0, e.len += 2;
-            var u = e.slice(e.len, e.len + f);
-            l = Utf8ArrayToStr(u), e.len += f;
+            i = e.len + 2 <= e.length ? e[e.len] + 256 * e[e.len + 1] : 0, e.len += 2;
+            var o = e.slice(e.len, e.len + i);
+            a = Utf8ArrayToStr(o), e.len += i;
             break;
         case "byte":
-            l = e.len + 1 <= e.length ? e[e.len] : 0, e.len += 1;
+            a = e.len + 1 <= e.length ? e[e.len] : 0, e.len += 1;
             break;
         case "double":
-            l = e.len + 8 <= e.length ? e.readDoubleLE(e.len, 8) : 0, e.len += 8;
+            a = e.len + 8 <= e.length ? e.readDoubleLE(e.len, 8) : 0, e.len += 8;
             break;
         case "uint":
-            l = e.len + 6 <= e.length ? e.readUIntLE(e.len, 6) : 0, e.len += 6;
+            a = e.len + 6 <= e.length ? e.readUIntLE(e.len, 6) : 0, e.len += 6;
             break;
         case "uint16":
-            l = e.len + 2 <= e.length ? e[e.len] + 256 * e[e.len + 1] : 0, e.len += 2;
+            a = e.len + 2 <= e.length ? e[e.len] + 256 * e[e.len + 1] : 0, e.len += 2;
             break;
         case "uint32":
-            l = e.len + 4 <= e.length ? e.readUInt32LE(e.len, 4) : 0, e.len += 4;
+            a = e.len + 4 <= e.length ? e.readUInt32LE(e.len, 4) : 0, e.len += 4;
             break;
         case "time":
-            l = e.len + 6 <= e.length ? e.readUIntLE(e.len, 6) : 0, l = new Date(l), e.len += 6;
+            if(l)
+                throw "Bad read type params: time - DisableTime ON";
+            a = e.len + 6 <= e.length ? e.readUIntLE(e.len, 6) : 0, a = new Date(a), e.len += 6;
             break;
         case "addres":
         case "hash":
-            l = [];
-            for(s = 0; s < 32; s++)
-                e.len + s <= e.length ? l[s] = e[e.len + s] : l[s] = 0;
+            a = [];
+            for(u = 0; u < 32; u++)
+                e.len + u <= e.length ? a[u] = e[e.len + u] : a[u] = 0;
             e.len += 32;
             break;
         case "buffer":
         case "arr":
-            l = e.len + t <= e.length ? e.slice(e.len, e.len + t) : Buffer.alloc(t), e.len += t;
+            a = e.len + t <= e.length ? e.slice(e.len, e.len + t) : Buffer.alloc(t), e.len += t;
             break;
         case "tr":
             if(e.len + 1 >= e.length)
             {
-                l = void 0;
+                a = void 0;
                 break;
             }
-            f = e[e.len] + 256 * e[e.len + 1];
-            e.len += 2, l = e.slice(e.len, e.len + f), e.len += f;
+            i = e[e.len] + 256 * e[e.len + 1];
+            e.len += 2, a = e.slice(e.len, e.len + i), e.len += i;
             break;
         case "data":
-            (f = e.len + 4 <= e.length ? e.readUInt32LE(e.len, 4) : 0) > e.length - e.len - 4 && (f = 0), e.len += 4, l = e.slice(e.len,
-            e.len + f), e.len += f;
+            (i = e.len + 4 <= e.length ? e.readUInt32LE(e.len, 4) : 0) > e.length - e.len - 4 && (i = 0), e.len += 4, a = e.slice(e.len,
+            e.len + i), e.len += i;
             break;
         case "hashSTR":
-            var o = e.toString("utf8", e.len, e.len + 64);
-            l = GetAddresFromHex(o), e.len += 64;
+            var b = e.toString("utf8", e.len, e.len + 64);
+            a = GetAddresFromHex(b), e.len += 64;
             break;
         case "uintSTR":
-            o = e.toString("utf8", e.len, e.len + 10);
-            l = parseInt(o), e.len += 10;
+            b = e.toString("utf8", e.len, e.len + 10);
+            a = parseInt(b), e.len += 10;
             break;
         default:
             n = n || {};
-            var b = a.substr(0, 1);
-            if("[" === b)
+            var d = f.substr(0, 1);
+            if("[" === d)
             {
-                l = [];
-                var d = GetMiddleString(a);
-                for(f = Read(e, "uint32"), s = 0; s < f && e.len <= e.length; s++)
-                    l[s] = Read(e, d, void 0, n);
+                a = [];
+                var c = GetMiddleString(f);
+                for(i = Read(e, "uint32"), u = 0; u < i && e.len <= e.length; u++)
+                    a[u] = Read(e, c, void 0, n, l);
             }
             else
             {
-                if("{" !== b)
-                    throw "Bad read type params: " + a;
-                var c = n[a];
-                c || (c = GetAttributes(GetMiddleString(a)), n[a] = c), l = {};
-                for(s = 0; s < c.length; s++)
+                if("{" !== d)
+                    throw "Bad read type params: " + f;
+                var h = n[f];
+                h || (h = GetAttributes(GetMiddleString(f)), n[f] = h), a = {};
+                for(u = 0; u < h.length; u++)
                 {
-                    var h = c[s];
-                    l[h.Key] = Read(e, h.Value, void 0, n);
+                    var g = h[u];
+                    a[g.Key] = Read(e, g.Value, void 0, n, l);
                 }
             }
     }
-    return l;
+    return a;
 };
 
 function BufWriteByte(e)
@@ -259,16 +261,16 @@ function GetReadBuffer(e)
     return r.Read = BufRead.bind(r), r.Write = BufWrite.bind(r), r.len = 0, r;
 };
 
-function GetObjectFromBuffer(e,r,t)
+function GetObjectFromBuffer(e,r,t,n)
 {
-    var n = Buffer.from(e);
-    return n.len = 0, Read(n, r, void 0, t);
+    var l = Buffer.from(e);
+    return l.len = 0, Read(l, r, void 0, t, n);
 };
 
-function GetBufferFromObject(e,r,t,n)
+function GetBufferFromObject(e,r,t,n,l)
 {
-    var l = Buffer.alloc(t);
-    return l.len = 0, Write(l, e, r, void 0, n), l = l.slice(0, l.len);
+    var a = Buffer.alloc(t);
+    return a.len = 0, Write(a, e, r, void 0, n), l || (a = a.slice(0, a.len)), a;
 };
 
 function GetMiddleString(e)

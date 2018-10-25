@@ -12,6 +12,7 @@
 
     background: transparent;
     filter: hue-rotate(-20deg);
+    cursor: pointer;
 }
 .current
 {
@@ -72,6 +73,40 @@
     width: 10px;
 }
 
+#idSendList
+{
+    width: 800px;
+    border: 0px solid black;
+    font-weight: 700;
+}
+
+#PaiListInfo
+{
+    width: 800px;
+    height:20px;
+    text-align: center;
+}
+
+.btinvoice
+{
+    width: 133px;
+    min-width: 133px;
+    max-width: 133px;
+    height:40px;
+    white-space: pre-line;
+    background-image: url('/HTML/PIC/invoice.png');
+    background-repeat: no-repeat;
+    background-size: 16px;
+}
+.btinvoice_use
+{
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
+    height:62px;
+}
+
+
 
 #idCounters
 {
@@ -103,6 +138,13 @@
     background-repeat: no-repeat;
     background-size:16px;
 }
+#idOpenSmart
+{
+    background-image: url('/HTML/PIC/smart.png');
+    background-repeat: no-repeat;
+    background-size:16px;
+}
+
 #idNetwork
 {
     background-image: url('/HTML/PIC/network.png');
@@ -131,12 +173,17 @@
 
 
 
-
-/*#idOpenService*/
-/*{*/
-    /*width: 160px;*/
-/*}*/
 .btexlporer
 {
     width: 136px;
 }
+
+.bt_open_dapp
+{
+    min-width: 160px;
+    max-width: 160px;
+    height: 40px;
+    vertical-align:middle;
+
+}
+

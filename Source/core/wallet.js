@@ -22,7 +22,7 @@ class CApp
     constructor()
     {
         CheckCreateDir(GetDataPath(WalletPath))
-        this.DBHistory = new DBRow("../" + WalletPath + "/wallet-act", 4 * 6 + 1 + 200 + 10 + 6, "{BlockNum:uint, FromID:uint, FromOperationID:uint, ToID:uint, Direct:str1, Description:str200, SumTER:uint,SumCENT:uint32, Currency:uint}")
+        this.DBHistory = new DBRow("../" + WalletPath + "/wallet-act", 4 * 6 + 1 + 200 + 10 + 6, "{BlockNum:uint, FromID:uint, FromOperationID:uint, ToID:uint, Direct:str1, Description:str200, SumCOIN:uint,SumCENT:uint32, Currency:uint}")
         this.ObservTree = new RBTree(CompareItemHASH32)
         this.Password = ""
         this.WalletOpen = undefined
@@ -215,27 +215,9 @@ class CApp
         Params.MiningAccount = global.GENERATE_BLOCK_ACCOUNT
         SaveParams(CONFIG_NAME, Params)
     }
-    OnDoHistoryAct(TR, Data, BlockNum)
+    OnDoHistoryAct(Item, BlockNum)
     {
-        var Item = {Direct:Data.ActDirect, BlockNum:BlockNum, FromID:TR.FromID, ToID:0, FromOperationID:TR.OperationID, SumTER:Data.ActSumTER,
-            SumCENT:Data.ActSumCENT, Description:TR.Description, Currency:Data.Currency, };
-        if(Item.Direct === "-")
-        {
-            if(TR.To.length === 1)
-            {
-                Item.ToID = TR.To[0].ID
-            }
-            else
-                if(TR.To.length > 1)
-                {
-                    Item.ToID = 1000000000000
-                }
-        }
-        else
-            if(Item.Direct === "+")
-            {
-                Item.ToID = Data.Num
-            }
+        Item.BlockNum = BlockNum
         this.DBHistory.Write(Item)
     }
     OnDeleteBlock(BlockNumFrom)
@@ -279,21 +261,24 @@ class CApp
     GetSignTransaction(TR)
     {
         var Arr;
-        if(TR.Version === 2)
+        if(TR.Version === 2 || TR.Version === 3)
         {
+            var format;
+            if(TR.Version === 2)
+                format = FORMAT_MONEY_TRANSFER_BODY2
+            else
+                format = FORMAT_MONEY_TRANSFER_BODY3
             Arr = []
             for(var i = 0; i < TR.To.length; i++)
             {
                 var Item = TR.To[i];
-                var DataTo = DApps.Accounts.ReadValue(Item.ID);
+                var DataTo = DApps.Accounts.ReadState(Item.ID);
                 if(!DataTo)
-                    return "Error receiver account ID";
-                if(TR.Currency !== DataTo.Currency)
-                    return "Error receiver currency";
+                    return "";
                 for(var j = 0; j < 33; j++)
                     Arr[Arr.length] = DataTo.PubKey[j]
             }
-            var Body = BufLib.GetBufferFromObject(TR, FORMAT_MONEY_TRANSFER_BODY2, MAX_TRANSACTION_SIZE, {});
+            var Body = BufLib.GetBufferFromObject(TR, format, MAX_TRANSACTION_SIZE, {});
             for(var j = 0; j < Body.length; j++)
                 Arr[Arr.length] = Body[j]
         }
@@ -309,6 +294,8 @@ class CApp
     }
     GetHistoryAct(start, count, Filter, Direct)
     {
+        if(Filter)
+            Filter = Filter.toUpperCase()
         var arr = [];
         for(var num = start; true; num++)
         {
@@ -328,20 +315,20 @@ class CApp
                 var Account = DApps.Accounts.ReadState(Item.ToID);
                 if(Account)
                 {
-                    Item.ToName = Account.Description
+                    Item.ToName = Account.Name
                 }
             }
             if(Filter)
             {
                 var Date = DateFromBlock(Item.BlockNum);
-                var Str = "" + Date + " " + Item.Description + " " + Item.FromID + " " + Item.ToID + " " + Item.ToName + " " + Item.FromOperationID + " " + Item.BlockNum;
+                var Str = "" + Date + " " + Item.Description.toUpperCase() + " " + Item.FromID + " " + Item.ToID + " " + Item.ToName.toUpperCase() + " " + Item.FromOperationID + " " + Item.BlockNum;
                 if(Str.indexOf(Filter) < 0)
                     continue;
             }
-            Item.Value = {SumTER:Item.SumTER, SumCENT:Item.SumCENT}
+            Item.Value = {SumCOIN:Item.SumCOIN, SumCENT:Item.SumCENT}
             arr.push(Item)
             count--
-            if(count < 0)
+            if(count < 1)
                 break;
         }
         return arr;

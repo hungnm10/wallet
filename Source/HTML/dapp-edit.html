@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dapps IDE (simple)</title>
+    <link rel="shortcut icon" href="/HTML/PIC/smart.png" type="image/png">
+
+    <link rel="stylesheet" type="text/css" href="../HTML/CSS/buttons.css">
+    <link rel="stylesheet" type="text/css" href="../HTML/CSS/style.css">
+</head>
+
+<script>
+    window.RUN_CLIENT=1;
+    window.RUN_SERVER=0;
+    if(typeof global === 'object')
+    {
+        global.RUN_CLIENT=1;
+        global.RUN_SERVER=0;
+    }
+</script>
+
+<script type="text/javascript" src="/HTML/JS/coinlib.js"></script>
+<script type="text/javascript" src="../HTML/JS/client.js"></script>
+<script type="text/javascript" src="../HTML/JS/sha3.js"></script>
+<script type="text/javascript" src="../HTML/JS/crypto-client.js"></script>
+
+<script>
+    var CONFIG_DATA={}; CONFIG_DATA.CONSTANTS={};
+
+
+    function SetStatus(Str)
+    {
+        var id = $("idStatus");
+        id.innerHTML=Str;
+    }
+    function SetError(Str,bNoSound)
+    {
+        SetStatus("<DIV  align='left' style='color:red'><B>"+Str+"</B></DIV>");
+    }
+    var PrevServerStr;
+    function SetStatusFromServer(Str)
+    {
+        var id = document.getElementById("idServerLog");
+        if(PrevServerStr!==Str)
+        {
+            PrevServerStr=Str;
+            id.innerHTML=Str;
+        }
+    }
+
+    function UpdateData()
+    {
+
+        GetData("GetWalletInfo",{}, function (Data)
+        {
+            if(Data && Data.result)
+            {
+                CONFIG_DATA=Data;
+                SetBlockChainConstant(Data);
+                SetArrLog(Data.ArrLog);
+            }
+        });
+    }
+
+
+    ///////////////////
+    function AddToPayList()
+    {
+        var Smart={};
+        SetDialogToSmart(Smart);
+
+        if(Smart.AccountLength<1)
+            Smart.AccountLength=1;
+        if(Smart.AccountLength>50)
+            Smart.AccountLength=50;
+
+        var Body=[];
+        WriteByte(Body,130)
+        WriteByte(Body,Smart.TokenGenerate);
+        WriteUint(Body,Smart.StartValue);
+        WriteByte(Body,Smart.OwnerPubKey);
+        WriteStr(Body,Smart.ISIN);
+        WriteByte(Body,0);//Zip
+        WriteByte(Body,Smart.AccountLength);
+        WriteStr(Body,Smart.StateFormat);
+        WriteByte(Body,Smart.Category1);
+        WriteByte(Body,Smart.Category2);
+        WriteByte(Body,Smart.Category3);
+        for(var i=0;i<20;i++)Body[Body.length]=0;//Reserve
+
+        var IconParam=ParseFileName($("idIcon").value);
+        WriteUint(Body,Smart.IconBlockNum);
+        WriteUint16(Body,Smart.IconTrNum);
+
+        WriteStr(Body,Smart.ShortName,5);
+        WriteStr(Body,Smart.Name);
+        WriteStr(Body,Smart.Description);
+        WriteStr(Body,Smart.Code);
+        WriteStr(Body,Smart.HTML);
+
+
+        var Price;
+        if(Smart.TokenGenerate)
+            Price=CONFIG_DATA.PRICE_DAO.NewTokenSmart;
+        else
+            Price=CONFIG_DATA.PRICE_DAO.NewSmart;
+        Price+=(Smart.AccountLength-1)*CONFIG_DATA.PRICE_DAO.NewAccount;
+
+        var Item=
+            {
+                name:Smart.Name,
+                To:0,
+                Amount:Price,
+                Description:"Create smart: "+Smart.Name,
+                Body:Body,
+            };
+
+
+        AddToInvoiceList(Item);
+        if(localStorage["InvoiceList"])
+            SetStatus("OK Sent to wallet: "+name);
+    }
+
+
+    function CheckCtrlEnter(e,F)
+    {
+        if(e.ctrlKey && e.keyCode===13)
+        {
+            //SendToServer();
+        }
+        if(e.keyCode===27)
+        {
+            //window.close();
+        }
+
+    }
+
+
+    window.onload=function()
+    {
+        setInterval(UpdateData,500);
+        FillCategory("idCategory1");
+        FillCategory("idCategory2");
+        FillCategory("idCategory3");
+
+        window.onkeydown = CheckCtrlEnter;
+
+        LoadValues();
+        FillSmart();
+
+        document.body.className=localStorage["idSelStyle"];
+
+
+        SetStatus("");
+
+
+        SetVisibleTab();
+        SetSampleByName();
+
+        SetDialogEnabled();
+
+    }
+
+    var SaveIdArr=["idSmartStart","idText","idType"];
+    function LoadValues()
+    {
+        LoadValuesByArr(SaveIdArr,"SMART");
+        var List=localStorage["SMART-SendFileList"];
+        if(List)
+        {
+            SendFileMap=JSON.parse(List);
+            FillMapByName();
+            FillSelect("idSendFileList",SendFileMap);
+        }
+        var ArrStr=localStorage["SMART-ProjectArray"];
+        if(ArrStr)
+        {
+            ProjectArray=JSON.parse(ArrStr);
+        }
+        FillProject();
+
+
+    }
+    function SaveValues(All)
+    {
+
+        var bDisabled=(CurProjectValue!=$("idProjectList").value);
+        if(!bDisabled && CurProjectValue)
+        {
+            var Smart=ProjectArray[parseInt(CurProjectValue)];
+            SetDialogToSmart(Smart);
+            FillProject();
+        }
+
+        if(All)
+        {
+            SaveValuesByArr(SaveIdArr,"SMART");
+            localStorage["SMART-ProjectArray"]=JSON.stringify(ProjectArray);
+        }
+    }
+    setInterval(function ()
+    {
+        SaveValues(1);
+    },60*1000);
+    setInterval(function ()
+    {
+        SaveValues();
+    },500);
+
+
+    window.onbeforeunload=function (e)
+    {
+        SaveValues(1);
+    }
+
+
+
+</script>
+
+<script>
+    var CurTabName;
+    var TabArr=[{name:"TabDApp"},{name:"TabFile"},{name:"TabText"}];
+    function SelectTab(name)
+    {
+        CurTabName=name;
+        //OnSelectTab(name);
+
+        SetVisibleTab();
+        SaveValues();
+    }
+    function SetVisibleTab()
+    {
+        if(!CurTabName)
+            CurTabName=TabArr[0].name;
+        if(CurTabName==="TabDApp")
+            SetVisibleBlock("idServerBlock",0);
+        else
+            SetVisibleBlock("idServerBlock",1);
+
+        var str;
+        for (var i=0;i<TabArr.length;i++)
+        {
+            var name=TabArr[i].name;
+            var Item=document.getElementById(name);
+            if(!Item)
+                continue;
+            if(CurTabName===name)
+            {
+                Item.style.display = 'block';
+                str="current bt bttab"
+            }
+            else
+            {
+                Item.style.display = 'none';
+                str="bttab bt"
+            }
+
+            var ItemM=document.getElementById("M"+name);
+            if(ItemM)
+                ItemM.className=str;
+        }
+    }
+</script>
+
+
+<script>
+    //FILES
+
+    var SendFileMap={};
+    var FileMapByName={};
+    function FillMapByName()
+    {
+        FileMapByName={};
+        for(var key in SendFileMap)
+        {
+            var item=SendFileMap[key];
+            FileMapByName[item.Name]=item;
+        }
+    }
+
+    function SendFile(TR)
+    {
+        var file = $("idFile").files[0];
+        var reader = new FileReader();
+        reader.onload = function()
+        {
+            if(reader.result.byteLength>16384)
+                SetError("File very long");
+            else
+            {
+                var view   = new Uint8Array(reader.result);
+                var Body=[5];
+                var file = $("idFile").files[0];
+                WriteStr(Body,file.name);
+                WriteStr(Body,file.type);
+                for(var i=0;i<10;i++)Body[Body.length]=0;//Reserve
+                WriteTr(Body,view);
+                Body.length+=12;
+
+                if(!TR)
+                    TR={};
+                TR.Name=file.name;
+                TR.Type=file.type;
+
+                SendTransaction(Body,TR);
+
+                //document.getElementById('out').innerHTML = view;
+                //Body=Body;
+            }
+        }
+        reader.readAsArrayBuffer(file)
+    }
+
+    function CalclTextLength()
+    {
+        var Str=$("idText").value;
+        var view=GetArrFromStr(Str);
+        SetStatus("Length:"+view.length);
+    }
+    function SendText(TR)
+    {
+        var type=$("idType").value;
+        var Str=$("idText").value;
+        if(Str.length===0)
+            return;
+
+        var view=GetArrFromStr(Str);
+        //var view   = Uint8Array.from(Str);
+        if(view.length>16000)
+        {
+            SetStatus("Error length file = "+view.length+" (max size=16000)");
+            return;
+        }
+
+
+
+        var Body=[5];
+        var name="text";
+        WriteStr(Body,name);
+        WriteStr(Body,type);
+        for(var i=0;i<10;i++)Body[Body.length]=0;//Reserve
+        WriteTr(Body,view);
+        Body.length+=12;
+
+        if(!TR)
+            TR={};
+        TR.Name=name;
+        TR.Type=type;
+
+        SendTransaction(Body,TR);
+    }
+
+
+    function SetArrLog(arr)
+    {
+        var Str="";
+        for(var i=0;i<arr.length;i++)
+        {
+            var Item=arr[i];
+            var info=Item.text;
+            var index=info.indexOf("Add to blockchain: file");
+            if(index>=0)
+            {
+                var StrRef0=info.substr(index+19);
+                var StrRef="/"+StrRef0;
+                Str=Str+info.substr(0,index+19)+"<A target='_blank' href='"+StrRef+"'>"+StrRef+"</A><BR>\n";
+
+
+                var TR=MapSendTransaction[Item.key];
+                if(TR)
+                if(TR && !SendFileMap[StrRef])
+                {
+                    SendFileMap[StrRef]={text:TR.Name+" ("+StrRef0+")",value:StrRef,Name:TR.Name,Type:TR.Type};
+                    FillMapByName();
+
+                    if(TR.idName)
+                    {
+                        $(TR.idName).value=StrRef;
+                        $(TR.idNameSrc).src=StrRef;
+                        SaveValues();
+                    }
+
+                    localStorage["SMART-SendFileList"]=JSON.stringify(SendFileMap);
+                    FillSelect("idSendFileList",SendFileMap);
+                }
+
+            }
+            else
+            {
+                Str=Str+info+"<BR>\n";
+            }
+        }
+        SetStatusFromServer(Str);
+    }
+
+    //GIU blockchain files
+    function ViewBlockchainFile()
+    {
+        var item=SendFileMap[$("idSendFileList").value];
+        if(!item)
+        {
+            $("idImgInfo").innerText="Error";
+        }
+        else
+        {
+            $("idImgInfo").innerText=item.value+" "+item.Type;
+            $("idImg").src=item.value;
+        }
+    }
+    function SelectBlockchainFile(idName,idNameSrc)
+    {
+        $("idFile").value="";
+        $('idFile').onchange=function ()
+        {
+            $('idFile').onchange=undefined;
+            var file = $("idFile").files[0];
+            if(!file)
+                return;
+            var item=FileMapByName[file.name];
+            if(item)
+            {
+                $(idName).value=item.value;
+                $(idNameSrc).src=item.value;
+                SaveValues();
+            }
+            else
+            {
+                $(idName).value="=wait=";
+                $(idNameSrc).src="";
+                SendFile({idName:idName,idNameSrc:idNameSrc});
+            }
+
+        }
+        $('idFile').click();
+    }
+    function SetSampleByName()
+    {
+        $("idIconSample").src=$("idIcon").value;
+        if(!$("idIcon").value.trim())
+            $("idIconSample").src="/viewer.png"
+        SaveValues();
+    }
+
+    function ClearListFile()
+    {
+        var result = confirm("Are you sure?");
+        if(!result)
+            return;
+
+        SendFileMap={};
+        FileMapByName={};
+        localStorage["SMART-SendFileList"]=JSON.stringify(SendFileMap);
+        FillSelect("idSendFileList",SendFileMap);
+    }
+</script>
+
+<script>
+    //Projects
+    //Projects
+    //Projects
+    function SetDialogToSmart(Smart)
+    {
+        Smart.ShortName=$("idShortName").value;
+        Smart.ISIN=$("idISIN").value;
+
+        Smart.Name=$("idName").value;
+        Smart.Description=$("idDescription").value;
+        Smart.TokenGenerate=$("idTokenGenerate").checked;
+        Smart.AccountLength=$("idAccountLength").value;
+
+        Smart.StateFormat=$("idStateFormat").value;
+        Smart.Category1=$("idCategory1").value;
+        Smart.Category2=$("idCategory2").value;
+        Smart.Category3=$("idCategory3").value;
+
+        var IconParam=ParseFileName($("idIcon").value);
+        Smart.IconBlockNum=IconParam.BlockNum;
+        Smart.IconTrNum=IconParam.TrNum;
+
+        Smart.Code=$("idCode").value;
+        Smart.HTML=$("idHTML").value;
+
+
+        Smart.StartValue=$("idStartValue").value;
+        Smart.OwnerPubKey=$("idOwnerPubKey").checked;
+
+    }
+
+    function SetSmartToDialog(Smart,bSaveToArr)
+    {
+        $("idName").value=Smart.Name;
+        $("idShortName").value=Smart.ShortName;
+        $("idISIN").value=Smart.ISIN;
+
+
+        $("idDescription").value=Smart.Description;
+        $("idTokenGenerate").checked=Smart.TokenGenerate;
+        $("idAccountLength").value=Smart.AccountLength;
+
+        $("idStateFormat").value=Smart.StateFormat;
+        $("idCategory1").value=Smart.Category1;
+        $("idCategory2").value=Smart.Category2;
+        $("idCategory3").value=Smart.Category3;
+        if(Smart.IconBlockNum)
+            $("idIcon").value="/file/"+Smart.IconBlockNum+"/"+Smart.IconTrNum;
+        else
+            $("idIcon").value="";
+
+        $("idCode").value=Smart.Code;
+        $("idHTML").value=Smart.HTML;
+
+        $("idStartValue").value=Smart.StartValue;
+        $("idOwnerPubKey").checked=Smart.OwnerPubKey;
+
+        SetSampleByName();
+
+        var bEnable=SetDialogEnabled();
+
+        if(bSaveToArr && bEnable)
+        {
+            ProjectArray[parseInt(CurProjectValue)]=Smart;
+            FillProject();
+        }
+    }
+
+    function SetDialogEnabled()
+    {
+        var bDisabled=(CurProjectValue!=$("idProjectList").value);
+
+
+        var Arr=["idName","idShortName","idISIN","idCode","idHTML","idDescription","idTokenGenerate","idStartValue","idOwnerPubKey","idAccountLength","idStateFormat","idCategory1","idCategory2","idCategory3","idIcon","idBtIcon","idBtSendSmart"];
+        for(var i=0;i<Arr.length;i++)
+        {
+            var item=$(Arr[i]);
+            item.disabled=bDisabled;
+            if(bDisabled)
+                item.classList.add("Disabled");
+            else
+                item.classList.remove("Disabled");
+        }
+        return !bDisabled;
+
+    }
+
+
+
+
+
+
+
+    var StrSmartPath="";
+    function LoadSmart(Path)
+    {
+        SetStatus("");
+        if(!Path)
+            Path=prompt("Enter smart number or string of blockchain file path (example: /file/12345/10)", StrSmartPath);
+        if(Path!==null)
+        {
+            if(Path==""+parseInt(Path))
+            {
+                StrSmartPath=Path;
+
+                GetData("DappSmartList",{StartNum:parseInt(Path),CountNum:1,GetAllData:1}, function (SetData)
+                {
+                    if(SetData && SetData.result && SetData.arr.length===1)
+                    {
+                        var Smart=SetData.arr[0];
+                        SetSmartToDialog(Smart,1);
+                    }
+                    else
+                    {
+                        SetError("Error smart number: "+Path);
+                    }
+                });
+
+            }
+            else
+            {
+                var Param=ParseFileName(Path);
+                if(!Param.BlockNum)
+                {
+                    SetError("Error file path: "+Path);
+                    return;
+                }
+                StrSmartPath=Path;
+                GetData("DappBlockFile",Param, function (SetData)
+                {
+                    if(SetData && SetData.result)
+                    {
+                        if(SetData.Type===111 && SetData.Body.Body.Type===130)
+                        {
+                            var Smart=SetData.Body.Body;
+                            SetSmartToDialog(Smart,1);
+                        }
+                        else
+                        {
+                            SetError("Error type ("+SetData.Type+") transaction in path: "+Path);
+                        }
+                    }
+                    else
+                    {
+                        SetError("Error data in path: "+Path);
+                    }
+                });
+            }
+        }
+    }
+    function SetCurrentSmart()
+    {
+        CurProjectValue=undefined;
+        SetDialogEnabled();
+
+        var SmartValue=$("idSmartList").value;
+        if(SmartValue)
+            LoadSmart(SmartValue);
+    }
+    function FillSmart()
+    {
+        var StartNum=$("idSmartStart").value;
+        GetData("DappSmartList",{StartNum:StartNum,CountNum:50}, function (SetData)
+        {
+            if(SetData && SetData.result)
+            {
+                var Arr=[];
+                for(var i=0;i<SetData.arr.length;i++)
+                {
+                    var Smart=SetData.arr[i];
+                    var img="";
+                    if(Smart.IconBlockNum)
+                        img="/file/"+Smart.IconBlockNum+"/"+Smart.IconTrNum;
+
+                    Arr.push({text:""+Smart.Num+". "+Smart.Name,value:Smart.Num,img:img});
+                }
+                FillSelect("idSmartList",Arr);
+            }
+        });
+    }
+
+
+
+    var ProjectArray=[];
+    var CurProjectValue=undefined;
+    function FillProject()
+    {
+        var Arr=[];
+        for(var i=0;i<ProjectArray.length;i++)
+        {
+            var Smart=ProjectArray[i];
+            var img="";
+            if(Smart.IconBlockNum)
+                img="/file/"+Smart.IconBlockNum+"/"+Smart.IconTrNum;
+
+            Arr.push({text:""+Smart.Name,value:i,img:img});
+        }
+        FillSelect("idProjectList",Arr);
+        $("idProjectList").value=CurProjectValue;
+
+    }
+    function SetCurrentProject()
+    {
+        var SmartValue=$("idProjectList").value;
+        if(SmartValue)
+        {
+            CurProjectValue=SmartValue;
+
+            var Smart=ProjectArray[parseInt(SmartValue)];
+            SetSmartToDialog(Smart);
+        }
+    }
+    function DelProject()
+    {
+        var result = confirm("Are you sure?");
+        if(!result)
+            return;
+
+        var SmartValue=$("idProjectList").value;
+        if(SmartValue)
+        {
+            var Index=parseInt(SmartValue);
+            ProjectArray.splice(Index,1);
+
+            FillProject();
+            if(Index>=ProjectArray.length)
+                Index=ProjectArray.length-1;
+            var Smart;
+            if(Index>=0)
+            {
+                Smart=ProjectArray[Index];
+                CurProjectValue=""+Index;
+            }
+            else
+            {
+                Smart=GetBlankSmart();
+                CurProjectValue=undefined;
+            }
+
+            SetSmartToDialog(Smart);
+            $("idProjectList").value=Index;
+
+        }
+
+    }
+    var glNewSmart=0;
+    function GetBlankSmart()
+    {
+        var Smart={};
+        Smart.Name="";
+        Smart.ShortName="";
+        Smart.ISIN="";
+        Smart.Description="";
+        Smart.TokenGenerate=0;
+        Smart.AccountLength=1;
+
+        Smart.StateFormat="";
+        Smart.Category1=0;
+        Smart.Category2=0;
+        Smart.Category3=0;
+        Smart.IconBlockNum=0;
+        Smart.IconTrNum=0;
+        Smart.Code="";
+        Smart.HTML="";
+        return Smart;
+    }
+    function NewProject()
+    {
+        glNewSmart++;
+        var Smart=GetBlankSmart();
+        Smart.Name="New "+glNewSmart;
+
+        ProjectArray.push(Smart);
+        FillProject();
+        $("idProjectList").value=ProjectArray.length-1;
+        CurProjectValue=$("idProjectList").value;
+        SetSmartToDialog(Smart);
+
+        $("idName").focus();
+    }
+
+
+
+</script>
+
+<style type="text/css">
+    #idCode
+    {
+        color: #0d341a;
+        font-weight: 500;
+    }
+    #idHTML
+    {
+        color: #3b1c0e;
+        font-weight: 500;
+    }
+    .Disabled
+    {
+        background-color: #e6eefe;
+    }
+
+</style>
+
+
+<body>
+<DIV align='center'>
+    <table id="TabHeader">
+        <tr>
+            <th><INPUT id="MTabDApp" type="button" onclick="SelectTab('TabDApp')" class="bttab" value="Smart & HTML"></th>
+            <th><INPUT id="MTabFile" type="button" onclick="SelectTab('TabFile')" class="bttab" value="Files"></th>
+            <th><INPUT id="MTabText" type="button" onclick="SelectTab('TabText')" class="bttab" value="Text"></th>
+        </tr>
+    </table>
+    <BR>
+
+
+    <!--<DIV align='left' style="border: 1px solid #39519b;width:998px;height:800px;">-->
+    <DIV align='left' style="border: 1px solid #39519b;width:1198px;height:800px;">
+            <DIV id="TabDApp" style="display: none">
+
+                <DIV style="width: 200px;height:100%; float:left;">
+                    Projects:
+                    <INPUT type="button" onclick="NewProject()" class="bt" value="New">
+                    <INPUT type="button" onclick="DelProject()" class="bt" value="Del">
+                    <INPUT type="button" onclick="LoadSmart()" class="bt" value="Load">
+                    <select size="45" id="idProjectList" style="width:100%;height:375px;" onchange="SetCurrentProject()" onclick="SetCurrentProject()">
+                    </select>
+                    Smarts, start:<INPUT type="number" id="idSmartStart" style="width: 111px;" onchange="FillSmart()" value="8">
+                    <select size="45" id="idSmartList" style="width:100%;height:380px;" onchange="SetCurrentSmart()" onclick="SetCurrentSmart()">
+                    </select>
+                </DIV>
+
+                <DIV style="width: 998px;height:100%; float: left;">
+                    <DIV>
+                        <DIV>
+                            Name:<INPUT type="string" id="idName" style="width: 20%;" value="">
+                            Accounts:<INPUT type="number" id="idAccountLength" style="width: 5%;" value="1">
+                            <INPUT type="button" onclick="AddToPayList()" class="bt btdoit" style="width: 130px; " id="idBtSendSmart" value="Add to Pay list">
+                            <input type="checkbox" class="" id="idTokenGenerate" onchange = ""/>Token generate:
+                            <BR>
+                            Short name:<INPUT type="string" id="idShortName" style="width: 6%;" value="">
+                            ISIN:<INPUT type="string" id="idISIN" style="width:10%;" value="">
+
+                            Amount:<INPUT type="number" id="idStartValue" style="width: 15%;" value="">
+                            <input type="checkbox" class="" id="idOwnerPubKey" onchange = ""/> Owner PubKey
+
+
+                        </DIV>
+                        Description:
+                        <textarea id="idDescription"  style="width: 99%;height: 95%;" rows="2" cols="98">
+                        </textarea>
+                        <DIV style="text-align: center; margin-top: 0px">
+                            <DIV style="border: 1px solid black;width: 32px;height: 32px;float: left">
+                                <img src="/" id="idIconSample" style="max-width: 32px;">
+                            </DIV>
+                            Icon:
+                            <INPUT type="string" id="idIcon" style="width: 10%;" onchange="SetSampleByName()" value=""><button id="idBtIcon" onclick="SelectBlockchainFile('idIcon','idIconSample')">...</button>
+
+                            Category1:
+                            <select size="1" id="idCategory1">
+                            </select>
+                            Category2:
+                            <select size="1" id="idCategory2">
+                            </select>
+                            Category3:
+                            <select size="1" id="idCategory3">
+                            </select>
+                        </DIV>
+
+
+
+
+                        Smart (JS):
+                        <textarea id="idCode"  style="width: 99%;height: 95%;" rows="19" cols="98" autofocus>
+                        </textarea>
+                        State format:
+                        <textarea id="idStateFormat"  style="width: 99%;height: 95%;" rows="2" cols="98" autofocus>
+                        </textarea>
+
+
+                    </DIV>
+                    UI (HTML):
+                    <textarea rows="16" cols="98"  id="idHTML" style="width: 99%;">
+                    </textarea>
+                </DIV>
+            </DIV>
+        <DIV id="TabFile" style="display: none">
+            <H2 align="center">Upload file to blockchain</H2>
+            <BR>
+            <input type="file" id="idFile" style="width: 50%;">
+            <INPUT type="button" onclick="SendFile()" class="bt btdoit" style="width: 130px;" id="idBtSendFile" value="Send file">
+            <BR>
+
+            <table>
+                <tr>
+                    <td style="width: 50px">
+                        <select size="10" id="idSendFileList"  onclick="ViewBlockchainFile()" onkeyup="ViewBlockchainFile()">
+                        </select>
+                    </td>
+                    <td style="width: 50px;vertical-align: top;text-align: center;align-content: center">
+                        <DIV id="idImgInfo"></DIV>
+                        <img src="" id="idImg" style="max-width: 200px">
+                    </td>
+                </tr>
+            </table>
+            <button onclick="ClearListFile()">Clear list file</button>
+
+
+
+
+
+            <BR>
+        </DIV>
+        <DIV id="TabText" style="display: none">
+            <H2 align="center">Upload text to blockchain</H2>
+            Send as type:
+            <select size="1" id="idType" style="width:100px;">
+                <option value="text/html">html</option>
+                <option value="application/javascript">javascript</option>
+                <option value="text/css">css</option>
+                <option value="text/plain">text</option>
+            </select>
+
+            <INPUT type="button" onclick="SendText()" class="bt btdoit" style="width: 130px;" id="idBtSendText" value="Send">
+            <textarea id="idText"  style="width: 99%;height: 95%;" rows="26" cols="98" onkeyup="CalclTextLength()" onchange="CalclTextLength()">
+            </textarea>
+
+        </DIV>
+        <DIV id="idServerBlock" style="width: 99.5%;">
+            <HR>
+            Log from node:
+            <DIV id="idServerLog"></DIV><BR>
+        </DIV>
+
+
+
+        <DIV id="idStatus"></DIV>
+    </DIV>
+
+
+</DIV>
+</body>
+</html>

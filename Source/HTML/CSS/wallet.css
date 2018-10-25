@@ -49,6 +49,22 @@ td.cur
     width: 50px;
 }
 
+td.direct
+{
+    text-align: center;
+    vertical-align: middle;
+    width: 10px;
+    font-weight: 700;
+    font-size:x-large;
+}
+td.smart
+{
+    text-align: right;
+    width: 150px;
+    max-width: 200px;
+}
+
+
 td.txt
 {
     text-align: left;
@@ -70,7 +86,7 @@ td.name
 td.date
 {
     text-align: left;
-    width: 200px;
+    width: 140px;
     font-size: small;
 }
 
@@ -130,6 +146,15 @@ table.form_input
     text-align: left;
     word-break: break-all;
 }
+.code2
+{
+    width: 340px;
+    font-family: "courier new", "times new roman", monospace;
+    font-size: small;
+    align-content: left;
+    text-align: left;
+    word-break: break-all;
+}
 .hash
 {
     width: 270px;
@@ -178,7 +203,7 @@ table.form_input
 .checkbox + label
 {
     position: relative;
-    padding: 0 0 0 60px;
+    padding: 0 20px 0 55px;
     cursor: pointer;
 }
 .checkbox + label:before
@@ -193,6 +218,7 @@ table.form_input
     background: #CDD1DA;
     box-shadow: inset 0 2px 3px rgba(0,0,0,.2);
     transition: .2s;
+
 }
 .checkbox + label:after
 {
@@ -216,6 +242,10 @@ table.form_input
     background: darkred;
 }
 
+.checkbox_alert + label:before
+{
+    background: #f0b323;
+}
 
 .checkbox:checked + label:after
 {
@@ -276,7 +306,7 @@ table.keys
     text-align: left;
 }
 
-/*Редактирование new acc description*/
+/*Редактирование new acc Name*/
 #grid_edit_newacc .bt, #grid_mining_set .bt, #idTablePassword .bt
 {
     width: 80px;
@@ -320,7 +350,7 @@ table.keys
     text-align: left;
 
     border: 1px solid black;
-    height: 200px;
+    height: 220px;
     padding: 1px;
     margin: 0px;
 
@@ -335,20 +365,38 @@ table.keys
 #idTransaction
 {
     width:100%;
-    max-width: 800px;
+    min-width: 795px;
+    max-width: 795px;
     text-align: left;
     color:#204410;
 }
 
+#idDescription
+{
+    width: 95%;
+    min-width: 560px;
+    max-width: 560px;
+}
+
+
+#idAccount
+{
+    width: 100%;
+    text-align: left;
+    align-content: left;
+}
 #idTo
 {
-    width: 97%;
+    width: 99%;
+    text-align: left;
+    align-content: left;
 }
-#idSumTER
+
+#idSumSend
 {
     background-color: #f0ffb9;
     font-weight: 700;
-    width: 85%;
+    width: 75%;
 }
 
 #view_header
@@ -367,7 +415,7 @@ table.keys
 }
 
 
-#idPaginationHistory, #idPaginationBlock, #idPaginationAccount, #idPaginationAct, #idPaginationHash, #idUtilView
+#idPaginationHistory, #idPaginationBlock, #idPaginationAccount, #idPaginationAct, #idPaginationHash, #idUtilView, #idPaginationDapps
 {
     width: 800px;
     align-content: center;

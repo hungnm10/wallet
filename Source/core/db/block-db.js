@@ -58,6 +58,12 @@ module.exports = class CDB extends require("../code")
     {
         var FI = BlockDB.OpenDBFile(FILE_NAME_HEADER);
         var BlockNum = (FI.size / BLOCK_HEADER_SIZE) - 1;
+        if(global.NO_CHECK_BLOCKNUM_ONSTART)
+        {
+            this.BlockNumDB = this.CheckBlocksOnStartFoward(BlockNum - 2, 0)
+            ToLog("START_BLOCK_NUM:" + this.BlockNumDB)
+            return ;
+        }
         BlockNum = this.CheckBlocksOnStartReverse(BlockNum)
         this.BlockNumDB = this.CheckBlocksOnStartFoward(BlockNum - 10000, 0)
         this.BlockNumDB = this.CheckBlocksOnStartFoward(this.BlockNumDB - 100, 1)
@@ -413,7 +419,7 @@ module.exports = class CDB extends require("../code")
         Block.arrContent = []
         var TrCount = BufRead.Read("uint16");
         var TrCountDapp = BufRead.Read("uint16");
-        if(TrCount <= MAX_BLOCK_SIZE / MIN_TRANSACTION_SIZE)
+        if(TrCount <= MAX_TRANSACTION_COUNT)
         {
             for(var i = 0; i < TrCount; i++)
             {
@@ -642,7 +648,7 @@ module.exports = class CDB extends require("../code")
             }
             arr.push(Block)
             count--
-            if(count < 0)
+            if(count < 1)
                 break;
         }
         return arr;

@@ -166,7 +166,7 @@ global.PrepareStatEverySecond = function ()
     ToError(" ==ERROR== " + l + " " + r), AddToStatContext(CONTEXT_ERRORS, l), ADD_TO_STAT("ERRORS");
 }, global.HASH_RATE = 0, global.ADD_HASH_RATE = function (t)
 {
-    global.HASH_RATE += t, ADD_TO_STAT("HASHRATE", t);
+    t /= 1e6, global.HASH_RATE += t, ADD_TO_STAT("HASHRATE", t);
 }, global.ADD_TO_STAT_TIME = function (t,e,r)
 {
     if(global.STAT_MODE)

@@ -15,7 +15,7 @@ const RBTree = require('bintrees').RBTree;
 const STAT_BLOCK_LOAD_PERIOD = CONSENSUS_PERIOD_TIME / 5;
 global.COUNT_BLOCKS_FOR_LOAD = 600;
 global.PERIOD_GET_BLOCK = 300;
-if(global.LOCAL_RUN)
+if(global.LOCAL_RUN || global.TEST_NETWORK)
 {
     global.COUNT_BLOCKS_FOR_LOAD = global.DELTA_BLOCK_ACCOUNT_HASH / 2;
 }

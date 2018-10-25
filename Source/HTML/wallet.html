@@ -25,6 +25,7 @@
     }
 </script>
 
+<script type="text/javascript" src="/HTML/JS/coinlib.js"></script>
 <script type="text/javascript" src="../HTML/JS/client.js"></script>
 <script type="text/javascript" src="../HTML/JS/sha3.js"></script>
 <script type="text/javascript" src="../HTML/JS/crypto-client.js"></script>
@@ -33,9 +34,11 @@
 
 
 <script>
+    var PayList=[];
+    var AttachItem;
+
     var CONFIG_DATA={}; CONFIG_DATA.CONSTANTS={};
     var ServerBlockNumDB=0;
-    var ServerVersionNum=0;
     var ServerCurBlockNum=0;
     var ServerTime=0;
     var CanSendTransaction=1;
@@ -48,7 +51,7 @@
     var WalletOpen;
     var MapAccounts={};
     var MapCheckTransaction={};
-    var MapSendTransaction={};
+    //var MapSendTransaction={};
 
 
     var INTERNET_IP_FROM_STUN;
@@ -56,18 +59,17 @@
     var SERVER_PORT;
 
     var CurTabName;
-    var TabArr=[{name:"TabAccounts",log:1},{name:"TabSend",log:1},{name:"TabHistory"},{name:"TabExplorer"}];
-    var SaveIdArr=["idAccount","idTo","idSumTER","idDescription","idSelStyle",
-        "idViewAccountNum","idViewBlockNum","idViewHistoryNum","idViewActNum","idViewHashNum","idWalletPow",
+
+    var TabArr=[{name:"TabAccounts",log:1},{name:"TabSend",log:1},{name:"TabHistory"},{name:"TabDapps"},{name:"TabExplorer"}];
+    var SaveIdArr=["idAccount","idTo","idSumSend","idDescription","idSelStyle",
+        "idViewAccountNum","idViewBlockNum","idViewHistoryNum","idViewActNum","idViewHashNum","idViewDappNum",
         "idRunText","idViewAccountFilter","idViewHistoryFilter","idUseSoundHistory",
         "idBlockCount","idPeriodAutoCheckPoint"];
     var LoadMapAfter={};
 
 
-    var MapCurrency={};
-    MapCurrency[0]="TERA";
-
     var MaxAccID=0;
+    var MaxDappsID=0;
     var MaxActNum=0;
     var HistoryMaxNum=0;
     var MaxBlockNum=0;
@@ -256,32 +258,6 @@
 
 
 
-    function SetVisibleBlock(name,bSet)
-    {
-        var Item=document.getElementById(name);
-        if(bSet && typeof bSet==="string")
-            Item.style.display = bSet;
-        else
-        if(bSet)
-        {
-            Item.style.display = 'block';
-        }
-        else
-        {
-            Item.style.display = 'none';
-        }
-        return Item;
-    }
-
-    function IsVisibleBlock(name)
-    {
-        var Item=document.getElementById(name);
-        if(Item.style.display === 'block' || Item.style.display === "table-row")
-            return true;
-        else
-            return false;
-
-    }
 
     //ACCOUNTS
     //ACCOUNTS
@@ -309,10 +285,10 @@
             document.getElementById("idAccDescription").focus();
 
             var Select=document.getElementById("idAccount");
-            if(Select.options.length)
-            {
-                document.getElementById("idAutoSetMining").checked=false;
-            }
+//            if(Select.options.length)
+//            {
+//                document.getElementById("idAutoSetMining").checked=false;
+//            }
 
             SetViewWN();
         }
@@ -338,7 +314,7 @@
     }
 
     var WasCreateAccountInfo;
-    function CreateAccount()
+    function CreateAccount(bAddToPay)
     {
         if(!CanSendTransaction)
         {
@@ -350,6 +326,9 @@
 
         var Description=document.getElementById("idAccDescription").value;
         var Adviser=ParseNum(document.getElementById("idAdviser").value);
+        var Smart=ParseNum(document.getElementById("idSmart").value);
+        var Currency=ParseNum(document.getElementById("idCurrency").value);
+
         var WN=ParseNum(document.getElementById("idWN").value);
 
         if(!Description)
@@ -364,45 +343,96 @@
             {
                 if(Data && Data.result===1)
                 {
-                    SentTrCreateAcc(Data.PubKeyStr,Description,Adviser,1);
+                    SendTrCreateAcc(Currency,Data.PubKeyStr,Description,Adviser,Smart,1,bAddToPay);
                 }
             });
         }
         else
         {
-            SentTrCreateAcc(PubKeyStr,Description,Adviser);
+            SendTrCreateAcc(Currency,PubKeyStr,Description,Adviser,Smart,0,bAddToPay);
         }
-
     }
 
-    function SentTrCreateAcc(PubKey,Description,Adviser,bFindAcc)
-    {
-        SetStatus("Create: "+PubKey)
-        var TR=
-            {
-                Type:TYPE_TRANSACTION_CREATE,
-                Currency:0,
-                PubKey:PubKey,
-                Description:Description,
-                Adviser:Adviser,
-            };
-        var Body=[];
-        WriteByte(Body,TR.Type);
-        WriteUint(Body,TR.Currency);
-        WriteArr(Body,GetArrFromHex(PubKey),33);
-        WriteStr(Body,Description,40);
-        WriteUint(Body,TR.Adviser);
-        Body.length+=7;
-        Body.length+=12;
 
+    function SendTrCreateAcc(Currency,PubKey,Description,Adviser,Smart,bFindAcc,bAddToPay)
+    {
+        var TR=GetTrCreateAcc(Currency,PubKey,Description,Adviser,Smart);
+        var Body=GetBodyCreateAcc(TR);
         TR.bFindAcc=1;
 
-        TR.AutoSetMining=document.getElementById("idAutoSetMining").checked;
-        SendTransaction(Body,min_power_pow_acc_create,TR);
+        if(bAddToPay)
+        {
+            var Item=
+                {
+                    name:Description,
+                    To:0,
+                    Amount:CONFIG_DATA.PRICE_DAO.NewAccount,
+                    Description:"Create acc: "+Description,
+                    Body:Body,
+                };
+            AddToInvoiceList(Item);
+        }
+        else
+        {
+            //SetStatus("Create: "+PubKey)
+            SendTransaction(Body,TR,min_power_pow_acc_create);
+        }
 
         document.getElementById("idAccDescription").value="";
         CancelCreateAccount();
     }
+
+
+    function ChangeSmart(NumAccount,WasSmart)
+    {
+        if(!CONFIG_DATA.WalletCanSign)
+        {
+            SetError("Pls, open wallet");
+            return 0;
+        }
+
+        var Result=prompt("Enter smart number:", WasSmart);
+        if(Result!==null && Result!=WasSmart)
+        {
+            var Smart=parseInt(Result);
+
+            var Body=[140];
+            WriteUint(Body,NumAccount);
+            WriteUint32(Body,Smart);
+            for(var i=0;i<10;i++)Body[Body.length]=0;//Reserve
+
+
+            var OperationID=0;
+            var Item=MapAccounts[NumAccount];
+            if(Item)
+            {
+                OperationID=Item.Value.OperationID;
+            }
+            var TR=
+                {
+                    Type:111,
+                    Version:3,
+                    Reserve:0,
+                    FromID:NumAccount,
+                    OperationID:OperationID,
+                    To:[{PubKey:[],ID:NumAccount,SumCOIN:0,SumCENT:0}],
+                    Description:"Change smart",
+                    Body:Body,
+                    Sign:"",
+                };
+
+            GetData("GetSignTransaction",TR, function (Data)
+            {
+                if(Data && Data.result===1)
+                {
+                    TR.Sign=GetArrFromHex(Data.Sign);
+                    SendMoneyTR(TR);
+                }
+            });
+
+        }
+    }
+
 
     function CheckLengthAccDesription(name,Length)
     {
@@ -424,12 +454,15 @@
     //SEND
     function ClearTransaction()
     {
-        var arr=["idAccount","idTo","idSumTER","idDescription"];
+        PayList=[];
+        ClearAttach();
+        CheckSendList(1);
+
+
+        var arr=["idAccount","idTo","idSumSend","idDescription"];
         for(var i=0;i<arr.length;i++)
         {
-            var name=arr[i];
-            var Item=document.getElementById(name);
-            Item.value="";
+            $(arr[i]).value="";
         }
         SaveValues();
         CreateTransaction();
@@ -528,7 +561,7 @@
     {
         var Item=document.getElementById("idTransaction");
         if(Item.className==="" || bForce)
-            Item.value=JSON.stringify(CurrentTR,"",4);
+            Item.value=GetJSONFromTransaction(CurrentTR);
     }
 
     function CheckNameAccTo()
@@ -575,18 +608,67 @@
     {
         if(IsVisibleBlock("edit_transaction"))
             CreateTransaction();
+        SetCurCurencyName();
+    }
+    function SetCurCurencyName()
+    {
+        var Num=ParseNum($("idAccount").value);
+        var Item=MapAccounts[Num];
+        if(Item)
+            $("idCoinName").innerText=CurrencyName(Item.Currency);
     }
 
-    function CreateTransaction(F)
+
+    function CreateTransaction(F,CheckErr,Run)
     {
         CheckNameAccTo();
         CheckSending();
 
-        var FromID = ParseNum(document.getElementById("idAccount").value);
-        var ToID = ParseNum(document.getElementById("idTo").value);
-        var Description = document.getElementById("idDescription").value.substr(0,200);
+        var FromID = ParseNum($("idAccount").value);
 
-        var StrSum=document.getElementById("idSumTER").value;
+        if(CheckErr && FromID===0)
+        {
+            SetError("Select valid 'From account'");
+            return;
+        }
+
+        var StrTo=$("idTo").value;
+        var bFindAcc=0;
+        var ToPubKey="";
+        var ToID = ParseNum(StrTo);
+        if(StrTo!==""+ToID)
+        {
+            if(StrTo.length===66 && (StrTo.substr(0,2)==="02" || StrTo.substr(0,2)==="03") && IsHexStr(StrTo))
+            {
+                ToID=0;
+                ToPubKey=StrTo;
+                if(ToPubKey===PubKeyStr)
+                    bFindAcc=1;
+            }
+            else
+            {
+                //error
+                ToID=0;
+                ToPubKey="";
+            }
+        }
+
+        if(CheckErr && ToID<=0 && ToPubKey==="" && !AttachItem)
+        {
+            SetError("Valid 'Pay to' - required!");
+            return;
+        }
+
+
+        var Description = $("idDescription").value.substr(0,200);
+
+        var StrSum=$("idSumSend").value;
+//        if(CheckErr && (StrSum==="0" || StrSum===""))
+//        {
+//            SetError("Enter not zero 'Amount'");
+//            return;
+//        }
+
         var indDot=StrSum.indexOf(".");
         if(indDot>=0)
         {
@@ -599,7 +681,7 @@
             var StrCENT="0";
         }
         StrCENT=StrCENT+"000000000";
-        var Coin={SumTER:ParseNum(StrTER),SumCENT:ParseNum(StrCENT.substr(0,9))};
+        var Coin={SumCOIN:ParseNum(StrTER),SumCENT:ParseNum(StrCENT.substr(0,9))};
 
 
         var OperationID=0;
@@ -609,20 +691,33 @@
             OperationID=Item.Value.OperationID;
         }
 
+        var AttachBody=[];
+        if(AttachItem)
+        {
+            AttachBody=AttachItem.Data.Body;
+            if(!AttachBody)
+                AttachBody=[];
+        }
+        var ToPubKeyArr=[];
+        if(ToPubKey)
+            ToPubKeyArr=GetArrFromHex(ToPubKey);
 
 
         var TR=
             {
-                Type:110,
-                Version:2,
-                Currency:0,
+                Type:111,
+                Version:3,
+                Reserve:0,
                 FromID:FromID,
                 OperationID:OperationID,
-                To:[{ID:ToID,SumTER:Coin.SumTER,SumCENT:Coin.SumCENT}],
+                To:[{PubKey:ToPubKeyArr,ID:ToID,SumCOIN:Coin.SumCOIN,SumCENT:Coin.SumCENT}],
                 Description:Description,
+                Body:AttachBody,
                 Sign:CurrentTR.Sign,
 
             };
+        Object.defineProperties(TR, {bFindAcc:{configurable: true, writable: true, enumerable: false, value:bFindAcc}});
+        Object.defineProperties(TR, {Run:{configurable: true, writable: true, enumerable: false, value:Run}});
 
 
 
@@ -640,13 +735,35 @@
         {
             if(Data && Data.result===1)
             {
-                CurrentTR.Sign=Data.Sign;
+                CurrentTR.Sign=GetArrFromHex(Data.Sign);
                 CurTransactionToForm();
                 if(F)
                     F(CurrentTR);
             }
         });
 
+    }
+    function SignJSON(F)
+    {
+        if(document.getElementById("idSignJSON").disabled)
+            return;
+
+        var TR=GetTransactionFromJSON();
+        if(!TR)
+            return;
+        CurrentTR=TR;
+
+
+        GetData("GetSignTransaction",TR, function (Data)
+        {
+            if(Data && Data.result===1)
+            {
+                TR.Sign=GetArrFromHex(Data.Sign);
+                CurTransactionToForm(true);
+                if(F)
+                    F();
+            }
+        });
     }
 
     function CheckSending(bToStatus)
@@ -684,12 +801,6 @@
     }
     function SendMoney()
     {
-        var ToID = ParseNum(document.getElementById("idTo").value);
-        if(ToID<=0)
-        {
-            SetError("Pay to required!");
-            return;
-        }
         if(!CanSendTransaction)
         {
             SetError("Can't Send transaction");
@@ -701,9 +812,26 @@
         if(document.getElementById("idSendButton").disabled)
             return;
 
-        CreateTransaction(SendMoneyTR);
+        CreateTransaction(SendMoneyTR,true,ClearAttach);
     }
 
+    function GetJSONFromTransaction(TR)
+    {
+        var TR2=JSON.parse(JSON.stringify(TR));
+        for(var i=0;i<TR2.To.length;i++)
+        {
+            var Item=TR2.To[i];
+            //if(typeof Item.PubKey!=="string")
+                Item.PubKey=GetHexFromArr(Item.PubKey);
+        }
+        //if(typeof TR2.Body!=="string")
+            TR2.Body=GetHexFromArr(TR2.Body);
+        TR2.Sign=GetHexFromArr(TR2.Sign);
+
+
+        var Str=JSON.stringify(TR2,"",4);
+        return Str;
+    }
     function GetTransactionFromJSON()
     {
         var Str=document.getElementById("idTransaction").value;
@@ -713,11 +841,30 @@
         }
         catch (e)
         {
-            SetStatus(e);
+            SetError(e);
             return undefined;
         }
+
+
+
+        for(var i=0;i<TR.To.length;i++)
+        {
+            var Item=TR.To[i];
+            Item.PubKey=GetArrFromHex(Item.PubKey);
+            if(Item.SumTER && Item.SumCOIN===undefined)
+            {
+                Item.SumCOIN=Item.SumTER;
+                delete Item.SumTER;
+            }
+        }
+
+        TR.Body=GetArrFromHex(TR.Body);
+        TR.Sign=GetArrFromHex(TR.Sign);
+
         return TR;
     }
+
+
     function SendMoneyJSON()
     {
         if(!CanSendTransaction)
@@ -732,28 +879,6 @@
 
         SendMoneyTR(TR);
     }
-    function SignJSON(F)
-    {
-        if(document.getElementById("idSignJSON").disabled)
-            return;
-
-        var TR=GetTransactionFromJSON();
-        if(!TR)
-            return;
-
-        CurrentTR=TR;
-
-        GetData("GetSignTransaction",CurrentTR, function (Data)
-        {
-            if(Data && Data.result===1)
-            {
-                CurrentTR.Sign=Data.Sign;
-                CurTransactionToForm(true);
-                if(F)
-                    F();
-            }
-        });
-    }
     function SignAndSendFromJSON()
     {
         SignJSON(SendMoneyJSON);
@@ -766,13 +891,13 @@
         {
             if(TR.Type===TYPE_TRANSACTION_CREATE)
             {
-                Str="New account "+TR.Description.substr(0,20);
+                Str="New account "+TR.Name.substr(0,20);
             }
             else
-            if(TR.Type===110)
+            if(TR.Type===111)
             {
                 var MapItem={};
-                var ValueTotal={SumTER:0,SumCENT:0};
+                var ValueTotal={SumCOIN:0,SumCENT:0};
 
                 Str=""+TR.FromID+"/"+TR.OperationID+" to ";
                 for(var i=0;i<TR.To.length;i++)
@@ -790,14 +915,17 @@
                     {
                         if(i>0)
                             Str+=",";
-                        Str+=Item.ID;
+                        if(Item.ID || (Item.PubKey && Item.PubKey.length!==66))
+                            Str+=Item.ID;
+                        else
+                            Str+=GetHexFromArr(Item.PubKey).substr(0,8);
                     }
                     else
                     if(Str.substr(Str.length-1)!==".")
                         Str+="...";
                 }
-                Str+="] "+SUM_TO_STRING(ValueTotal,true);
-                Str+=" "+TR.Description.substr(0,20);
+                Str+="] "+SUM_TO_STRING(ValueTotal);
+                Str+=" "+(TR.Description.substr(0,20)).replace(/\n/g,"");
             }
 
         }
@@ -816,15 +944,17 @@
         var Body=[];
         WriteByte(Body,TR.Type)
         WriteByte(Body,TR.Version)
-        WriteUint(Body,TR.Currency)
+        WriteUint(Body,0)//Reserve
         WriteUint(Body,TR.FromID)
         WriteUint32(Body,TR.To.length);
         for(var i=0;i<TR.To.length;i++)
         {
-            //To:[{ID:uint,SumTER:uint,SumCENT:uint32}],
+            //To:[{PubKey:tr,ID:uint,SumCOIN:uint,SumCENT:uint32}],
             var Item=TR.To[i];
+            if(TR.Version>=3)
+                WriteTr(Body,Item.PubKey);
             WriteUint(Body,Item.ID);
-            WriteUint(Body,Item.SumTER);
+            WriteUint(Body,Item.SumCOIN);
             WriteUint32(Body,Item.SumCENT);
 
             if(MapAccounts[Item.ID])
@@ -834,20 +964,46 @@
         WriteStr(Body,TR.Description);
         WriteUint(Body,TR.OperationID);
 
-
-        var SignArr=GetArrFromHex(TR.Sign);
-        for(var i=0;i<SignArr.length;i++)
+        //Body
+        if(TR.Version>=3)
         {
-            Body[Body.length]=SignArr[i];
+            if(TR.Body)
+            {
+                WriteTr(Body,TR.Body);
+            }
+            else
+            {
+                WriteByte(Body,0);
+                WriteByte(Body,0);
+            }
         }
+
+        WriteArr(Body,TR.Sign,64);
+
 
 
         Body.length+=12;
 
-        var SumPow = ParseNum(document.getElementById("idWalletPow").value);
-        if(SumPow===0)
-            SumPow=16;
-        SendTransaction(Body,SumPow,TR,true);
+        SendTransaction(Body,TR,undefined,function (Err,TR,Body)
+        {
+            if(Err)
+                return;
+
+            //lock send
+            var Item=MapAccounts[TR.FromID];
+            if(Item)
+            {
+                var key=GetHexFromArr(shaarr(Body));
+                var BlockNum=GetCurrentBlockNumByTime();
+                Item.LastTransactionText=GetTransactionText(TR);
+                Item.NextSendTime=BlockNum+10;
+                MapCheckTransaction[key]=Item;
+                CheckSending();
+            }
+
+        });
+
+
     }
 
 
@@ -919,16 +1075,24 @@
     //Pagination
     var CountViewRows=20;
     var DefAccounts={BlockName:"idPaginationAccount", NumName:"idViewAccountNum", TabName:"grid_accounts_all",APIName:"GetAccountsAll",Param3:"",FilterName:"idViewAccountFilter",TotalSum:"idTotalSum"};
-    var DefBlock={BlockName:"idPaginationBlock", NumName:"idViewBlockNum", TabName:"grid_block_all",APIName:"GetBlockAll",Param3:"",FilterName:"idViewBlockFilter"};
+    var DefBlock={BlockName:"idPaginationBlock", NumName:"idViewBlockNum", TabName:"grid_block_all",APIName:"GetBlockAll",Param3:"",FilterName:""};//idViewBlockFilter
 
 
     var DefHistory={BlockName:"idPaginationHistory", NumName:"idViewHistoryNum", TabName:"grid_history",APIName:"GetHistoryAct",Param3:"",FilterName:"idViewHistoryFilter",TotalSum:"idTotalSumH"};
     var DefActs={BlockName:"idPaginationAct", NumName:"idViewActNum", TabName:"grid_acts_all",APIName:"GetActsAll",Param3:""};
     var DefHash={BlockName:"idPaginationHash", NumName:"idViewHashNum", TabName:"grid_hash_all",APIName:"GetHashAll",Param3:""};
-    //History
+
+    var DefDapps={BlockName:"idPaginationDapps", NumName:"idViewDappNum", TabName:"grid_dapps_all",APIName:"GetDappsAll",Param3:"",FilterName:"idViewDappsFilter",FilterName2:"idCategory",CountViewRows:10};
+
+
+
     function ViewHistory()
     {
         ViewCurrent(DefHistory);
+    }
+    function ViewDapps()
+    {
+        ViewCurrent(DefDapps);
     }
 
 
@@ -1010,12 +1174,12 @@
     {
         if(Item)
         {
-            var text=Item.Description;
+            var text=Item.Name;
             if(!text || text.length===0)
                 text=Num;
             else
                 text=""+Num+". "+text;
-            var StrSum=SUM_TO_STRING(Item.Value,true);
+            var StrSum=SUM_TO_STRING(Item.Value,Item.Currency);
             text+=" ("+StrSum+")";
 
             return text;
@@ -1070,15 +1234,30 @@
             Select.value=CurentValue;
             delete LoadMapAfter["idAccount"];
         }
+
+        SetCurCurencyName();
     }
 
+    var TitleWarning=0;
+    function SetTitle(TitleName)
+    {
+        if(TitleWarning===1)
+            document.title="*"+TitleName+"*";
+        else
+        if(TitleWarning===2)
+            document.title="**"+TitleName+"**";
+        else
+        if(TitleWarning>2)
+            document.title="***"+TitleName+"***";
+        else
+            document.title=TitleName;
+    }
     function SetConfigData(Data)
     {
         if(!Data || !Data.result)
             return;
 
         CONFIG_DATA=Data;
-        ServerVersionNum=Data.VersionNum;
         ServerBlockNumDB=Data.BlockNumDB;
         ServerCurBlockNum=Data.CurBlockNum;
         ServerTime=Data.CurTime;
@@ -1087,7 +1266,8 @@
         var Name="TERA";
         if(CONFIG_DATA.CONSTANTS.WALLET_NAME)
             Name=CONFIG_DATA.CONSTANTS.WALLET_NAME;
-        document.title=Name+" 0."+ServerVersionNum+"";
+
+        SetTitle(Name+" 0."+Data.VersionNum);
 
         if(CONFIG_DATA.CONSTANTS.COUNT_VIEW_ROWS)
             CountViewRows=CONFIG_DATA.CONSTANTS.COUNT_VIEW_ROWS;
@@ -1125,6 +1305,7 @@
         }
 
         MaxAccID=Data.MaxAccID;
+        MaxDappsID=Data.MaxDappsID;
         MaxActNum=Data.MaxActNum;
         //MaxBlockNum=Data.CurBlockNum;
 //        if(MaxBlockNum!==Data.CurBlockNum)
@@ -1157,16 +1338,16 @@
         if(document.getElementById("idNodeAddr").innerText!==Data.NodeAddrStr)
             document.getElementById("idNodeAddr").innerText=Data.NodeAddrStr;
 
-        document.getElementById("idTo").max=MaxAccID;
+        //document.getElementById("idTo").max=MaxAccID;
         document.getElementById("idAdviser").max=MaxAccID;
 
         SetVisibleBlock("idDevelopService",Data.IsDevelopAccount);
         SetVisibleBlock("idDevelopService2",Data.IsDevelopAccount);
 //        SetVisibleBlock("idFilterA",Data.IsDevelopAccount);
-        SetVisibleBlock("idFilterB",Data.IsDevelopAccount);
+        //SetVisibleBlock("idFilterB",Data.IsDevelopAccount);
         //SetVisibleBlock("idFilterH",Data.IsDevelopAccount);
 
-        SetVisibleBlock("idNetwork",CONFIG_DATA.CONSTANTS.COMMON_KEY);
+        //SetVisibleBlock("idNetwork",CONFIG_DATA.CONSTANTS.COMMON_KEY);
 
 
 
@@ -1202,7 +1383,7 @@
         else
             SetVisibleBlock("idMiningParams",0);
 
-        SetStatusMining(" Mining account:<B>"+MiningAccount+"</B>  HashRate:<B>"+(Math.trunc(Data.HashRate/100000)/10)+"</B>Mh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
+        SetStatusMining(" Mining account:<B>"+MiningAccount+"</B>  HashRate:<B>"+(Math.trunc(Data.HashRate*10)/10)+"</B>Mh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
         if(CONFIG_DATA.CONSTANTS.USE_MINING && Data.CountRunCPU!==Data.CountMiningCPU)
         {
             $("idUseMining").className="checkbox checkbox_red";
@@ -1211,6 +1392,23 @@
         {
             $("idUseMining").className="checkbox";
         }
+
+        if(Data.CODE_VERSION.VersionNum && Data.VersionNum<Data.CODE_VERSION.VersionNum)
+        {
+            SetTitle(Name+" 0."+Data.VersionNum+"/"+Data.CODE_VERSION.VersionNum);
+            $("idAutoUpdate").className="checkbox checkbox_alert";
+        }
+        else
+        {
+            $("idAutoUpdate").className="checkbox";
+        }
+
+        document.getElementById("idAutoUpdate").checked=CONFIG_DATA.CONSTANTS.USE_AUTO_UPDATE;
+
+        //DappSecret=Data.DappSecret;
+
+        window.DEBUG_WALLET=CONFIG_DATA.CONSTANTS.DEBUG_WALLET;
+
 
         SetViewWN();
     }
@@ -1227,7 +1425,8 @@
 
         WasHistoryMaxNum=HistoryMaxNum;
 
-        GetData("/GetHistoryAct/"+(HistoryMaxNum-40)+"/40/+",function (Data)
+
+        GetData("GetHistoryAct",{StartNum:HistoryMaxNum-40,CountNum:40},function (Data)
         {
             if(Data && Data.result)
             {
@@ -1270,7 +1469,6 @@
     {
         var Str="";
         var bFindAccount=0;
-        //for(var i=arr.length-1;i>=0;i--)
         for(var i=0;i<arr.length;i++)
         {
             var Item=arr[i];
@@ -1283,20 +1481,23 @@
             if(Item.final)
             {
                 var TR=MapSendTransaction[Item.key];
-                if(TR && TR.AutoSetMining)
+                if(TR)
                 {
-                    var Select=document.getElementById("idAccount");
-                    if(Select.options.length)
+                    if(Item.text.indexOf("Add to blockchain")>=0)
                     {
-                        TR.AutoSetMining=0;
-                        SaveMiningSet(Select.options[Select.options.length-1].value)
+                        if(TR.bFindAcc)
+                        {
+                            bFindAccount=1;
+                            TR.bFindAcc=0;
+                        }
+                        if(TR.Run)
+                        {
+                            TR.Run(TR);
+                            TR.Run=undefined;
+                        }
                     }
                 }
-                if(TR && TR.bFindAcc)
-                {
-                    TR.bFindAcc=0;
-                    bFindAccount=1;
-                }
+
 
 
                 var Account=MapCheckTransaction[Item.key];
@@ -1304,7 +1505,6 @@
                 {
                     delete MapCheckTransaction[Item.key];
                     Account.NextSendTime=0;
-                    //SetStatus("# "+info);
                 }
             }
 
@@ -1317,6 +1517,17 @@
         {
             FindMyAccounts();
         }
+    }
+    function SetAutoMining()
+    {
+        setTimeout(function ()
+        {
+            var Select=$("idAccount");
+            if(Select.options.length)
+            {
+                SaveMiningSet(Select.options[Select.options.length-1].value)
+            }
+        },100);//start after insert new account in select list
     }
 
 
@@ -1542,73 +1753,6 @@
     }
 
 
-    //TRANSACTON
-    var glTrSendNum=0;
-    function SendTransaction(Body,SumPow,TR,BlockSend)
-    {
-        glTrSendNum++;
-        SetStatus("Prepare to sending...");
-
-
-        CreateNonceAndSend(1,0,BlockSend);
-        function CreateNonceAndSend(bCreateNonce,startnonce,BlockSend)
-        {
-            var CurTrNum=glTrSendNum;
-            var nonce=startnonce;
-            if(bCreateNonce)
-                nonce=CreateHashBodyPOWInnerMinPower(Body,SumPow)
-
-            var StrHex=GetHexFromArr(Body);
-
-            GetData("SendTransactionHex",StrHex, function (Data)
-            {
-                if(Data)
-                {
-                    var BlockNum=GetCurrentBlockNumByTime();
-                    var key=GetHexFromArr(shaarr(Body));
-                    SetStatus("Send TR:'"+key.substr(0,12)+"' to block: "+BlockNum+" result:"+Data.text);
-
-                    if(Data.text==="Not add")
-                    {
-                        CreateNonceAndSend(1,nonce+1,BlockSend);
-                    }
-                    else
-                    if(Data.text==="Bad time")
-                    {
-                        SetStatus("Next send TR:'"+key.substr(0,12)+"'...");
-                        setTimeout(function ()
-                        {
-                            if(CurTrNum===glTrSendNum)
-                                CreateNonceAndSend(0,nonce,BlockSend);
-                        },100);
-                    }
-                    else
-                    {
-                        var key=GetHexFromArr(shaarr(Body));
-                        MapSendTransaction[key]=TR;
-
-                        if(BlockSend)
-                        {
-                            var FromID = ParseNum(document.getElementById("idAccount").value);
-                            var Item=MapAccounts[FromID];
-                            if(Item)
-                            {
-                                Item.LastTransactionText=GetTransactionText(TR);
-                                Item.NextSendTime=BlockNum+10;
-
-                                MapCheckTransaction[key]=Item;
-                                CheckSending();
-                                //Item.CheckTransaction=GetHexFromArr(shaarr(Body));
-                                //SetStatus("Block TR: "+Item.CheckTransaction);
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    }
-
-
     //EVENTS
     //EVENTS
     //EVENTS
@@ -1646,17 +1790,25 @@
 
         //SetVisibleBlock("idStatus",bLogVisible);
         SetVisibleBlock("idServerBlock",bLogVisible);
+    }
 
+    function OnSelectTab(name)
+    {
+        if(name==="TabHistory")
+        {
+            ViewHistory();
+        }
+        else
+        if(name==="TabDapps")
+        {
+            ViewDapps();
+        }
     }
 
     function SelectTab(name)
     {
         CurTabName=name;
-
-        if(CurTabName==="TabHistory")
-        {
-            ViewHistory();
-        }
+        OnSelectTab(name);
 
         SetVisibleTab();
         SaveValues();
@@ -1673,7 +1825,7 @@
                 SavePrivateKey();
             else
             if(CurTabName==="TabAccounts" && IsVisibleBlock("edit_create_acc"))
-                CreateAccount();
+                CreateAccount(0);
             else
             if(CurTabName==="TabAccounts" && IsVisibleBlock("edit_mining_set"))
                 SaveMiningSet();
@@ -1716,7 +1868,12 @@
     function LoadValues()
     {
         if(LoadValuesByArr(SaveIdArr))
+        {
             CurTabName=localStorage["CurTabName"];
+
+            LoadMapAfter["idAccount"]=localStorage.getItem("idAccount");
+
+        }
     }
     function SaveValues()
     {
@@ -1739,6 +1896,8 @@
     }
     window.onload=function()
     {
+        FillCategory("idCategory");
+
         LoadValues();
         InitPasItems();
 
@@ -1759,11 +1918,10 @@
         SetVisibleTab();
         setTimeout(CheckNameAccTo,100);
 
-        if(CurTabName==="TabHistory")
-            setTimeout(function ()
-            {
-                ViewHistory();
-            },100)
+        setTimeout(function ()
+        {
+            OnSelectTab(CurTabName);
+        },100)
 
 
         if(localStorage["WasStart"]!=="1")
@@ -1914,12 +2072,24 @@
 
     function RestartNode()
     {
-        GetData("RestartNode");
+        GetData("RestartNode",{});
     }
 
 
 
 
+    function UseAutoUpdate()
+    {
+        var Data={USE_AUTO_UPDATE:document.getElementById("idAutoUpdate").checked,DoMining:1};
+
+        GetData("SaveConstant",Data, function (Data)
+        {
+            if(Data && Data.result)
+            {
+                SetStatus("Save AutoUpdate: "+document.getElementById("idAutoUpdate").checked);
+            }
+        });
+    }
     function UseMining()
     {
         if(!MiningAccount)
@@ -1928,6 +2098,8 @@
             return;
         }
         var Data={USE_MINING:document.getElementById("idUseMining").checked,DoMining:1};
+//        if(Data.USE_MINING)
+//            Data.ForceLoadNewVersion=1;
 
         GetData("SaveConstant",Data, function (Data)
         {
@@ -2115,7 +2287,7 @@
         z-index:1001;
         position:relative;
         float: right;
-        top:22px;
+        top:15px;
         right:0px;
         padding: 0 0 0 20px;
         text-align: center;
@@ -2160,11 +2332,12 @@
 <DIV align='center'>
 <DIV align='left' style="width: 800px;height: 920px; border: 1px solid #bfc1c0;">
 
-    <table id="TabHeader" onclick="SelectTab">
+    <table id="TabHeader">
         <tr>
             <th><INPUT id="MTabAccounts" type="button" onclick="SelectTab('TabAccounts')" class="bttab" value="CONFIG"></th>
             <th><INPUT id="MTabSend" type="button" onclick="SelectTab('TabSend')" class="bttab" value="SEND"></th>
             <th><INPUT id="MTabHistory" type="button" onclick="SelectTab('TabHistory')" class="bttab" value="HISTORY"></th>
+            <th><INPUT id="MTabDapps" type="button" onclick="SelectTab('TabDapps')" class="bttab" value="DApps"></th>
             <th><INPUT id="MTabExplorer" type="button" onclick="SelectTab('TabExplorer')" class="bttab" value="EXPLORER"></th>
         </tr>
     </table>
@@ -2177,12 +2350,16 @@
     <DIV id="TabAccounts" style="display: block">
         <BR>
         <DIV style="float: left">
-        <input type="checkbox" class="checkbox checkbox2" id="idUseMining" onchange = "UseMining()"/>
-        <label for="idUseMining">MINING</label>
+            <input type="checkbox" class="checkbox" id="idAutoUpdate" onchange = "UseAutoUpdate()"/>
+            <label for="idAutoUpdate">Autoupdate</label>
+        </DIV>
+        <DIV style="float: left">
+            <input type="checkbox" class="checkbox" id="idUseMining" onchange = "UseMining()"/>
+            <label for="idUseMining">Mining</label>
         </DIV>
         <DIV style="float: left;display: none" id="idMiningParams">
-        <DIV style="float: left; margin: 0 0 0 10px; color: blue;"> CPU use:<input type="number" min=0 max=100 id="idPercentMining" onchange="SetPercentMining()"/>%</DIV>
-        <DIV style="float: left; margin: 0 0 0 10px;" id="idStatusMining"></DIV>
+        <DIV style="float: left; color: blue;">CPU use:<input type="number" min=0 max=100 id="idPercentMining" onchange="SetPercentMining()"/>%</DIV>
+        <DIV style="float: left; margin: 2px 0 0 8px;" id="idStatusMining"></DIV>
         </DIV>
         <BR><BR>
         <DIV id="idDevelopService" style="display: none">
@@ -2226,11 +2403,13 @@
         </DIV>
 
         <DIV id="idCurrentBlockNum"></DIV>
-        Wallet data path: <B id="idDataPath"></B><BR>
-        Public key: <B id="idPubKey"></B><BR>
-        Node addr: <B id="idNodeAddr"></B>
 
         <DIV id="wallet_config_tab" style="display: none">
+            Wallet data path: <B id="idDataPath"></B><BR>
+            Public key: <B id="idPubKey"></B><BR>
+            Node addr: <B id="idNodeAddr"></B>
+
+
             <INPUT type="button" onclick="NewPrivateKey();" class="btdoit bt" value="New wallet..." id="idDown2">
             <INPUT type="button" onclick="EditPrivateKey();SetImg(this,'edit_keys');" class="btdoit bt" value="Edit wallet" id="idDown">
             <INPUT type="button" onclick="ViewNewAccount();SetImg(this,'edit_create_acc');" class="btdoit bt" value="New account" id="idDown">
@@ -2263,7 +2442,7 @@
                             <option value="public">Public key (sign from another wallet)</option>
                             <option value="brain">Brain key generator</option>
                         </select>
-                    </td><td><INPUT type="string" id="idKeyNew" value=""></td>
+                    </td><td><INPUT type="string" autocomplete="off" id="idKeyNew" value=""></td>
                 </tr>
                 <tr id="idViewKeyNew2" style="display: none">
                     <td>You can repeat the secret words:</td>
@@ -2289,7 +2468,7 @@
                 <tr>
                     <td><DIV>Public name:</DIV></td>
                     <td>
-                        <INPUT type="string" maxlength="40" id="idAccDescription" onkeyup="CheckLengthAccDesription('idAccDescription',40)" value="">
+                        <INPUT type="string" maxlength="40" autocomplete="off" id="idAccDescription" onkeyup="CheckLengthAccDesription('idAccDescription',40)" value="">
                     </td>
                 </tr>
                 <tr>
@@ -2297,9 +2476,20 @@
                         <DIV>Adviser:</DIV></td><td><INPUT type="number" id="idAdviser" min=0 max=1000000000000 value="0">
                     </td>
                 </tr>
+
                 <tr>
-                    <td></td><td><INPUT type="checkbox" checked id="idAutoSetMining">Mining on this account</td>
+                    <td>
+                        <DIV>Currency:</DIV></td><td><INPUT type="number" id="idCurrency" min=0 max=1000000000 value="0">
+                </td>
                 </tr>
+                <tr>
+                    <td>
+                        <DIV>Smart:</DIV></td><td><INPUT type="number" id="idSmart" min=0 max=1000000000 value="0">
+                    </td>
+                </tr>
+                <!--<tr>-->
+                    <!--<td></td><td><INPUT type="checkbox" checked id="idAutoSetMining">Mining on this account</td>-->
+                <!--</tr>-->
 
                 <tr id="idRowWN" style="display: none">
                     <td>
@@ -2309,8 +2499,10 @@
 
                 <tr>
                     <td></td>
-                    <td><INPUT type="button" onclick="CreateAccount()" class="bt" value="Create">
-                        <INPUT type="button" onclick="CancelCreateAccount()" class="bt" value="Cancel"></td>
+                    <td><INPUT type="button" onclick="CreateAccount(0)" class="bt" value="Create">
+                        <INPUT type="button" onclick="CancelCreateAccount()" class="bt" value="Cancel">
+                        <INPUT type="button" onclick="CreateAccount(1)" class="bt btdoit" style="width: 130px;" id="idBtRun" value="Add to Pay list">
+                    </td>
                 </tr>
 
             </table>
@@ -2322,10 +2514,11 @@
             <tr>
                 <th id="Item.Num" class="num">ID</th>
                 <th id="SUM_TO_STRING(Item.Value)" class="sum bold">Amount</th>
-                <th id="MapCurrency[Item.Currency]" class="cur">Cur</th>
-                <th id="Item.Description" class="accname">Account name</th>
+                <th id="CurrencyNameItem(Item)" class="cur">Cur</th>
+                <th id="Item.Name" class="accname">Account name</th>
                 <th id="Item.Value.OperationID" class="num">Operation</th>
                 <th id="Item.Adviser" class="num">Adviser</th>
+                <th id="(RetChangeSmart(Item))" class="smart">Smart</th>
                 <th id="Item.WN" class="num" style="width: 30px;"></th>
             </tr>
         </table>
@@ -2408,11 +2601,11 @@
 
         <table id="grid_history" class="grid">
             <tr>
-                <th id="Item.Direct">Direct</th>
+                <th id="(RetDirect(Item.Direct))" class="direct">Direct</th>
                 <th id="ConfirmationFromBlock(Item.BlockNum)" class="txt">Confirm</th>
                 <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
                 <th id="SUM_TO_STRING(Item)" class="sum smallbold">Amount</th>
-                <th id="MapCurrency[Item.Currency]" class="cur">Currency</th>
+                <th id="CurrencyName(Item.Currency)" class="cur">Cur</th>
                 <th id="Item.Description"class="desc">Description</th>
                 <th id="Item.FromID" class="num">From</th>
                 <th id="(GetStrID(Item.ToID,Item.ToName))" class="txt">To</th>
@@ -2443,9 +2636,10 @@
 
     <DIV id="TabSend" style="display: none">
 
+        <DIV id="idSendList"> </DIV>
         <table class="form_input">
             <tr>
-                <td>From account</td>
+                <td style="min-width: 115px">From account</td>
                 <td>
 
                     <select size="1" id="idAccount" onkeyup="OnEditTransactionFields()" onchange="OnEditTransactionFields()">
@@ -2457,17 +2651,18 @@
             <tr>
                 <td>Pay to</td>
                 <td>
-                    <INPUT style="float: left" type="number" id="idTo" min=1 max=1000000000000 value="" onkeyup="OnEditIdTo()" onchange="OnEditIdTo()"placeholder="Payee (required)" >
+                    <INPUT style="float: left" type="string" id="idTo" value="" onkeyup="OnEditIdTo()" onchange="OnEditIdTo()"placeholder="Payee (required)" >
                 </td>
             </tr>
             <tr>
                 <td>Amount</td>
                 <td>
-                    <INPUT type="number" id="idSumTER" value="" step=0 min=0 max=1000000000 onkeyup="OnEditTransactionFields()" onchange="OnEditTransactionFields()">&nbsp;<B>TERA</B>
+                    <INPUT type="number" id="idSumSend" value="" step=0 min=0 max=1000000000 onkeyup="OnEditTransactionFields()" onchange="OnEditTransactionFields()">&nbsp;<B id="idCoinName"></B>
                 </td>
             </tr>
             <tr>
                 <td>Description (optional)</td><td><textarea id="idDescription" rows="4" onkeyup="CheckLengthAccDesription('idDescription',200);OnEditTransactionFields()" onchange="OnEditTransactionFields()"></textarea></td>
+                <td><DIV id="idAttach"> </DIV></td>
             </tr>
             <tr>
                 <td>
@@ -2480,11 +2675,10 @@
             </tr>
         </table>
         <DIV id="edit_transaction" style="display: none">
-            <textarea id="idTransaction" rows="18" onkeyup="StartEditTransactionJSON()" onchange="StartEditTransactionJSON()"></textarea>
+            <textarea id="idTransaction" rows="20" onkeyup="StartEditTransactionJSON()" onchange="StartEditTransactionJSON()"></textarea>
             <BR>
             <INPUT type="button" onclick="SignJSON()" class="btdoit bt" value="Sign JSON" id="idSignJSON">
             <INPUT type="button" onclick="SendMoneyJSON()" class="btdoit bt" value="Send from JSON">
-            POW:<INPUT type="number" id="idWalletPow" value="15">
         </DIV>
 
 
@@ -2492,6 +2686,166 @@
     </DIV>
 
 
+    <DIV id="TabDapps" style="display: none">
+
+
+        <script>
+            //dapps
+
+            var glNumPayCount=0;
+            function GetInvoiceHTML(item,onclick,classstr)
+            {
+                if(!item.num)
+                {
+                    glNumPayCount++;
+                    item.num=glNumPayCount;
+                }
+                var idname="idSendInvoice"+item.num;
+                var value="";
+                if(item.Data.Amount)
+                    value+="<B>"+item.Data.Amount+"</B> Tera";
+                else
+                    value+="<B style='color:green'>No pay</B>";
+
+                value+="&#x00A;"+item.num+". "+item.Data.name;
+                return "<button id='"+idname+"' onclick='"+onclick+"' class='"+classstr+"'>"+value+"</button>";
+            }
+
+            function AddSendList(item)
+            {
+                PayList.push({Data:item});
+            }
+
+            function CheckSendList(bRedraw)
+            {
+                TitleWarning=PayList.length;
+                if(AttachItem)
+                    TitleWarning++;
+
+                var Str=localStorage["InvoiceList"];
+                if(!Str && !bRedraw)
+                    return;
+
+                if(!bRedraw)
+                {
+                    SelectTab("TabSend");
+                }
+
+                if(Str)
+                {
+                    var arr=JSON.parse(Str)
+                    for(var i=0;i<arr.length;i++)
+                    {
+                        AddSendList(arr[i])
+                    }
+                    localStorage["InvoiceList"]="";
+                }
+
+
+                var idList=$("idSendList");
+                if(PayList.length)
+                {
+                    idList.innerHTML="<DIV id='PaiListInfo'>Select the item you want to sign (pay) and send to blockchain:</DIV>";
+                    for(var i=0;i<PayList.length;i++)
+                    {
+                        var item=PayList[i];
+                        idList.innerHTML+=GetInvoiceHTML(item,"UseInvoice("+i+")","btinvoice");
+                    }
+
+                    if(AttachItem===undefined)
+                        UseInvoice(0);
+                }
+                else
+                {
+                    idList.innerHTML="";
+                }
+            }
+            setInterval(CheckSendList,200);
+
+            function UseInvoice(Num)
+            {
+                var item=PayList[Num];
+                if(item.Data.From)
+                    $("idAccount").value=item.Data.From;
+
+                $("idTo").value=item.Data.To;
+                $("idSumSend").value=item.Data.Amount;
+                $("idDescription").value=item.Data.Description;
+
+                PayList.splice(Num,1);
+
+                AttachItem=item;
+                $("idAttach").innerHTML=GetInvoiceHTML(AttachItem,"OpenAttach()","btinvoice btinvoice_use");
+
+                CheckSendList(1);
+            }
+
+            function ClearAttach()
+            {
+                AttachItem=undefined;
+                $("idAttach").innerHTML="";
+            }
+
+            function OpenAttach()
+            {
+                if(AttachItem)
+                {
+                    var Data2=JSON.parse(JSON.stringify(AttachItem.Data));
+                    if(Data2.Body)
+                        Data2.Body=GetHexFromArr(Data2.Body);
+                    delete Data2.TransferSecret;
+                    alert("DATA:\n"+JSON.stringify(Data2,"",4));
+                }
+            }
+
+
+
+        </script>
+
+        <INPUT type="button" onclick="window.Open('./HTML/dapp-edit.html','smarts',1240)" class="btdoit btopen bt" id="idOpenSmart" value="*New dapp">
+
+
+        <BR>
+        <DIV id="idPaginationDapps" style="display: block">
+            <!--<DIV id="view_header" >DAPPS</DIV><BR>-->
+            Search:<INPUT type="search" id="idViewDappsFilter" value="" onchange="ViewCurrent(DefDapps)">
+            Category:
+            <select size="1" id="idCategory" onchange="ViewCurrent(DefDapps)">
+            </select>
+            <BR>
+
+            <INPUT type="button" onclick="ViewBegin(DefDapps)" class="btdoitm bt" value="|<-">
+            <INPUT type="button" onclick="ViewPrev(DefDapps)" class="btdoit bt" value="<< Prev">
+            <INPUT type="number" id="idViewDappNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefDapps)">
+            <INPUT type="button" onclick="ViewNext(DefDapps,MaxDappsID)" class="btdoit bt" value="Next >>">
+            <INPUT type="button" onclick="ViewEnd(DefDapps,MaxDappsID)" class="btdoitm bt" value="->|">
+
+            <table id="grid_dapps_all" class="grid">
+                <tr>
+                    <th id="(RetNumDapp(Item))" class="num">ID</th>
+                    <th id="(RetOpenDapps(Item))" class="accname">Name</th>
+                    <th id="Item.Description" class="code">Description</th>
+                    <th id="(RetCategory(Item))" class="">Category</th>
+
+                    <th id="RetBaseAccount(Item)" class="num">Base Account</th>
+                    <th id="Item.Owner" class="num">Owner</th>
+                    <th id="RetBool(Item.TokenGenerate)" class="bool">Token generate</th>
+                    <th id="Item.ISIN" class="num">ISIN</th>
+                    <th id="(RetOpenBlock(Item.BlockNum,1))" class="num">Block Num</th>
+
+                </tr>
+            </table>
+
+
+            <INPUT type="button" onclick="ViewPrev(DefDapps)" class="btdoit bt" value="<< Prev">
+            <INPUT type="button" onclick="ViewNext(DefDapps,MaxDappsID)" class="btdoit bt" value="Next >>">
+
+        </DIV>
+
+        <!--<BR>-->
+        <!--<iframe src="test.html" name="dapp" width="795" height="400" sandbox="allow-scripts"> </iframe>-->
+
+    </DIV>
 
 
     <DIV id="TabExplorer" style="display: none">
@@ -2500,6 +2854,7 @@
         <INPUT type="button" onclick="window.Open('./HTML/chains.html','chains',1240,600)" class="btdoit btopen bt" id="idChains" value="Chains">
         <INPUT type="button" onclick="window.Open('./HTML/console.html','console',1240)" class="btdoit btopen bt" id="idConsole" value="Console">
         <INPUT type="button" onclick="window.Open('./HTML/monitor.html','monitor',1200)" class="btdoit btopen bt" id="idMonitor" value="Monitor">
+
         <INPUT type="button" onclick="window.Open('./HTML/network.html','network',1200)" class="btdoit btopen bt" id="idNetwork" value="Network">
 
 
@@ -2526,11 +2881,12 @@
                 <tr>
                     <th id="Item.Num" class="num">ID</th>
                     <th id="SUM_TO_STRING(Item.Value)" class="sum smallbold">Amount</th>
-                    <th id="MapCurrency[Item.Currency]" class="cur">Cur</th>
-                    <th id="Item.Description" class="accname">Name</th>
+                    <th id="CurrencyNameItem(Item)" class="cur">Cur</th>
+                    <th id="Item.Name" class="accname">Name</th>
                     <th id="Item.PubKeyStr" class="pubkey">PubKey</th>
                     <th id="Item.Value.OperationID" class="num">Operation</th>
                     <th id="Item.Adviser" class="num">Adviser</th>
+                    <th id="Item.Value.Smart" class="num">Smart</th>
                     <th id="(RetOpenBlock(Item.BlockNumCreate,1))" class="num">Block Num</th>
                 </tr>
             </table>
@@ -2546,7 +2902,7 @@
         <DIV id="idPaginationBlock" style="display: none">
             <HR>
             <DIV id="view_header" >Blocks<BR></DIV>
-            <DIV id="idFilterB">JS:<INPUT type="search" id="idViewBlockFilter" value="" onchange="ViewCurrent(DefBlock)"></DIV>
+            <!--<DIV id="idFilterB">JS:<INPUT type="search" id="idViewBlockFilter"  value="" onchange="ViewCurrent(DefBlock)"></DIV>-->
             <INPUT type="button" onclick="ViewBegin(DefBlock)" class="btdoitm bt" value="|<-">
             <INPUT type="button" onclick="ViewPrev(DefBlock)" class="btdoit bt" value="<< Prev">
             <INPUT type="number" id="idViewBlockNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefBlock)">
@@ -2591,7 +2947,6 @@
                     <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
 
                     <th id="Item.PrevValue.OperationID" class="num">Prev. Operation</th>
-                    <th id="Item.PrevValue.BlockNum" class="num">Prev. Block</th>
                     <th id="SUM_TO_STRING(Item.PrevValue)" class="sum">Prev. amount</th>
                 </tr>
             </table>
@@ -2627,7 +2982,6 @@
             Number of blocks in depth:<INPUT type="number" id="idBlockCount" onchange = "SaveValues()" value="0"><BR>
             <INPUT type="button" onclick="RestartNode()"  class="bt btdoit btlong" value="Restart node">
             <INPUT type="button" onclick="RewriteTransactions()"  class="bt btdoit btlong" value="Rewrite transactions">
-            <!--<INPUT type="button" onclick="RewriteAllTransactions()"  class="bt btdoit btlong" value="Rewrite all">-->
             <INPUT type="button" onclick="TruncateBlockChain()" class="btdoit btlong bt" value="Truncate chain">
             <INPUT type="button" onclick="ClearDataBase()" class="btdoit btlong bt" value="Clear DataBase <!>">
 
@@ -2646,66 +3000,6 @@
 
         </DIV>
 
-        <!--DApp:<BR>-->
-        <!--<iframe src="test.html" name="dapp" width="795" height="400" sandbox="allow-scripts"> </iframe>-->
-        <script>
-
-
-
-            var glSecret;
-            setTimeout(function ()
-            //setInterval(function ()
-            {
-                SendMessage("Hi from WALLET");
-            },1000)
-
-
-            function SendMessage(Str)
-            {
-                glSecret=GetHexFromArr(sha3("secret"));
-
-                var win = window.frames.dapp;
-                if(!win)
-                    return;
-                var Data=
-                    {
-                        Secret:glSecret,
-                        Message:Str,
-                    };
-                win.postMessage(Data, "*");
-            }
-
-
-
-
-            function listener(event)
-            {
-                var Data=event.data;
-                if(!Data || typeof Data!=="object")
-                    return;
-
-                if (Data.Secret !==glSecret)
-                {
-                    SetError("Error Data.Secret: " + Data.Secret);
-                    return;
-                }
-
-                SetStatus( "Получено: " + Data.Message);
-            }
-
-            if (window.addEventListener)
-            {
-                window.addEventListener("message", listener);
-            } else
-            {
-                // IE8
-                window.attachEvent("onmessage", listener);
-            }
-
-        </script>
-
-
-
     </DIV>
 
 
@@ -2721,6 +3015,9 @@
     <DIV id="idBlockPassword" style="display: none">
         <H3 align="center">Enter your password:</H3>
         <table class="password" id="idTablePassword">
+            <tr style="display: none">
+                <td><DIV>Login:</DIV></td><td><INPUT type="string"  id="Login" value=""></td>
+            </tr>
             <tr>
                 <td><DIV>Password:</DIV></td><td><INPUT type="password"  id="idPassword1" value=""></td>
             </tr>
@@ -2741,7 +3038,10 @@
 
 
     <DIV id="idStableScroll">
-        @terafoundation
+        <A href="https://bitcointalk.org/index.php?topic=4573801.0">ANN</A>
+        <A href="https://twitter.com/terafoundation">Twitter</A>
+        <A href="https://web.telegram.org/#/im?p=@terafoundation">Telegram</A>
+        <A href="https://discord.gg/CvwrbeG">Discord</A>
         <!--progr76@gmail.com-->
     </DIV>
 

@@ -14,9 +14,26 @@ require("./log.js");
 const crypto = require('crypto');
 const os = require('os');
 const http = require('http'), net = require('net'), url = require('url'), fs = require('fs'), querystring = require('querystring');
+var ContenTypeMap = {};
+ContenTypeMap["js"] = "application/javascript";
+ContenTypeMap["css"] = "text/css";
+ContenTypeMap["wav"] = "audio/wav";
+ContenTypeMap["mp3"] = "audio/mpeg";
+ContenTypeMap["ico"] = "image/vnd.microsoft.icon";
+ContenTypeMap["png"] = "image/png";
+ContenTypeMap["gif"] = "image/gif";
+ContenTypeMap["jpg"] = "image/jpeg";
+ContenTypeMap["html"] = "text/html";
+ContenTypeMap["txt"] = "text/plain";
+ContenTypeMap["csv"] = "text/csv";
+ContenTypeMap[""] = "application/octet-stream";
+ContenTypeMap["zip"] = "application/zip";
+ContenTypeMap["pdf"] = "application/pdf";
+ContenTypeMap[".js"] = "application/javascript";
+ContenTypeMap["tml"] = "text/html";
 global.HTTPCaller = {};
 
-function DoCommand(response,Type,Path,params)
+function DoCommand(response,Type,Path,params,remoteAddress)
 {
     var F = HTTPCaller[params[0]];
     if(F)
@@ -49,10 +66,19 @@ function DoCommand(response,Type,Path,params)
         case "":
             SendFileHTML(response, "./HTML/wallet.html");
             break;
+        case "dapp":
+            DappTemplateFile(response, params[1]);
+            break;
+        case "smart":
+            DappSmartCodeFile(response, params[1]);
+            break;
+        case "file":
+            SendBlockFile(response, params[1], params[2]);
+            break;
         default:
             {
                 if(Path.indexOf(".") ===  - 1)
-                    ToError("Error path:" + Path);
+                    ToError("Error path:" + Path + "  remoteAddress=" + remoteAddress);
                 var path = params[params.length - 1];
                 if(typeof path !== "string")
                     path = "ErrorPath";
@@ -89,6 +115,218 @@ function DoCommand(response,Type,Path,params)
             }
     }
 };
+
+function DappTemplateFile(response,StrNum)
+{
+    var Num = parseInt(StrNum);
+    if(Num && Num <= DApps.Smart.GetMaxNum())
+    {
+        var Data = DApps.Smart.ReadSmart(Num);
+        if(Data)
+        {
+            response.writeHead(200, {'Content-Type':'text/html', "X-Frame-Options":"sameorigin"});
+            var Str = fs.readFileSync("HTML/dapp-frame.html", {encoding:"utf8"});
+            Str = Str.replace(/#template-number#/g, StrNum);
+            Str = Str.replace(/#template-name#/g, Data.Name);
+            response.end(Str);
+            return ;
+        }
+    }
+    response.writeHead(404, {'Content-Type':'text/html'});
+    response.end();
+};
+
+function DappSmartCodeFile(response,StrNum)
+{
+    var Num = parseInt(StrNum);
+    if(Num && Num <= DApps.Smart.GetMaxNum())
+    {
+        var Data = DApps.Smart.ReadSmart(Num);
+        if(Data)
+        {
+            response.writeHead(200, {'Content-Type':'application/javascript'});
+            response.end(Data.Code);
+            return ;
+        }
+    }
+    response.writeHead(404, {'Content-Type':'text/html'});
+    response.end();
+};
+HTTPCaller.DappSmartHTMLFile = function (Params)
+{
+    var Data = DApps.Smart.ReadSmart(Params.Smart);
+    if(Data)
+    {
+        if(Params.DebugPath)
+        {
+            ToLog("Load: " + Params.DebugPath);
+            Data.HTML = fs.readFileSync(Params.DebugPath, {encoding:"utf8"});
+        }
+        return {result:1, Body:Data.HTML};
+    }
+    return {result:0};
+};
+
+function SendBlockFile(response,BlockNum,TrNum)
+{
+    BlockNum = parseInt(BlockNum);
+    TrNum = parseInt(TrNum);
+    if(BlockNum && TrNum <= MAX_TRANSACTION_COUNT)
+    {
+        var Block = SERVER.ReadBlockDB(BlockNum);
+        if(Block && Block.arrContent)
+        {
+            var Body = Block.arrContent[TrNum];
+            if(Body && Body[0] === global.TYPE_TRANSACTION_FILE)
+            {
+                var TR = DApps.File.GetObjectTransaction(Body);
+                if(TR.ContentType.indexOf("html") ==  - 1)
+                {
+                    response.writeHead(200, {'Content-Type':TR.ContentType});
+                    response.end(TR.Data);
+                    return ;
+                }
+                else
+                {
+                }
+            }
+        }
+    }
+    response.writeHead(404, {'Content-Type':'text/html'});
+    response.end();
+};
+HTTPCaller.DappBlockFile = function (Params)
+{
+    Params.BlockNum = parseInt(Params.BlockNum);
+    Params.TrNum = parseInt(Params.TrNum);
+    if(!Params.TrNum)
+        Params.TrNum = 0;
+    if(Params.BlockNum && Params.TrNum <= MAX_TRANSACTION_COUNT)
+    {
+        var Block = SERVER.ReadBlockDB(Params.BlockNum);
+        if(Block && Block.arrContent)
+        {
+            var Body = Block.arrContent[Params.TrNum];
+            if(Body)
+            {
+                var Type = Body[0];
+                if(Type === global.TYPE_TRANSACTION_FILE)
+                {
+                    var TR = DApps.File.GetObjectTransaction(Body);
+                    return {result:1, Type:Type, ContentType:TR.ContentType, Name:TR.Name, Body:TR.Data.toString('utf8')};
+                }
+                else
+                {
+                    var App = DAppByType[Type];
+                    if(App)
+                    {
+                        Body = JSON.parse(App.GetScriptTransaction(Body));
+                    }
+                    return {result:1, Type:Type, Body:Body};
+                }
+            }
+        }
+    }
+    return {result:0};
+};
+var glBlock0;
+HTTPCaller.DappCall = function (Data)
+{
+    if(!DApps.Accounts.DBChanges)
+    {
+        DApps.Accounts.BeginBlock();
+        DApps.Accounts.BeginTransaction();
+    }
+    var Account = DApps.Accounts.ReadStateTR(Data.Account);
+    if(!Account)
+    {
+        return {result:0, RetValue:"Error account Num: " + Data.Account};
+    }
+    if(!glBlock0)
+        glBlock0 = SERVER.ReadBlockHeaderDB(0);
+    var RetValue;
+    try
+    {
+        RetValue = RunSmartMethod(glBlock0, Account.Value.Smart, Account, 0, 0, undefined, Data.MethodName, Data.Params, 1);
+    }
+    catch(e)
+    {
+        return {result:0, RetValue:"" + e};
+    }
+    return {result:1, RetValue:RetValue};
+};
+HTTPCaller.DappInfo = function (Params)
+{
+    var Account, Smart = DApps.Smart.ReadSimple(Params.Smart);
+    if(Smart)
+    {
+        delete Smart.HTML;
+        delete Smart.Code;
+        Account = DApps.Accounts.ReadState(Smart.Account);
+        try
+        {
+            Account.SmartState = BufLib.GetObjectFromBuffer(Account.Value.Data, Smart.StateFormat, {});
+            if(typeof Account.SmartState === "object")
+                Account.SmartState.Num = Account.Num;
+        }
+        catch(e)
+        {
+            Account.SmartState = {};
+        }
+    }
+    var WLData = HTTPCaller.DappWalletList(Params);
+    var Ret = {result:1, Smart:Smart, Account:Account, BlockNumDB:SERVER.BlockNumDB, CurBlockNum:GetCurrentBlockNumByTime(), MaxAccID:DApps.Accounts.GetMaxAccount(),
+        MaxDappsID:DApps.Smart.GetMaxNum(), CurTime:(new Date()) - 0, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, MIN_POWER_POW_TR:MIN_POWER_POW_TR,
+        FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME, WalletList:WLData.arr, WalletIsOpen:(WALLET.WalletOpen !== false),
+        WalletCanSign:(WALLET.WalletOpen !== false && WALLET.KeyPair.WasInit), PubKey:WALLET.KeyPair.PubKeyStr, ArrLog:ArrLogClient,
+        PRICE_DAO:PRICE_DAO(SERVER.BlockNumDB), };
+    return Ret;
+};
+HTTPCaller.DappWalletList = function (Params)
+{
+    var arr0 = DApps.Accounts.GetWalletAccountsByMap(WALLET.AccountMap);
+    var arr = [];
+    for(var i = 0; i < arr0.length; i++)
+    {
+        if(arr0[i].Value.Smart === Params.Smart)
+        {
+            arr.push(arr0[i]);
+        }
+    }
+    var Ret = {result:1, arr:arr, };
+    return Ret;
+};
+HTTPCaller.DappAccountList = function (Params)
+{
+    var arr = DApps.Accounts.GetRowsAccounts(Params.StartNum, Params.CountNum, undefined, 1);
+    return {arr:arr, result:1};
+};
+HTTPCaller.DappSmartList = function (Params)
+{
+    var arr = DApps.Smart.GetRows(Params.StartNum, Params.CountNum, undefined, undefined, Params.GetAllData, Params.TokenGenerate);
+    return {arr:arr, result:1};
+};
+HTTPCaller.DappBlockList = function (Params)
+{
+    var arr = SERVER.GetRows(Params.StartNum, Params.CountNum);
+    return {arr:arr, result:1};
+};
+HTTPCaller.DappTransactionList = function (Params)
+{
+    var arr = SERVER.GetTrRows(Params.BlockNum, Params.StartNum, Params.CountNum);
+    return {arr:arr, result:1};
+};
+global.EventMap = {};
+HTTPCaller.LoopEvent = function (Params)
+{
+    var Arr = global.EventMap[Params.Smart];
+    global.EventMap[Params.Smart] = [];
+    if(!Arr || Arr.length === 0)
+    {
+        return {result:0};
+    }
+    return {arr:Arr, result:1};
+};
 var sessionid = GetHexFromAddres(crypto.randomBytes(20));
 HTTPCaller.RestartNode = function (Params)
 {
@@ -114,6 +352,11 @@ HTTPCaller.GetAccount = function (id)
 HTTPCaller.GetAccountsAll = function (Params)
 {
     var arr = DApps.Accounts.GetRowsAccounts(Params.StartNum, Params.CountNum, Params.Filter);
+    return {arr:arr, result:1};
+};
+HTTPCaller.GetDappsAll = function (Params)
+{
+    var arr = DApps.Smart.GetRows(Params.StartNum, Params.CountNum, Params.Filter, Params.Filter2);
     return {arr:arr, result:1};
 };
 HTTPCaller.GetBlockAll = function (Params)
@@ -168,15 +411,17 @@ HTTPCaller.GetWalletInfo = function ()
         LastHashRate = global.HASH_RATE;
         LastTimeGetHashRate = (new Date) - 0;
     }
-    var Ret = {result:1, WalletOpen:WALLET.WalletOpen, CODE_VERSION:CODE_VERSION, VersionNum:global.UPDATE_CODE_VERSION_NUM, RelayMode:SERVER.RelayMode,
-        BlockNumDB:SERVER.BlockNumDB, CurBlockNum:GetCurrentBlockNumByTime(), CurTime:(new Date()) - 0, IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr),
-        AccountMap:WALLET.AccountMap, ArrLog:ArrLogClient, MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE, MaxAccID:DApps.Accounts.GetMaxAccount(),
-        MaxActNum:DApps.Accounts.GetActsMaxNum(), NeedRestart:global.NeedRestart, ip:SERVER.ip, port:SERVER.port, NET_WORK_MODE:global.NET_WORK_MODE,
+    var Ret = {result:1, WalletOpen:WALLET.WalletOpen, WalletIsOpen:(WALLET.WalletOpen !== false), WalletCanSign:(WALLET.WalletOpen !== false && WALLET.KeyPair.WasInit),
+        CODE_VERSION:CODE_VERSION, VersionNum:global.UPDATE_CODE_VERSION_NUM, RelayMode:SERVER.RelayMode, BlockNumDB:SERVER.BlockNumDB,
+        CurBlockNum:GetCurrentBlockNumByTime(), CurTime:(new Date()) - 0, IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr), AccountMap:WALLET.AccountMap,
+        ArrLog:ArrLogClient, MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE, MaxAccID:DApps.Accounts.GetMaxAccount(), MaxActNum:DApps.Accounts.GetActsMaxNum(),
+        MaxDappsID:DApps.Smart.GetMaxNum(), NeedRestart:global.NeedRestart, ip:SERVER.ip, port:SERVER.port, NET_WORK_MODE:global.NET_WORK_MODE,
         INTERNET_IP_FROM_STUN:global.INTERNET_IP_FROM_STUN, HistoryMaxNum:MaxHistory, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK,
         CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME, DATA_PATH:(DATA_PATH.substr(1, 1) === ":" ? DATA_PATH : GetNormalPathString(process.cwd() + "/" + DATA_PATH)),
         NodeAddrStr:SERVER.addrStr, STAT_MODE:global.STAT_MODE, HTTPPort:global.HTTP_PORT_NUMBER, HTTPPassword:HTTP_PORT_PASSWORD,
         CONSTANTS:Constants, CheckPointBlockNum:CHECK_POINT.BlockNum, MiningAccount:global.GENERATE_BLOCK_ACCOUNT, CountMiningCPU:global.CountMiningCPU,
-        CountRunCPU:global.ArrMiningWrk.length, MiningPaused:global.MiningPaused, HashRate:HashRateOneSec, };
+        CountRunCPU:global.ArrMiningWrk.length, MiningPaused:global.MiningPaused, HashRate:HashRateOneSec, MIN_POWER_POW_TR:MIN_POWER_POW_TR,
+        PRICE_DAO:PRICE_DAO(SERVER.BlockNumDB), };
     Ret.PrivateKey = WALLET.KeyPair.PrivKeyStr;
     Ret.PublicKey = WALLET.KeyPair.PubKeyStr;
     return Ret;
@@ -213,10 +458,14 @@ HTTPCaller.GetSignTransaction = function (TR)
     var Sign = WALLET.GetSignTransaction(TR);
     return {Sign:Sign, result:1};
 };
-HTTPCaller.GetSignFromHEX = function (ValueHex,Param2,Param3)
+HTTPCaller.GetSignFromHEX = function (Params)
 {
-    var Arr = GetArrFromHex(ValueHex);
-    var Sign = WALLET.GetSignFromArr(Arr);
+    var Arr = GetArrFromHex(Params.Hex);
+    var Sign;
+    if(Params.Account)
+        Sign = WALLET.GetSignFromArr(Arr, WALLET.AccountMap[Params.Account]);
+    else
+        Sign = WALLET.GetSignFromArr(Arr);
     return {Sign:Sign, result:1};
 };
 var AddTrMap = {};
@@ -446,12 +695,17 @@ function RunAutoCorrTime()
 };
 HTTPCaller.SaveConstant = function (SetObj)
 {
+    var WasUpdate = global.USE_AUTO_UPDATE;
     for(var key in SetObj)
     {
         global[key] = SetObj[key];
     }
     SAVE_CONST(true);
     SERVER.DO_CONSTANT();
+    if(!WasUpdate && global.USE_AUTO_UPDATE && CODE_VERSION.VersionNum && global.UPDATE_CODE_VERSION_NUM < CODE_VERSION.VersionNum)
+    {
+        SERVER.UseCode(CODE_VERSION.VersionNum, true);
+    }
     if(SetObj.DoRestartNode)
         global.RestartNode();
     else
@@ -753,8 +1007,8 @@ function CopyBlockDraw(Block,MainChains)
     {
         var Num = ReadUintFromArr(Block.AddrHash, 0);
         var Item = DApps.Accounts.ReadState(Num);
-        if(Item && Item.Description)
-            MinerID = Item.Description.substr(0, 8);
+        if(Item && Item.Name)
+            MinerID = Item.Name.substr(0, 8);
         else
             MinerID = Num;
     }
@@ -888,38 +1142,17 @@ function SendFileHTML(response,name,StrCookie)
         }
         else
         {
-            switch(type)
+            var StrContentType = ContenTypeMap[type];
+            if(!StrContentType || StrContentType === "text/html")
             {
-                case ".js":
-                    response.writeHead(200, {'Content-Type':'application/javascript'});
-                    break;
-                case "css":
-                    response.writeHead(200, {'Content-Type':'text/css'});
-                    break;
-                case "wav":
-                    response.writeHead(200, {'Content-Type':'audio/wav'});
-                    break;
-                case "mp3":
-                    response.writeHead(200, {'Content-Type':'audio/mpeg'});
-                    break;
-                case "ico":
-                    response.writeHead(200, {'Content-Type':'image/vnd.microsoft.icon'});
-                    break;
-                case "png":
-                    response.writeHead(200, {'Content-Type':'image/png'});
-                    break;
-                case "gif":
-                    response.writeHead(200, {'Content-Type':'image/gif'});
-                    break;
-                case "jpg":
-                    response.writeHead(200, {'Content-Type':'image/jpeg'});
-                    break;
-                default:
-                    if(StrCookie)
-                        response.writeHead(200, {'Set-Cookie':StrCookie, 'Content-Type':'text/html'});
-                    else
-                        response.writeHead(200, {'Content-Type':'text/html'});
-                    break;
+                if(StrCookie)
+                    response.writeHead(200, {'Set-Cookie':StrCookie, 'Content-Type':'text/html', "X-Frame-Options":"sameorigin"});
+                else
+                    response.writeHead(200, {'Content-Type':'text/html', "X-Frame-Options":"sameorigin"});
+            }
+            else
+            {
+                response.writeHead(200, {'Content-Type':StrContentType});
             }
         }
         response.end(data);
@@ -984,9 +1217,10 @@ if(global.HTTP_PORT_NUMBER)
             return ;
         if(!request.socket || !request.socket.remoteAddress)
             return ;
-        if(!global.HTTP_PORT_PASSWORD && request.socket.remoteAddress.indexOf("127.0.0.1") < 0)
+        var remoteAddress = request.socket.remoteAddress;
+        if(!global.HTTP_PORT_PASSWORD && remoteAddress.indexOf("127.0.0.1") < 0)
             return ;
-        if(global.HTTP_IP_CONNECT && request.socket.remoteAddress.indexOf("127.0.0.1") < 0 && request.socket.remoteAddress.indexOf(global.HTTP_IP_CONNECT) < 0)
+        if(global.HTTP_IP_CONNECT && remoteAddress.indexOf("127.0.0.1") < 0 && remoteAddress.indexOf(global.HTTP_IP_CONNECT) < 0)
             return ;
         let RESPONSE = response0;
         var response = {end:function (data)
@@ -1020,10 +1254,10 @@ if(global.HTTP_PORT_NUMBER)
         }
         var fromURL = url.parse(request.url);
         var Path = querystring.unescape(fromURL.path);
-        if(!ClientIPMap[request.socket.remoteAddress])
+        if(!ClientIPMap[remoteAddress])
         {
-            ClientIPMap[request.socket.remoteAddress] = 1;
-            ToLog("CONNECT TO HTTP ACCESS FROM: " + request.socket.remoteAddress);
+            ClientIPMap[remoteAddress] = 1;
+            ToLog("CONNECT TO HTTP ACCESS FROM: " + remoteAddress);
             ToLog("Path: " + Path);
         }
         if(global.HTTP_PORT_PASSWORD)
@@ -1089,14 +1323,14 @@ if(global.HTTP_PORT_NUMBER)
                     Response.end("Error data parsing");
                 }
                 if(Params[0] === "HTML")
-                    DoCommand(response, Type, Path, [Params[1], Data]);
+                    DoCommand(response, Type, Path, [Params[1], Data], remoteAddress);
                 else
-                    DoCommand(response, Type, Path, [Params[0], Data]);
+                    DoCommand(response, Type, Path, [Params[0], Data], remoteAddress);
             });
         }
         else
         {
-            DoCommand(response, Type, Path, params);
+            DoCommand(response, Type, Path, params, remoteAddress);
         }
     }).listen(port);
     ToLog("Run HTTP-server on port:" + port);

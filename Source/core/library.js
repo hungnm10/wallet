@@ -97,7 +97,31 @@ function ConvertBufferToStr(r)
         e instanceof Buffer ? r[t] = GetHexFromArr(e) : "object" == typeof e && ConvertBufferToStr(e);
     }
 };
-require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML/JS/sha3.js"), Number.prototype.toStringZ = function (r)
+
+function CopyObjValue(r,t)
+{
+    if(t && 5 < t)
+        return r;
+    var e = {};
+    for(var o in r)
+    {
+        var n = r[o];
+        "object" != typeof n || n instanceof Buffer || n instanceof ArrayBuffer || n instanceof Array || (n = CopyObjValue(n, t + 1)),
+        e[o] = n;
+    }
+    return e;
+};
+
+function CopyArr(r)
+{
+    var t = [];
+    if(r)
+        for(var e = 0; e < r.length; e++)
+            t[e] = r[e];
+    return t;
+};
+require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML/JS/sha3.js"), require("../HTML/JS/coinlib.js"),
+Number.prototype.toStringZ = function (r)
 {
     var t = this.toString();
     return t.length > r ? r = t.length : t = "0000000000" + t, t.substring(t.length - r, t.length);
@@ -108,7 +132,7 @@ require("./log.js"), global.BufLib = require("../core/buffer"), require("../HTML
 global.WriteUintToArr = WriteUintToArr, global.WriteUint32ToArr = WriteUint32ToArr, global.WriteUint32ToArrOnPos = WriteUint32ToArrOnPos,
 global.WriteUint16ToArrOnPos = WriteUint16ToArrOnPos, global.WriteUintToArrOnPos = WriteUintToArrOnPos, global.WriteArrToArr = WriteArrToArr,
 global.WriteArrToArrOnPos = WriteArrToArrOnPos, global.WriteArrToArrHOnPos = WriteArrToArrHOnPos, global.ConvertBufferToStr = ConvertBufferToStr,
-global.DelDir = function (r)
+global.CopyObjValue = CopyObjValue, global.CopyArr = CopyArr, global.DelDir = function (r)
 {
     if("/" === r.substr(r.length - 1, 1) && (r = r.substr(0, r.length - 1)), fs.existsSync(r))
         for(var t = fs.readdirSync(r), e = 0; e < t.length; e++)
@@ -232,8 +256,7 @@ global.DelDir = function (r)
 }, global.CompareItemTimePow = function (r,t)
 {
     return t.TimePow !== r.TimePow ? t.TimePow - r.TimePow : CompareArr(r.hashPow, t.hashPow);
-};
-var WasStartSaveConst = !(global.LOAD_CONST = function ()
+}, global.LOAD_CONST = function ()
 {
     var r = 0, t = LoadParams(GetDataPath("const.lst"), {});
     if(t)
@@ -243,7 +266,8 @@ var WasStartSaveConst = !(global.LOAD_CONST = function ()
             void 0 !== t[o] && (r++, global[o] = t[o]);
         }
     return r;
-});
+};
+var WasStartSaveConst = !1;
 
 function SaveConst()
 {
@@ -282,20 +306,6 @@ function GetSecFromStrTime(r)
     return o;
 };
 
-function CopyObjValue(r,t)
-{
-    if(t && 5 < t)
-        return r;
-    var e = {};
-    for(var o in r)
-    {
-        var n = r[o];
-        "object" != typeof n || n instanceof Buffer || n instanceof ArrayBuffer || n instanceof Array || (n = CopyObjValue(n, t + 1)),
-        e[o] = n;
-    }
-    return e;
-};
-
 function DateFromBlock(r)
 {
     var t;
@@ -318,7 +328,7 @@ global.GetDeltaCurrentTime = function ()
     void 0 === r && (r = GetDeltaCurrentTime());
     var t = new Date;
     return new Date(t -  - r);
-}, global.CopyObjValue = CopyObjValue, global.DateFromBlock = DateFromBlock;
+}, global.DateFromBlock = DateFromBlock;
 var code_base = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—�™љ›њќћџ ЎўЈ¤Ґ¦§Ё©Є«¬­®Ї°±Ііґµ¶·ё№є»јЅѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя";
 global.NormalizeName = function (r)
 {
@@ -328,4 +338,12 @@ global.NormalizeName = function (r)
         32 <= o && (t += code_base.charAt(o - 32));
     }
     return t;
-}, LOAD_CONST() || CheckTime(), global.AUTO_COORECT_TIME = 1;
+};
+var glEvalMap = {};
+
+function CreateEval(formula,StrParams)
+{
+    var Ret = glEvalMap[formula];
+    return Ret || (eval("function M(" + StrParams + "){return " + formula + "}; Ret=M;"), glEvalMap[formula] = Ret), Ret;
+};
+global.CreateEval = CreateEval, LOAD_CONST() || global.POWPROCESS || CheckTime(), global.AUTO_COORECT_TIME = 1;

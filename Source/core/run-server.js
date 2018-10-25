@@ -28,7 +28,7 @@ if(global.LOCAL_RUN)
 else
     if(global.TEST_NETWORK)
     {
-        FindList = [{"ip":"91.235.136.81", "port":40000}, {"ip":"82.146.34.153", "port":40000}, ];
+        FindList = [{"ip":"149.154.70.158", "port":40000}, ];
     }
 global.SERVER = undefined;
 var idRunOnce;
@@ -80,6 +80,23 @@ if(global.ADDRLIST_MODE)
     return ;
 }
 
+function AllAlive()
+{
+    for(var i = 0; i < ArrMiningWrk.length; i++)
+    {
+        ArrMiningWrk[i].send({cmd:"Alive"});
+    }
+};
+
+function ClearArrMining()
+{
+    for(var i = 0; i < ArrMiningWrk.length; i++)
+    {
+        ArrMiningWrk[i].send({cmd:"Exit"});
+    }
+    ArrMiningWrk = [];
+};
+
 function RunStopPOWProcess(Mode)
 {
     if(!global.CountMiningCPU || global.CountMiningCPU <= 0)
@@ -87,7 +104,8 @@ function RunStopPOWProcess(Mode)
     if(!StartCheckMining)
     {
         StartCheckMining = 1;
-        setInterval(RunStopPOWProcess, 5 * 1000);
+        setInterval(RunStopPOWProcess, CHECK_RUN_MINING);
+        setInterval(AllAlive, 1000);
     }
     if(global.NeedRestart)
         return ;
@@ -115,7 +133,7 @@ function RunStopPOWProcess(Mode)
         if(ArrMiningWrk.length && global.MiningPaused)
         {
             ToLog("------------ MINING MUST STOP ON TIME");
-            ArrMiningWrk = [];
+            ClearArrMining();
             return ;
         }
         else
@@ -134,7 +152,7 @@ function RunStopPOWProcess(Mode)
     }
     if(!global.USE_MINING || Mode === "STOP")
     {
-        ArrMiningWrk = [];
+        ClearArrMining();
         return ;
     }
     if(global.USE_MINING && ArrMiningWrk.length)
@@ -146,11 +164,19 @@ function RunStopPOWProcess(Mode)
     var PathMiner = GetCodePath("../miner.js");
     if(!fs.existsSync(PathMiner))
         PathMiner = "./core/pow-process.js";
+    if(ArrMiningWrk.length >= CountMiningCPU)
+        return ;
+    var str_arg = "";
+    if(global.LOCAL_RUN)
+        str_arg = "LOCALRUN";
+    else
+        if(global.TEST_NETWORK)
+            str_arg = "TESTRUN";
     const child_process = require('child_process');
     ToLog("START MINER PROCESS COUNT=" + CountMiningCPU);
     for(var R = 0; R < CountMiningCPU; R++)
     {
-        let Worker = child_process.fork(PathMiner);
+        let Worker = child_process.fork(PathMiner, [str_arg]);
         console.log("Worker pid: " + Worker.pid);
         ArrMiningWrk.push(Worker);
         Worker.Num = ArrMiningWrk.length;

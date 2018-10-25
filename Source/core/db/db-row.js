@@ -27,14 +27,6 @@ module.exports = class CDBState extends require("./db")
         this.BufMapCount = 0
         setInterval(this.CheckBufMap.bind(this), 1000)
     }
-    CheckBufMap()
-    {
-        if(this.BufMapCount > 1000)
-        {
-            this.BufMap = {}
-            this.BufMapCount = 0
-        }
-    }
     GetMaxNum()
     {
         var FI = this.OpenDBFile(this.FileName);
@@ -51,8 +43,8 @@ module.exports = class CDBState extends require("./db")
         this.LastHash = undefined
         this.WasUpdate = 1
         this.CheckNewNum(Data)
-        delete this.BufMap[Data.Num]
-        var BufWrite = BufLib.GetBufferFromObject(Data, this.Format, this.DataSize, this.WorkStruct);
+        this.DeleteMap(Data.Num)
+        var BufWrite = BufLib.GetBufferFromObject(Data, this.Format, this.DataSize, this.WorkStruct, 1);
         var Position = Data.Num * this.DataSize;
         var FI = this.OpenDBFile(this.FileName);
         var written = fs.writeSync(FI.fd, BufWrite, 0, BufWrite.length, Position);
@@ -78,7 +70,7 @@ module.exports = class CDBState extends require("./db")
         {
             return undefined;
         }
-        var BufRead = this.BufMap[Num];
+        var BufRead = this.GetMap(Num);
         if(!BufRead)
         {
             BufRead = BufLib.GetNewBuffer(this.DataSize)
@@ -87,8 +79,7 @@ module.exports = class CDBState extends require("./db")
             var bytesRead = fs.readSync(FI.fd, BufRead, 0, BufRead.length, Position);
             if(bytesRead !== BufRead.length)
                 return undefined;
-            this.BufMap[Num] = BufRead
-            this.BufMapCount++
+            this.SetMap(Num, BufRead)
         }
         if(GetBufOnly)
         {
@@ -218,6 +209,31 @@ module.exports = class CDBState extends require("./db")
                 throw "Error read num";
                 return ;
             }
+        }
+    }
+    SetMap(Num, Value)
+    {
+        this.BufMap[Num] = Value
+        this.BufMapCount++
+    }
+    GetMap(Num)
+    {
+        return this.BufMap[Num];
+    }
+    DeleteMap(Num)
+    {
+        if(this.BufMap[Num])
+        {
+            delete this.BufMap[Num]
+            this.BufMapCount--
+        }
+    }
+    CheckBufMap()
+    {
+        if(this.BufMapCount > 1000)
+        {
+            this.BufMap = {}
+            this.BufMapCount = 0
         }
     }
 };

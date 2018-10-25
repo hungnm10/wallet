@@ -85,7 +85,7 @@ class CApp extends require("./dapp")
         }
         return Node;
     }
-    OnWriteTransaction(Body, BlockNum, TrNum)
+    OnWriteTransaction(Block, Body, BlockNum, TrNum)
     {
         var Type = Body[0];
         if(Type === OPEN_TYPE_TRANSACTION)

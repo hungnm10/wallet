@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-require("./library"), require("./crypto-library"), require("./terahash");
+global.POWPROCESS = 1, require("./library"), require("./crypto-library"), require("./terahash");
 var PROCESS = process;
 process.send && !global.DEBUGPROCESS ? (global.ToLog = function (e)
 {
@@ -21,7 +21,7 @@ var idInterval = void 0, Block = {};
 function CheckAlive()
 {
     var e = new Date - LastAlive;
-    3e3 < Math.abs(e) && PROCESS.exit(0);
+    Math.abs(e) > CHECK_STOP_MINING && PROCESS.exit(0);
 };
 
 function CalcPOWHash()

@@ -119,7 +119,6 @@ module.exports = class CTransport extends require("./connect")
             Map["GETNODES"] = {Period:1000, Hard:1, LowVersion:1, IsAddrList:1}
             Map["RETGETNODES2"] = {Period:0, IsAddrList:1}
             Map["GETCODE"] = {Period:10000, Hard:1, LowVersion:1}
-            Map["EVAL"] = {Period:10000, Hard:1}
             Map["RETBLOCKHEADER"] = {Period:0}
             Map["RETGETBLOCK"] = {Period:0}
             Map["RETCODE"] = {Period:0}
@@ -1107,7 +1106,7 @@ module.exports = class CTransport extends require("./connect")
             Node.ErrCount = 0
             ADD_TO_STAT("ERRORS")
             Node.BlockProcessCount--
-            if(Node.BlockProcessCount < 0)
+            if(Node.BlockProcessCount <  - 30)
             {
                 this.AddToBan(Node, "BlockProcess:" + Node.BlockProcessCount)
             }

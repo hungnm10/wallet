@@ -3,10 +3,11 @@
 [<Документация на русском>](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
 
 Attention:
-* After the installation shown below, enter the address in the browser: 127.0.0.1
+* After the installation shown below, enter the address your server in the browser. Example: 12.34.56.78:8080
 * To connect to the network and start sync, you must have a static (public) IP address and an open port.
-* Do not forget to set a password to restrict access to http (click the HTTP ACCESS button on your wallet). We also recommend changing port 80 to another and not storing private keys on remote servers.
+* We recommend not storing private keys on remote servers.
 * We recommend putting an additional password on the private key ("Set password" button) - in this case the private key will be stored in file in encrypted form.
+* If you do not set http-password, you can access only from the local address: 127.0.0.1
 
 
 
@@ -122,6 +123,8 @@ httpport:8080
 ```
 Lunch: 
 ```
+cp -a Source SourceTest
+cd SourceTest
 sudo node set-test httpport:8080 password:SecretWord
 sudo pm2 start run-test.js
 ```

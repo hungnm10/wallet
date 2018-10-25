@@ -206,8 +206,8 @@ module.exports = class CConnect extends require("./transfer-msg")
             if(Node.BlockProcessCount <= this.BusyLevel)
                 StopGetBlock = 1
         }
-        var СтатДанные = this.СтатДанныеОтладкиИзБлока();
-        var DirectMAccount = this.ValueToXORDevelop("MAccount", global.GENERATE_BLOCK_ACCOUNT, "uint");
+        var СтатДанные = [];
+        var DirectMAccount = 0;
         var Ret = {VERSIONMAX:DEF_VERSION, FIRST_TIME_BLOCK:0, PingVersion:3, GrayConnect:GrayAddres, Reserve2:0, AutoCorrectTime:AUTO_COORECT_TIME,
             LevelCount:LevelCount, Time:(GetCurrentTime() - 0), BlockNumDB:this.BlockNumDB, LoadHistoryMode:this.LoadHistoryMode, CanStart:global.CAN_START,
             CheckPoint:CHECK_POINT, Reserv3:[], Key:this.KeyToNode, Name:this.NameToNode, TrafficFree:this.SendTrafficFree, AccountBlockNum:BlockNumHash,
@@ -284,11 +284,6 @@ module.exports = class CConnect extends require("./transfer-msg")
         Node.NextConnectDelta = 1000
         Node.GrayConnect = Data.GrayConnect
         Node.StopGetBlock = Data.StopGetBlock
-        this.УстановитьСтатДанные(Node, Data.СтатБлок)
-        if(this.ДоступенКлючРазработчика(Node))
-        {
-            Node.DirectMAccount = this.ValueFromXORDevelop(Node, "MAccount", Data.DirectMAccount, "uint")
-        }
         if(bCheckPoint)
         {
             this.CheckCheckPoint(Data, Info.Node)
@@ -381,7 +376,6 @@ module.exports = class CConnect extends require("./transfer-msg")
             var SignArr = arr2(Data.CheckPoint.Hash, GetArrFromValue(Data.CheckPoint.BlockNum));
             if(CheckDevelopSign(SignArr, Data.CheckPoint.Sign))
             {
-                ToLog("Get new CheckPoint = " + Data.CheckPoint.BlockNum)
                 this.ResetNextPingAllNode()
                 global.CHECK_POINT = Data.CheckPoint
                 var Block = this.ReadBlockHeaderDB(CHECK_POINT.BlockNum);
@@ -672,18 +666,6 @@ module.exports = class CConnect extends require("./transfer-msg")
         }
         if(Item.Name)
             Node.Name = Item.Name
-        if(Item.StatData)
-        {
-            if(!Node.StatData)
-                this.УстановитьСтатДанные(Node, Item.StatData)
-            else
-            {
-                var BlockNum = ReadUintFromArr(Item.StatData, 0);
-                var BlockWas = ReadUintFromArr(Node.StatData, 0);
-                if(BlockNum > BlockWas && BlockNum < GetCurrentBlockNumByTime() - 3)
-                    this.УстановитьСтатДанные(Node, Item.StatData)
-            }
-        }
         return Node;
     }
     NodesArrSort()
@@ -1006,7 +988,7 @@ module.exports = class CConnect extends require("./transfer-msg")
         if(AvgDelta > 0)
             ADD_TO_STAT("CORRECT_TIME_UP", AvgDelta)
         else
-            ADD_TO_STAT("CORRECT_TIME_DOWN", AvgDelta)
+            ADD_TO_STAT("CORRECT_TIME_DOWN",  - AvgDelta)
         global.DELTA_CURRENT_TIME = Math.trunc(global.DELTA_CURRENT_TIME + AvgDelta)
         this.ClearTimeStat()
         SAVE_CONST()
