@@ -232,11 +232,9 @@ HTTPCaller.DappBlockFile = function (Params)
 var glBlock0;
 HTTPCaller.DappCall = function (Data)
 {
-    if(!DApps.Accounts.DBChanges)
-    {
-        DApps.Accounts.BeginBlock();
-        DApps.Accounts.BeginTransaction();
-    }
+    DApps.Accounts.BeginBlock();
+    DApps.Accounts.BeginTransaction();
+    global.TickCounter = 1000000;
     var Account = DApps.Accounts.ReadStateTR(Data.Account);
     if(!Account)
     {
@@ -609,7 +607,7 @@ function RunSetCheckPoint()
     if(Block)
     {
         var Power = GetPowPower(Block.PowHash);
-        if(Power < 16)
+        if(Power < 16 || CompareArr(Block.PowHash, Block.Hash) !== 0)
         {
             ToLog("CANNOT SET CHECK POINT Power=" + Power + "  BlockNum=" + BlockNum);
             return ;
@@ -1171,6 +1169,11 @@ function GetStrTime(now)
 
 function OnGetData(arg)
 {
+    var response = {end:function ()
+        {
+        }, writeHead:function ()
+        {
+        }, };
     var Path = arg.path;
     var obj = arg.obj;
     if(Path.substr(0, 1) === "/")
@@ -1262,38 +1265,43 @@ if(global.HTTP_PORT_NUMBER)
         }
         if(global.HTTP_PORT_PASSWORD)
         {
+            var StrPort = "";
+            if(global.HTTP_PORT_NUMBER !== 80)
+                StrPort = global.HTTP_PORT_NUMBER;
             var cookies = parseCookies(request.headers.cookie);
-            if(cookies.token && cookies.hash && ClientTokenMap[cookies.token] === 0)
+            var cookies_token = cookies["token" + StrPort];
+            var cookies_hash = cookies["hash" + StrPort];
+            if(cookies_token && cookies_hash && ClientTokenMap[cookies_token] === 0)
             {
-                if(cookies.hash.substr(0, 4) !== "0000")
+                if(cookies_hash.substr(0, 4) !== "0000")
                 {
-                    SendFileHTML(response, "./HTML/password.html", "token=" + cookies.token + ";path=/");
+                    SendFileHTML(response, "./HTML/password.html", "token" + StrPort + "=" + cookies_token + ";path=/");
                     return ;
                 }
                 var nonce = 0;
-                var index = cookies.hash.indexOf("-");
+                var index = cookies_hash.indexOf("-");
                 if(index > 0)
                 {
-                    nonce = parseInt(cookies.hash.substr(index + 1));
+                    nonce = parseInt(cookies_hash.substr(index + 1));
                     if(!nonce)
                         nonce = 0;
                 }
-                var hash = ClientHex(cookies.token + "-" + global.HTTP_PORT_PASSWORD, nonce);
-                if(hash === cookies.hash)
+                var hash = ClientHex(cookies_token + "-" + global.HTTP_PORT_PASSWORD, nonce);
+                if(hash === cookies_hash)
                 {
-                    ClientTokenMap[cookies.token] = 1;
+                    ClientTokenMap[cookies_token] = 1;
                 }
                 else
                 {
-                    SendFileHTML(response, "./HTML/password.html", "token=" + cookies.token + ";path=/");
+                    SendFileHTML(response, "./HTML/password.html", "token" + StrPort + "=" + cookies_token + ";path=/");
                     return ;
                 }
             }
-            if(!cookies.token || !ClientTokenMap[cookies.token])
+            if(!cookies_token || !ClientTokenMap[cookies_token])
             {
                 var StrToken = GetHexFromArr(crypto.randomBytes(16));
                 ClientTokenMap[StrToken] = 0;
-                SendFileHTML(response, "./HTML/password.html", "token=" + StrToken + ";path=/");
+                SendFileHTML(response, "./HTML/password.html", "token" + StrPort + "=" + StrToken + ";path=/");
                 return ;
             }
         }

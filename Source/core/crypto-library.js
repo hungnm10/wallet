@@ -456,24 +456,97 @@ function TestMerklTree()
     var h1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     var h2 = shaarr("2");
     var h3 = shaarr("3");
-    var Tree = {LevelsHash:[], LevelsCalc:[], RecalcCount:0};
-    Tree.LevelsHash[0] = [h1, h2, h3, h1];
-    Tree.LevelsCalc[0] = [];
+    var h4 = shaarr("4");
+    var h5 = shaarr("5");
+    var Tree = {RecalcCount:0};
+    var CalcMap = {};
+    Tree.LevelsHash = [[h1, h2]];
     Tree.RecalcCount = 0;
-    UpdateMerklTree(Tree, 0);
+    CalcMap[0] = 1;
+    CalcMap[1] = 1;
+    UpdateMerklTree(Tree, CalcMap, 0);
+    CalcMap = {};
+    Tree.LevelsHash[0] = [h1, h2, h3, h4];
     Tree.RecalcCount = 0;
-    Tree.LevelsHash[0] = [h1, h2];
-    Tree.LevelsCalc[0] = [];
-    UpdateMerklTree(Tree, 0);
+    CalcMap[2] = 1;
+    CalcMap[3] = 1;
+    UpdateMerklTree(Tree, CalcMap, 0);
+    CalcMap = {};
+    Tree.LevelsHash[0] = [h1, h2, h3];
+    Tree.RecalcCount = 0;
+    CalcMap[Tree.LevelsHash[0].length - 1] = 1;
+    UpdateMerklTree(Tree, CalcMap, 0);
     ToLog("Root=" + GetHexFromArr(Tree.Root));
     ToLog("RecalcCount=" + Tree.RecalcCount);
-    var TreeTest = CalcMerklFromArray(Tree.LevelsHash[0], {Levels:[]});
+    var TreeTest = {LevelsArr:Tree.LevelsHash, LevelsCalc:[[]], RecalcCount:0};
+    UpdateMerklTree0(TreeTest, 0);
     ToLog("HashTest=" + GetHexFromArr(TreeTest.Root));
     if(CompareArr(TreeTest.Root, Tree.Root) !== 0)
         ToLog("=========ERROR HASHTEST==============");
 };
 
 function UpdateMerklTree(Tree,CalcMap,NumLevel)
+{
+    var HashArr = Tree.LevelsHash[NumLevel];
+    if(!HashArr || !HashArr.length)
+    {
+        Tree.LevelsHash.length = NumLevel + 1;
+        Tree.MaxLevel = NumLevel;
+        Tree.Root = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+    else
+        if(HashArr.length === 1)
+        {
+            Tree.LevelsHash.length = NumLevel + 1;
+            Tree.MaxLevel = NumLevel;
+            Tree.Root = HashArr[0];
+        }
+        else
+        {
+            var CalcMap2 = {};
+            var HashArr2 = Tree.LevelsHash[NumLevel + 1];
+            if(!HashArr2)
+            {
+                HashArr2 = [];
+                Tree.LevelsHash[NumLevel + 1] = HashArr2;
+            }
+            var len2 = Math.trunc(HashArr.length / 2);
+            HashArr2.length = Math.trunc(0.5 + HashArr.length / 2);
+            var Count = 0;
+            var LastIndex = HashArr.length - 1;
+            for(var key in CalcMap)
+            {
+                var i2 = Math.trunc(key / 2);
+                if(i2 < len2)
+                {
+                    Count++;
+                    CalcMap2[i2] = 1;
+                    HashArr2[i2] = sha3(arr2(HashArr[i2 * 2], HashArr[i2 * 2 + 1]));
+                }
+                else
+                {
+                    if(key > LastIndex)
+                    {
+                        CalcMap2[i2] = 1;
+                    }
+                    else
+                        if(i2 === len2)
+                        {
+                            Count++;
+                            CalcMap2[i2] = 1;
+                            HashArr2[i2] = HashArr[key];
+                        }
+                }
+            }
+            if(Count)
+            {
+                Tree.RecalcCount += Count;
+                UpdateMerklTree(Tree, CalcMap2, NumLevel + 1);
+            }
+        }
+};
+
+function UpdateMerklTreeErrr(Tree,CalcMap,NumLevel)
 {
     var HashArr = Tree.LevelsHash[NumLevel];
     if(!HashArr || !HashArr.length)
@@ -518,6 +591,12 @@ function UpdateMerklTree(Tree,CalcMap,NumLevel)
                 Count++;
                 CalcMap2[i] = 1;
                 HashArr2[i] = HashArr[LastIndex];
+                if(HashArr2.length !== len2)
+                {
+                    Count++;
+                    HashArr2.length = len2;
+                    delete CalcMap2[len2 - 1];
+                }
             }
             if(Count)
             {
@@ -529,28 +608,28 @@ function UpdateMerklTree(Tree,CalcMap,NumLevel)
 
 function UpdateMerklTree0(Tree,NumLevel)
 {
-    var HashArr = Tree.LevelsHash[NumLevel];
+    var HashArr = Tree.LevelsArr[NumLevel];
     if(!HashArr || !HashArr.length)
     {
-        Tree.LevelsHash.length = NumLevel + 1;
+        Tree.LevelsArr.length = NumLevel + 1;
         Tree.MaxLevel = NumLevel;
         Tree.Root = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     }
     else
         if(HashArr.length === 1)
         {
-            Tree.LevelsHash.length = NumLevel + 1;
+            Tree.LevelsArr.length = NumLevel + 1;
             Tree.MaxLevel = NumLevel;
             Tree.Root = HashArr[0];
         }
         else
         {
             var CalcArr = Tree.LevelsCalc[NumLevel];
-            var HashArr2 = Tree.LevelsHash[NumLevel + 1];
+            var HashArr2 = Tree.LevelsArr[NumLevel + 1];
             if(!HashArr2)
             {
                 HashArr2 = [];
-                Tree.LevelsHash[NumLevel + 1] = HashArr2;
+                Tree.LevelsArr[NumLevel + 1] = HashArr2;
             }
             var CalcArr2 = Tree.LevelsCalc[NumLevel + 1];
             if(!CalcArr2)
@@ -581,10 +660,17 @@ function UpdateMerklTree0(Tree,NumLevel)
                 CalcArr2[i] = 0;
                 HashArr2[i] = HashArr[LastIndex];
             }
+            if(HashArr2.length !== len2)
+            {
+                Count++;
+                HashArr2.length = len2;
+                CalcArr2.length = len2;
+                CalcArr2[len2 - 1] = 0;
+            }
             if(Count)
             {
                 Tree.RecalcCount += Count;
-                UpdateMerklTree(Tree, NumLevel + 1);
+                UpdateMerklTree0(Tree, NumLevel + 1);
             }
         }
 };

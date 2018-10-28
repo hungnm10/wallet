@@ -395,13 +395,6 @@
         if(Result!==null && Result!=WasSmart)
         {
             var Smart=parseInt(Result);
-
-            var Body=[140];
-            WriteUint(Body,NumAccount);
-            WriteUint32(Body,Smart);
-            for(var i=0;i<10;i++)Body[Body.length]=0;//Reserve
-
-
             var OperationID=0;
             var Item=MapAccounts[NumAccount];
             if(Item)
@@ -410,26 +403,25 @@
             }
             var TR=
                 {
-                    Type:111,
-                    Version:3,
-                    Reserve:0,
-                    FromID:NumAccount,
+                    Type:140,
+                    Account:NumAccount,
+                    Smart:Smart,
+                    FromNum:NumAccount,
+                    Reserve:[],
+                    FromNum:NumAccount,
                     OperationID:OperationID,
-                    To:[{PubKey:[],ID:NumAccount,SumCOIN:0,SumCENT:0}],
-                    Description:"Change smart",
-                    Body:Body,
                     Sign:"",
                 };
 
-            GetData("GetSignTransaction",TR, function (Data)
-            {
-                if(Data && Data.result===1)
-                {
-                    TR.Sign=GetArrFromHex(Data.Sign);
-                    SendMoneyTR(TR);
-                }
-            });
+            var Body=[];
+            WriteByte(Body,TR.Type);
+            WriteUint(Body,TR.Account);
+            WriteUint32(Body,TR.Smart);
+            WriteArr(Body,TR.Reserve,10);
+            WriteUint(Body,TR.FromNum);
+            WriteUint(Body,TR.OperationID);
 
+            SendTrArrayWithSign(Body,TR.Account,TR);
         }
     }
 
@@ -1208,7 +1200,8 @@
         var Select=document.getElementById("idAccount");
         if(arr.length!==Select.options.length)
         {
-            Select.options.length=arr.length;
+            var options=Select.options;
+            options.length=arr.length;
         }
 
         SetGridData(arr,"grid_accounts","idMyTotalSum");
@@ -1936,6 +1929,8 @@
             }
             localStorage["WasStart"]="0";
         }
+
+
     }
     function SetRun()
     {
@@ -2408,6 +2403,7 @@
             Wallet data path: <B id="idDataPath"></B><BR>
             Public key: <B id="idPubKey"></B><BR>
             Node addr: <B id="idNodeAddr"></B>
+            <BR>
 
 
             <INPUT type="button" onclick="NewPrivateKey();" class="btdoit bt" value="New wallet..." id="idDown2">
@@ -2415,6 +2411,7 @@
             <INPUT type="button" onclick="ViewNewAccount();SetImg(this,'edit_create_acc');" class="btdoit bt" value="New account" id="idDown">
             <INPUT type="button" onclick="MiningSets();SetImg(this,'edit_mining_set');" class="btdoit bt" value="Set mining" id="idDown">
             <INPUT type="button" onclick="ViewSetPassword();itemBtPassword=this; SetImg(itemBtPassword,'idBlockPassword');" class="bt btdoit" value="Set password" id="idDown">
+
         </DIV>
 
 
@@ -2532,6 +2529,7 @@
                class="btdoit bt" value="HTTP ACCESS">
         <INPUT type="button" id="idDown" onclick="ViewConstant();SetImg(this,'idConstantView')"
                class="btdoit bt" value="CONSTANTS">
+        <INPUT type="button" onclick="FindMyAccounts();" class="btdoit bt" value="Refresh accounts">
 
 
         <DIV id="idNetworkView" style="display: none">
@@ -2802,7 +2800,7 @@
 
         </script>
 
-        <INPUT type="button" onclick="window.Open('./HTML/dapp-edit.html','smarts',1240)" class="btdoit btopen bt" id="idOpenSmart" value="*New dapp">
+        <INPUT type="button" onclick="window.Open('./HTML/dapp-edit.html','smart',1240)" class="btdoit btopen bt" id="idOpenSmart" value="*New dapp">
 
 
         <BR>
@@ -2911,13 +2909,23 @@
 
             <table id="grid_block_all" class="grid">
                 <tr>
-                    <th id="(RetOpenBlock(Item.BlockNum,Item.TrDataLen))" class="num">Num</th>
+                    <th id="(RetOpenBlock(Item.BlockNum,Item.TrDataLen))" class="hash">Num</th>
                     <th id="(escapeHtml(DateFromBlock(Item.BlockNum)))" class="date">Date</th>
                     <th id="GetHexFromArr(Item.TreeHash)" class="hash">Data Hash</th>
+                    <!--<th id="GetHexFromArr(Item.AddrHash)" class="hash">AddrHash</th>-->
+                    <th id="GetHexFromArr(Item.PowHash)" class="hash">PowHash</th>
                     <th id="GetHexFromArr(Item.Hash)" class="hash">Block Hash</th>
-                    <th id="Item.TrDataLen" class="num">Bytes</th>
-                    <th id="Item.Power" class="num">Pow</th>
-                    <th id="Item.Miner" class="num">Miner</th>
+
+                    <!--<th id="ReadUintFromArr(Item.AddrHash,6)" class="hash">Nonce0</th>-->
+                    <!--<th id="ReadUintFromArr(Item.AddrHash,12)" class="hash">Nonce1</th>-->
+                    <!--<th id="ReadUintFromArr(Item.AddrHash,18)" class="hash">Nonce2</th>-->
+
+                    <th id="Item.TrDataLen" class="hash">Bytes</th>
+                    <th id="Item.Power" class="hash">Pow</th>
+                    <!--<th id="GetPowPower(Item.Hash1)" class="hash">Pow1</th>-->
+                    <!--<th id="GetPowPower(Item.Hash2)" class="hash">Pow2</th>-->
+
+                    <th id="Item.Miner" class="hash">Miner</th>
                 </tr>
             </table>
 

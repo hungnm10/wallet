@@ -65,12 +65,16 @@ module.exports = class CDB extends require("../code")
             return ;
         }
         BlockNum = this.CheckBlocksOnStartReverse(BlockNum)
-        this.BlockNumDB = this.CheckBlocksOnStartFoward(BlockNum - 10000, 0)
+        this.BlockNumDB = this.CheckBlocksOnStartFoward(BlockNum - 2000, 0)
         this.BlockNumDB = this.CheckBlocksOnStartFoward(this.BlockNumDB - 100, 1)
+        var startTime = process.hrtime();
         if(this.BlockNumDB >= BLOCK_PROCESSING_LENGTH2)
         {
             this.TruncateBlockDB(this.BlockNumDB)
         }
+        var Time = process.hrtime(startTime);
+        var deltaTime = (Time[0] * 1000 + Time[1] / 1e6) / 1000;
+        ToLog("**********************Time first read buffer: " + deltaTime + " sec")
         if(this.BlockNumDB > 100)
             this.ReWriteDAppTransactions(100)
         ToLog("START_BLOCK_NUM:" + this.BlockNumDB)
@@ -119,7 +123,6 @@ module.exports = class CDB extends require("../code")
         var BlockNumTime = GetCurrentBlockNumByTime();
         if(BlockNumTime < MaxNum)
             MaxNum = BlockNumTime
-        var arr = [];
         for(var num = StartNum; num <= MaxNum; num++)
         {
             var Block;
@@ -140,19 +143,11 @@ module.exports = class CDB extends require("../code")
             }
             if(PrevBlock)
             {
-                if(arr.length !== BLOCK_PROCESSING_LENGTH)
+                var arr = [];
+                var start = num - BLOCK_PROCESSING_LENGTH2;
+                for(var n = 0; n < BLOCK_PROCESSING_LENGTH; n++)
                 {
-                    var start = num - BLOCK_PROCESSING_LENGTH2;
-                    for(var n = 0; n < BLOCK_PROCESSING_LENGTH; n++)
-                    {
-                        var Prev = this.ReadBlockHeaderDB(start + n);
-                        arr.push(Prev.Hash)
-                    }
-                }
-                else
-                {
-                    arr.shift()
-                    var Prev = this.ReadBlockHeaderDB(num - BLOCK_PROCESSING_LENGTH - 1);
+                    var Prev = this.ReadBlockHeaderDB(start + n);
                     arr.push(Prev.Hash)
                 }
                 var PrevHash = CalcHashFromArray(arr, true);
@@ -626,6 +621,9 @@ module.exports = class CDB extends require("../code")
                 Block.Miner = ReadUintFromArr(Block.AddrHash, 0)
                 if(Block.BlockNum < 16 || Block.Miner > MaxAccount)
                     Block.Miner = 0
+                var Value = GetHashFromSeqAddr(Block.SeqHash, Block.AddrHash, Block.BlockNum, Block.PrevHash);
+                Block.Hash1 = Value.Hash1
+                Block.Hash2 = Value.Hash2
             }
             if(Filter)
             {

@@ -534,9 +534,9 @@ class AccountApp extends require("./dapp")
         else
         {
             if(TR.OperationID < Data.Value.OperationID)
-                return "Error OperationID (expected: " + Data.Value.OperationID + " for ID: " + TR.FromNum + ")";
+                return "Error OperationID (expected: " + Data.Value.OperationID + " for ID: " + TR.FromID + ")";
             if(TR.OperationID > Data.Value.OperationID + 100)
-                return "Error too much OperationID (expected max: " + (Data.Value.OperationID + 100) + " for ID: " + TR.FromNum + ")";
+                return "Error too much OperationID (expected max: " + (Data.Value.OperationID + 100) + " for ID: " + TR.FromID + ")";
         }
         if(BlockNum >= SMART_BLOCKNUM_START)
         {
@@ -837,7 +837,7 @@ class AccountApp extends require("./dapp")
         {
             try
             {
-                F = CreateEval(Filter, "Cur,ID,Operation,Amount,Adviser,Name,PubKey")
+                F = CreateEval(Filter, "Cur,ID,Operation,Amount,Adviser,Name,PubKey,Smart,BlockNum")
             }
             catch(e)
             {
@@ -866,9 +866,10 @@ class AccountApp extends require("./dapp")
                 var Adviser = Data.Adviser;
                 var Name = Data.Name;
                 var PubKey = GetHexFromArr(Data.PubKey);
+                var Smart = Data.Value.Smart;
                 try
                 {
-                    if(!F(Cur, ID, Operation, Amount, Adviser, Name, PubKey))
+                    if(!F(Cur, ID, Operation, Amount, Adviser, Name, PubKey, Smart, Data.BlockNumCreate))
                         continue;
                 }
                 catch(e)

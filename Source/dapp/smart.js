@@ -43,6 +43,9 @@ global.FORMAT_SMART_CHANGE = "{\
     Account:uint,\
     Smart:uint32,\
     Reserve:arr10,\
+    FromNum:uint,\
+    OperationID:uint,\
+    Sign:arr64,\
     }";
 const WorkStructChange = {};
 global.FORMAT_SMART_RUN = "{\
@@ -239,7 +242,63 @@ class SmartApp extends require("./dapp")
         this.DBSmart.Write(Smart)
         return true;
     }
+    CheckSignFrom(Body, TR, TrNum)
+    {
+        var ContextFrom = {FromID:TR.FromNum};
+        var AccountFrom = DApps.Accounts.ReadStateTR(TR.FromNum);
+        if(!AccountFrom)
+            return "Error account FromNum: " + TR.FromNum;
+        if(TR.OperationID < AccountFrom.Value.OperationID)
+            return "Error OperationID (expected: " + AccountFrom.Value.OperationID + " for ID: " + TR.FromNum + ")";
+        if(TR.OperationID > AccountFrom.Value.OperationID + 100)
+            return "Error too much OperationID (expected max: " + (AccountFrom.Value.OperationID + 100) + " for ID: " + TR.FromNum + ")";
+        var hash = shabuf(Body.slice(0, Body.length - 64 - 12));
+        var Result = 0;
+        if(AccountFrom.PubKey[0] === 2 || AccountFrom.PubKey[0] === 3)
+            try
+            {
+                Result = secp256k1.verify(hash, TR.Sign, AccountFrom.PubKey)
+            }
+            catch(e)
+            {
+            }
+        if(!Result)
+        {
+            return "Error sign transaction";
+        }
+        AccountFrom.Value.OperationID = TR.OperationID
+        DApps.Accounts.WriteStateTR(AccountFrom, TrNum)
+        return ContextFrom;
+    }
     TRRunSmart(Block, Body, BlockNum, TrNum, ContextFrom)
+    {
+        if(Body.length < 100)
+            return "Error length transaction (min size)";
+        if(BlockNum < SMART_BLOCKNUM_START)
+            return "Error block num";
+        var TR = BufLib.GetObjectFromBuffer(Body, FORMAT_SMART_RUN, WorkStructRun);
+        var Account = DApps.Accounts.ReadStateTR(TR.Account);
+        if(!Account)
+            return "RunSmart: Error account Num: " + TR.Account;
+        if(!ContextFrom && TR.FromNum)
+        {
+            var ResultCheck = this.CheckSignFrom(Body, TR, TrNum);
+            if(typeof ResultCheck === "string")
+                return ResultCheck;
+            ContextFrom = ResultCheck
+        }
+        try
+        {
+            var Params = JSON.parse(TR.Params);
+            RunSmartMethod(Block, Account.Value.Smart, Account, BlockNum, TrNum, ContextFrom, TR.MethodName, Params, 1)
+        }
+        catch(e)
+        {
+            return e;
+        }
+        return true;
+    }
+    TRRunSmart0(Block, Body, BlockNum, TrNum, ContextFrom)
     {
         if(Body.length < 100)
             return "Error length transaction (min size)";
@@ -289,13 +348,18 @@ class SmartApp extends require("./dapp")
     }
     TRChangeSmart(Block, Body, BlockNum, TrNum, ContextFrom)
     {
-        if(!ContextFrom)
-            return "Pay context required";
         if(Body.length < 21)
             return "Error length transaction (min size)";
         if(BlockNum < SMART_BLOCKNUM_START)
             return "Error block num";
         var TR = BufLib.GetObjectFromBuffer(Body, FORMAT_SMART_CHANGE, WorkStructChange);
+        if(!ContextFrom && TR.FromNum)
+        {
+            var ResultCheck = this.CheckSignFrom(Body, TR, TrNum);
+            if(typeof ResultCheck === "string")
+                return ResultCheck;
+            ContextFrom = ResultCheck
+        }
         if(TR.Smart > DApps.Smart.GetMaxNum())
             TR.Smart = 0
         if(ContextFrom.FromID !== TR.Account)

@@ -68,10 +68,10 @@ module.exports = class CBlock extends require("./db/block-db")
         if(Num < 0)
             return undefined;
         var Block = {BlockNum:Num, TreeHash:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0], AddrHash:DEVELOP_PUB_KEY0, Hash:this.GetHashGenesis(Num), PrevHash:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], SeqHash:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], SumHash:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0], Comment1:"GENESIS", Comment2:"", TrCount:0, TrDataPos:0, TrDataLen:0, };
+            0, 0, 0], AddrHash:DEVELOP_PUB_KEY0, Hash:this.GetHashGenesis(Num), PowHash:this.GetHashGenesis(Num), PrevHash:[0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], SeqHash:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], SumHash:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], Comment1:"GENESIS", Comment2:"", TrCount:0, TrDataPos:0, TrDataLen:0, };
         Block.SeqHash = this.GetSeqHash(Block.BlockNum, Block.PrevHash, Block.TreeHash)
         Block.SumPow = 0
         Block.bSave = true
@@ -146,8 +146,15 @@ module.exports = class CBlock extends require("./db/block-db")
         this.RelayMode = true
         this.LoadHistoryMode = true
         this.LoadHistoryContext = {Node:Node, BlockNum:this.BlockNumDB, MapSend:{}, Foward:1, Pause:0, DeltaBlockNum:10}
-        ToLog("LOADHISTORYMODE ON")
-        ToLogClient("Start synchronization")
+        if(!this.ActualNodes.size)
+        {
+            ToLog("There is no connections to other nodes")
+            return ;
+        }
+        else
+        {
+            ToLog("Start synchronization")
+        }
     }
     StartLoadBlockHeader(LoadHash, Num, StrInfo, bIsSum)
     {
@@ -182,6 +189,8 @@ module.exports = class CBlock extends require("./db/block-db")
     }
     LoopHistoryLoad()
     {
+        if(!this.ActualNodes.size)
+            return ;
         var Context = this.LoadHistoryContext;
         if(Context.PrevBlockNum === Context.BlockNum)
         {
@@ -211,8 +220,7 @@ module.exports = class CBlock extends require("./db/block-db")
         if(!BlockDB || this.BlockNumDB >= GetCurrentBlockNumByTime() - BLOCK_PROCESSING_LENGTH - 2)
         {
             this.LoadHistoryMode = false
-            ToLogClient("Finish synchronization")
-            ToLog("LOADHISTORYMODE OFF")
+            ToLog("Finish synchronization")
             if(!BlockDB)
                 return ;
         }
@@ -1426,37 +1434,6 @@ module.exports = class CBlock extends require("./db/block-db")
         ToLog("Comment:" + Block.Comment1 + "   " + Block.Comment2)
         console.trace()
         process.exit()
-    }
-    CheckOnTimer()
-    {
-        var StartNum = GetCurrentBlockNumByTime() - BLOCK_PROCESSING_LENGTH;
-        for(var n = 16; n >= 0; n--)
-        {
-            var num = StartNum - n;
-            var CurBlockDB2 = this.ReadBlockHeaderDB(num);
-            var BlockMem = this.BlockChain[num];
-            var bWasDB = true;
-            if(!CurBlockDB2)
-            {
-                CurBlockDB2 = BlockMem
-                bWasDB = false
-            }
-            if(!CurBlockDB2 || !CurBlockDB2.bSave)
-                break;
-            var testSeqHash0 = this.GetSeqHash(CurBlockDB2.BlockNum, CurBlockDB2.PrevHash, CurBlockDB2.TreeHash);
-            if(CompareArr(testSeqHash0, CurBlockDB2.SeqHash) !== 0)
-            {
-                if(BlockMem)
-                    BlockMem.Comment2 = "NO"
-                var Str = ("" + n + " DB=" + bWasDB + "  +++++++++++++++++++++++++++++++ERROR SeqHash - num=" + num + "  test=" + GetHexFromArr(testSeqHash0));
-                ToLogBlock(CurBlockDB2, Str)
-            }
-            else
-            {
-                if(BlockMem)
-                    BlockMem.Comment2 = "OK"
-            }
-        }
     }
     GetBlock(num, bToMem, bReadBody)
     {

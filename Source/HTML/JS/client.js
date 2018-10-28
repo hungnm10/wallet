@@ -13,6 +13,11 @@ function $(id)
 {
     return document.getElementById(id);
 };
+
+function TesNW()
+{
+    window.location.assign('http://localhost:8000/');
+};
 if(window.nw)
 {
     window.Open = function (path,iconname,width,height)
@@ -1209,17 +1214,7 @@ function SendCallMethod(Account,MethodName,Params,FromNum,FromSmartNum)
             MapSendID[FromNum].Date = (new Date()) - 0;
             WriteUint(Body, OperationID);
             Body.length += 10;
-            var StrHex = GetHexFromArr(Body);
-            GetData("GetSignFromHEX", {Hex:StrHex, Account:Account}, function (Data)
-            {
-                if(Data && Data.result)
-                {
-                    var Arr = GetArrFromHex(Data.Sign);
-                    WriteArr(Body, Arr, 64);
-                    Body.length += 12;
-                    SendTransaction(Body, TR);
-                }
-            });
+            SendTrArrayWithSign(Body, Account, TR);
         });
     }
     else
@@ -1230,6 +1225,21 @@ function SendCallMethod(Account,MethodName,Params,FromNum,FromSmartNum)
         Body.length += 12;
         SendTransaction(Body, TR);
     }
+};
+
+function SendTrArrayWithSign(Body,Account,TR)
+{
+    var StrHex = GetHexFromArr(Body);
+    GetData("GetSignFromHEX", {Hex:StrHex, Account:Account}, function (Data)
+    {
+        if(Data && Data.result)
+        {
+            var Arr = GetArrFromHex(Data.Sign);
+            WriteArr(Body, Arr, 64);
+            Body.length += 12;
+            SendTransaction(Body, TR);
+        }
+    });
 };
 
 function GetTrCreateAcc(Currency,PubKey,Description,Adviser,Smart)

@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 667;
+global.UPDATE_CODE_VERSION_NUM = 676;
 global.MIN_CODE_VERSION_NUM = 664;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
@@ -19,6 +19,7 @@ global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY"
 global.DEBUG_WALLET = 0;
 global.AUTO_COORECT_TIME = 1;
 global.DELTA_CURRENT_TIME = 0;
+global.BLOCKNUM_HASH_NEW = 10195000;
 global.NODES_NAME = "";
 global.COMMON_KEY = "";
 global.SERVER_PRIVATE_KEY_HEX = undefined;
@@ -110,7 +111,8 @@ else
         var Num = (new Date) - 0 - 50 * 1000;
         console.log("CURRENT NUM: " + (Math.trunc(Num / 1000) * 1000));
         global.SMART_BLOCKNUM_START = 0;
-        global.START_NETWORK_DATE = 1540245284000;
+        global.START_NETWORK_DATE = 1540718431000;
+        global.BLOCKNUM_HASH_NEW = 1000;
         global.START_MINING = 1000;
         global.REF_PERIOD_MINING = 1000;
         global.MIN_POWER_POW_TR = 8;
@@ -155,6 +157,7 @@ if(global.CODE_PATH === undefined)
     global.CODE_PATH = process.cwd();
 if(global.DEBUG_MODE === undefined)
     global.DEBUG_MODE = 0;
+global.DEBUG_MODE = 0;
 if(typeof window === 'object')
 {
     window.RUN_CLIENT = 0;

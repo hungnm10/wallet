@@ -344,7 +344,7 @@ module.exports = class CTransport extends require("./connect")
         var Key = "" + ip.trim();
         this.BAN_IP[Key] = {TimeTo:(GetCurrentTime(0) - 0) + Period}
         this.DeleteNodeFromActiveByIP(ip)
-        ToLog("ADD TO BAN: " + Key + " " + Str)
+        ToLog("ADD TO BAN:: " + Key + " " + Str)
         ADD_TO_STAT("AddToBanIP")
     }
     OnPacketTCP(Meta)

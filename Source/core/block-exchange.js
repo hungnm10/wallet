@@ -1153,16 +1153,7 @@ module.exports = class CConsensus extends require("./block-loader")
         var Result = CreateHashMinimal(Block, GENERATE_BLOCK_ACCOUNT);
         if(!Result)
         {
-            var AddrArr = GetArrFromValue(GENERATE_BLOCK_ACCOUNT);
-            var MaxHash = shaarrblock2(Block.SeqHash, AddrArr, Block.BlockNum);
-            var Ret = CreateAddrPOW(Block.SeqHash, AddrArr, MaxHash, 0, CountNonce, Block.BlockNum);
-            ADD_HASH_RATE(CountNonce)
-            Block.Hash = Ret.MaxHash
-            Block.PowHash = Ret.MaxHash
-            Block.AddrHash = AddrArr
-            Block.LastNonce = Ret.LastNonce
-            Block.Power = GetPowPower(Block.PowHash)
-            ADD_TO_STAT("MAX:POWER", Block.Power)
+            throw "ERROR CreateHashMinimal!!";
         }
         this.AddToMaxPOW(Block, {SeqHash:Block.SeqHash, AddrHash:Block.AddrHash, PrevHash:Block.PrevHash, TreeHash:Block.TreeHash,
         })
@@ -1170,13 +1161,35 @@ module.exports = class CConsensus extends require("./block-loader")
     MiningProcess(msg)
     {
         var BlockMining = this.MiningBlock;
-        if(BlockMining && BlockMining.Hash && BlockMining.SeqHash && CompareArr(BlockMining.SeqHash, msg.SeqHash) === 0 && CompareArr(BlockMining.PowHash,
-        msg.PowHash) >= 0)
+        if(BlockMining && BlockMining.Hash && BlockMining.SeqHash && CompareArr(BlockMining.SeqHash, msg.SeqHash) === 0)
         {
-            BlockMining.Hash = msg.Hash
-            BlockMining.PowHash = msg.PowHash
-            BlockMining.AddrHash = msg.AddrHash
-            BlockMining.Power = GetPowPower(msg.PowHash)
+            var ValueOld = GetHashFromSeqAddr(BlockMining.SeqHash, BlockMining.AddrHash, BlockMining.BlockNum);
+            var ValueMsg = GetHashFromSeqAddr(msg.SeqHash, msg.AddrHash, BlockMining.BlockNum);
+            var bWas = 0;
+            if(CompareArr(ValueOld.Hash1, ValueMsg.Hash1) > 0)
+            {
+                var Nonce1 = ReadUintFromArr(msg.AddrHash, 12);
+                var DeltaNum1 = ReadUint16FromArr(msg.AddrHash, 24);
+                WriteUintToArrOnPos(BlockMining.AddrHash, Nonce1, 12)
+                WriteUint16ToArrOnPos(BlockMining.AddrHash, DeltaNum1, 24)
+                bWas += 1
+            }
+            if(CompareArr(ValueOld.Hash2, ValueMsg.Hash2) > 0)
+            {
+                var Nonce0 = ReadUintFromArr(msg.AddrHash, 6);
+                var Nonce2 = ReadUintFromArr(msg.AddrHash, 18);
+                var DeltaNum2 = ReadUint16FromArr(msg.AddrHash, 26);
+                WriteUintToArrOnPos(BlockMining.AddrHash, Nonce0, 6)
+                WriteUintToArrOnPos(BlockMining.AddrHash, Nonce2, 18)
+                WriteUint16ToArrOnPos(BlockMining.AddrHash, DeltaNum2, 26)
+                bWas += 2
+            }
+            if(!bWas)
+                return ;
+            var ValueNew = GetHashFromSeqAddr(BlockMining.SeqHash, BlockMining.AddrHash, BlockMining.BlockNum);
+            BlockMining.Hash = ValueNew.Hash
+            BlockMining.PowHash = ValueNew.PowHash
+            BlockMining.Power = GetPowPower(BlockMining.PowHash)
             ADD_TO_STAT("MAX:POWER", BlockMining.Power)
             SERVER.AddToMaxPOW(BlockMining, {SeqHash:BlockMining.SeqHash, AddrHash:BlockMining.AddrHash, PrevHash:BlockMining.PrevHash,
                 TreeHash:BlockMining.TreeHash, })
