@@ -45,7 +45,8 @@ global.FORMAT_POW_TO_SERVER = "{\
         PubKeyType:byte,\
         Sign:arr64,\
         SecretForReconnect:arr20,\
-        Reserve:arr15\
+        GrayConnect:byte,\
+        Reserve:arr14\
     }";
 const WorkStructPacketSend = {};
 const FORMAT_PACKET_SEND_TCP = "{\
@@ -587,10 +588,6 @@ module.exports = class CTransport extends require("./connect")
         {
             ADD_TO_STAT("STOP_METHOD")
             ADD_TO_STAT("STOP_METHOD:" + Name)
-            var StrErr = "STOP_METHOD: " + Name + " from " + NodeName(Node) + "  delta: " + Delta;
-            for(var i = 1; i < ArrTime.length; i++)
-                StrErr += "," + (CurTime - ArrTime[i])
-            ToLog(StrErr + " ms")
             this.AddCheckErrCount(Node, 1)
             return 1;
         }
@@ -842,6 +839,7 @@ module.exports = class CTransport extends require("./connect")
             {
                 Node.NextConnectDelta = 1000
                 Node.WaitConnectFromServer = 0
+                Node.GrayConnect = 0
                 AddNodeInfo(Node, "3. SERVER OK CONNECT  for client node " + SocketInfo(Socket))
                 this.AddNodeToActive(Node)
                 Node.Socket = Socket
@@ -884,6 +882,20 @@ module.exports = class CTransport extends require("./connect")
                 Node.FromPort = Info.FromPort
                 Node.SecretForReconnect = crypto.randomBytes(20)
                 Node.PubKey = Buffer.from([Info.PubKeyType].concat(Info.addrArr))
+                if(Info.GrayConnect)
+                {
+                    Node.NextConnectDelta = 1000
+                    Node.WaitConnectFromServer = 0
+                    Node.GrayConnect = 1
+                    AddNodeInfo(Node, "5. CLIENT OK GRAY CONNECT " + SocketInfo(Socket))
+                    this.AddNodeToActive(Node)
+                    Node.Socket = Socket
+                    SetSocketStatus(Socket, 3)
+                    SetSocketStatus(Socket, 100)
+                    Socket.Node = Node
+                    Socket.write(this.GetBufFromData("POW_CONNECT0", "OK", 2))
+                    return ;
+                }
                 if(!Node.WasAddToReconnect)
                 {
                     Node.WasAddToReconnect = 1
@@ -901,7 +913,7 @@ module.exports = class CTransport extends require("./connect")
     }
     StartServer()
     {
-        if(global.NET_WORK_MODE && !NET_WORK_MODE.UseDirectIP)
+        if(GrayConnect())
         {
             this.CanSend++
             return ;

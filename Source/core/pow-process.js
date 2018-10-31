@@ -45,7 +45,7 @@ PROCESS.on("message", function (e)
 {
     if(LastAlive = new Date - 0, "SetBlock" === e.cmd)
     {
-        var o = 1e7 * (1 + e.Num);
+        var o = 1e6 * (1 + e.Num);
         Block.HashCount && process.send({cmd:"HASHRATE", CountNonce:Block.HashCount, Hash:Block.Hash}), Block.HashCount = 0, (Block = e).Time = new Date - 0,
         Block.LastNonce = o, Block.Period = CONSENSUS_PERIOD_TIME * Block.Percent / 100, 0 < Block.Period && 0 < Block.RunPeriod && (CalcPOWHash(),
         void 0 !== idInterval && clearInterval(idInterval), idInterval = setInterval(CalcPOWHash, Block.RunPeriod));

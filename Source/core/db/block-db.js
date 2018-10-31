@@ -718,6 +718,10 @@ module.exports = class CDB extends require("../code")
         var StartNum = Param.BlockNum;
         if(!Param.Count || Param.Count < 0)
             Param.Count = 1000
+        if(!Param.Miner)
+            Param.Miner = 0
+        if(!Param.Adviser)
+            Param.Adviser = 0
         var Map = {};
         var ArrList = new Array(Param.Count);
         var i = 0;

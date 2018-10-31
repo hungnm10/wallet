@@ -181,7 +181,7 @@ module.exports = class CConnect extends require("./transfer-msg")
     GetPingData(Node)
     {
         var GrayAddres = 0;
-        if(global.NET_WORK_MODE && !NET_WORK_MODE.UseDirectIP)
+        if(GrayConnect())
             GrayAddres = 1
         var BlockNumHash = GetCurrentBlockNumByTime() - BLOCK_PROCESSING_LENGTH2;
         var AccountsHash = DApps.Accounts.GetHashOrUndefined(BlockNumHash);
@@ -282,7 +282,6 @@ module.exports = class CConnect extends require("./transfer-msg")
         Node.LoadHistoryMode = Data.LoadHistoryMode
         Node.LastTime = GetCurrentTime() - 0
         Node.NextConnectDelta = 1000
-        Node.GrayConnect = Data.GrayConnect
         Node.StopGetBlock = Data.StopGetBlock
         if(bCheckPoint)
         {
@@ -586,8 +585,6 @@ module.exports = class CConnect extends require("./transfer-msg")
         var ret = [];
         var Value = {addrStr:this.addrStr, ip:this.ip, port:this.port, LastTime:0, DeltaTime:0, Hot:true, BlockProcessCount:0};
         ret.push(Value)
-        if(global.NET_WORK_MODE && (!NET_WORK_MODE.UseDirectIP))
-            return ret;
         var len = this.NodesArr.length;
         var UseRandom = 0;
         if(len > MAX_NODES_RETURN && !bAll)
@@ -671,7 +668,7 @@ module.exports = class CConnect extends require("./transfer-msg")
     NodesArrSort()
     {
         this.NodesArr.sort(SortNodeBlockProcessCount)
-        if(!this.LoadHistoryMode && (new Date()) - this.StartTime > 120 * 1000)
+        if((GrayConnect() || !this.LoadHistoryMode) && (new Date()) - this.StartTime > 120 * 1000)
         {
             var arr = this.GetDirectNodesArray(true).slice(1);
             SaveParams(GetDataPath("nodes.lst"), arr)
@@ -742,6 +739,8 @@ module.exports = class CConnect extends require("./transfer-msg")
         var ret;
         var Count;
         if(!global.CAN_START)
+            return ;
+        if(Info.Node.GrayConnect || GrayConnect())
             return ;
         var Count = this.GetLevelEnum(Info.Node);
         var bAdd = this.AddLevelConnect(Info.Node);
@@ -1228,18 +1227,20 @@ module.exports = class CConnect extends require("./transfer-msg")
         var ArrTree = this.GetTransferTree();
         this.TransferTree = ArrTree
         var CurTime = (new Date) - 0;
-        for(var Level = 0; Level < ArrTree.length; Level++)
+        if(GrayConnect())
         {
-            var arr = ArrTree[Level];
-            if(!arr)
-                continue;
-            arr.sort(SortNodeBlockProcessCount)
+            if(this.ActualNodes.size > MAX_GRAY_SERVER_COUNT)
+                return ;
+            this.NodesArr.sort(SortNodeBlockProcessCountGray)
             var WasDoConnect = 0;
-            var WasDoHot = 0;
-            var length = Math.min(arr.length, 10);
-            for(var n = 0; n < length; n++)
+            var arr = this.NodesArr;
+            for(var n = 0; arr && n < arr.length; n++)
             {
                 var Node = arr[n];
+                if(!Node)
+                    continue;
+                if(!this.IsCanConnect(Node))
+                    continue;
                 var DeltaTime = CurTime - Node.StartTimeConnect;
                 if(!Node.Active && WasDoConnect < 5 && !Node.WasAddToConnect && DeltaTime >= Node.NextConnectDelta)
                 {
@@ -1248,19 +1249,44 @@ module.exports = class CConnect extends require("./transfer-msg")
                     ArrConnect.push(Node)
                     WasDoConnect++
                 }
-                DeltaTime = CurTime - Node.StartTimeHot
-                if(Node.Active && !Node.Hot && WasDoHot < MIN_CONNECT_CHILD && DeltaTime > Node.NextHotDelta)
-                {
-                    AddNodeInfo(Node, "To hot level")
-                    this.StartAddLevelConnect(Node)
-                    Node.StartTimeHot = CurTime
-                    Node.NextHotDelta = Node.NextHotDelta * 2
-                    WasDoHot++
-                }
-                if(Node.Hot)
-                    WasDoHot++
             }
-            this.CheckDisconnectHot(Level)
+        }
+        else
+        {
+            for(var Level = 0; Level < ArrTree.length; Level++)
+            {
+                var arr = ArrTree[Level];
+                if(!arr)
+                    continue;
+                arr.sort(SortNodeBlockProcessCount)
+                var WasDoConnect = 0;
+                var WasDoHot = 0;
+                var length = Math.min(arr.length, 10);
+                for(var n = 0; n < length; n++)
+                {
+                    var Node = arr[n];
+                    var DeltaTime = CurTime - Node.StartTimeConnect;
+                    if(!Node.Active && WasDoConnect < 5 && !Node.WasAddToConnect && DeltaTime >= Node.NextConnectDelta)
+                    {
+                        AddNodeInfo(Node, "To connect")
+                        Node.WasAddToConnect = 1
+                        ArrConnect.push(Node)
+                        WasDoConnect++
+                    }
+                    DeltaTime = CurTime - Node.StartTimeHot
+                    if(Node.Active && !Node.Hot && WasDoHot < MIN_CONNECT_CHILD && DeltaTime > Node.NextHotDelta && !Node.GrayConnect)
+                    {
+                        AddNodeInfo(Node, "To hot level")
+                        this.StartAddLevelConnect(Node)
+                        Node.StartTimeHot = CurTime
+                        Node.NextHotDelta = Node.NextHotDelta * 2
+                        WasDoHot++
+                    }
+                    if(Node.Hot)
+                        WasDoHot++
+                }
+                this.CheckDisconnectHot(Level)
+            }
         }
     }
     ValueToXOR(StrType, Str)
@@ -1321,6 +1347,17 @@ module.exports = class CConnect extends require("./transfer-msg")
 
 function SortNodeBlockProcessCount(a,b)
 {
+    if(b.BlockProcessCount !== a.BlockProcessCount)
+        return b.BlockProcessCount - a.BlockProcessCount;
+    if(a.DeltaTime !== b.DeltaTime)
+        return a.DeltaTime - b.DeltaTime;
+    return a.id - b.id;
+};
+
+function SortNodeBlockProcessCountGray(a,b)
+{
+    if(a.StartFindList !== b.StartFindList)
+        return a.StartFindList - b.StartFindList;
     if(b.BlockProcessCount !== a.BlockProcessCount)
         return b.BlockProcessCount - a.BlockProcessCount;
     if(a.DeltaTime !== b.DeltaTime)

@@ -69,10 +69,8 @@ setInterval(function run2()
     DoConnectToNodes(ArrConnect, "CONNECT");
 }, 500);
 var StartCheckMining = 0;
-const os = require('os');
-var cpus = os.cpus();
-global.CountMiningCPU = cpus.length - 1;
 global.MiningPaused = 0;
+var ProcessMemorySize = 0;
 global.ArrMiningWrk = [];
 var BlockMining;
 if(global.ADDRLIST_MODE)
@@ -99,7 +97,7 @@ function ClearArrMining()
 
 function RunStopPOWProcess(Mode)
 {
-    if(!global.CountMiningCPU || global.CountMiningCPU <= 0)
+    if(!GetCountMiningCPU() || GetCountMiningCPU() <= 0)
         return ;
     if(!StartCheckMining)
     {
@@ -164,7 +162,7 @@ function RunStopPOWProcess(Mode)
     var PathMiner = GetCodePath("../miner.js");
     if(!fs.existsSync(PathMiner))
         PathMiner = "./core/pow-process.js";
-    if(ArrMiningWrk.length >= CountMiningCPU)
+    if(ArrMiningWrk.length >= GetCountMiningCPU())
         return ;
     var str_arg = "";
     if(global.LOCAL_RUN)
@@ -172,9 +170,28 @@ function RunStopPOWProcess(Mode)
     else
         if(global.TEST_NETWORK)
             str_arg = "TESTRUN";
+    if(GrayConnect())
+    {
+        ToLog("CANNOT START MINER IN NOT DIRECT IP MODE");
+        return ;
+    }
     const child_process = require('child_process');
-    ToLog("START MINER PROCESS COUNT=" + CountMiningCPU);
-    for(var R = 0; R < CountMiningCPU; R++)
+    var Memory;
+    if(global.SIZE_MINING_MEMORY)
+        Memory = global.SIZE_MINING_MEMORY;
+    else
+    {
+        const os = require('os');
+        Memory = os.freemem() - 512 * 1024 * 1014;
+        if(Memory < 512 * 1024 * 1014)
+        {
+            ToLog("Not enough memory to start processes.");
+            return ;
+        }
+    }
+    ProcessMemorySize = Math.trunc(Memory / GetCountMiningCPU());
+    ToLog("START MINER PROCESS COUNT: " + GetCountMiningCPU() + " Memory: " + ProcessMemorySize / 1024 / 1024 + " Mb for eatch process");
+    for(var R = 0; R < GetCountMiningCPU(); R++)
     {
         let Worker = child_process.fork(PathMiner, [str_arg]);
         console.log("Worker pid: " + Worker.pid);
@@ -227,7 +244,7 @@ function SetCalcPOW(Block)
 {
     if(!global.USE_MINING)
         return ;
-    if(ArrMiningWrk.length !== CountMiningCPU)
+    if(ArrMiningWrk.length !== GetCountMiningCPU())
         return ;
     BlockMining = Block;
     for(var i = 0; i < ArrMiningWrk.length; i++)
@@ -237,7 +254,7 @@ function SetCalcPOW(Block)
             continue;
         CurWorker.send({cmd:"SetBlock", Account:GENERATE_BLOCK_ACCOUNT, MinerID:GENERATE_BLOCK_ACCOUNT, BlockNum:Block.BlockNum, SeqHash:Block.SeqHash,
             Hash:Block.Hash, PrevHash:Block.PrevHash, Time:new Date() - 0, Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POWRunCount,
-            Percent:global.POW_MAX_PERCENT, });
+            Percent:global.POW_MAX_PERCENT, CountMiningCPU:GetCountMiningCPU(), ProcessMemorySize:ProcessMemorySize, });
     }
 };
 global.SetCalcPOW = SetCalcPOW;
@@ -245,7 +262,7 @@ global.RunStopPOWProcess = RunStopPOWProcess;
 
 function DoGetNodes()
 {
-    if(!SERVER || SERVER.CanSend < 2)
+    if(!GrayConnect() && (!SERVER || SERVER.CanSend < 2))
         return ;
     if(!SERVER.NodesArrUnSort || !SERVER.NodesArrUnSort.length)
         return ;
@@ -254,11 +271,6 @@ function DoGetNodes()
     if(Num === 0)
         glCurNumFindArr = 0;
     glCurNumFindArr++;
-    if(global.NET_WORK_MODE && !NET_WORK_MODE.UseDirectIP)
-    {
-        if(!Node.StartFindList)
-            return ;
-    }
     if(Node.Delete)
         return ;
     if(SERVER.NodeInBan(Node))
@@ -267,19 +279,13 @@ function DoGetNodes()
         return ;
     if(GetSocketStatus(Node.Socket) === 100)
     {
-        if(global.NET_WORK_MODE && !NET_WORK_MODE.UseDirectIP)
-            return ;
         SERVER.StartGetNodes(Node);
     }
 };
 
 function DoConnectToNodes(Arr,Mode)
 {
-    if(!SERVER || SERVER.CanSend < 2)
-    {
-        return ;
-    }
-    if(global.NET_WORK_MODE && !NET_WORK_MODE.UseDirectIP)
+    if(!GrayConnect() && (!SERVER || SERVER.CanSend < 2))
     {
         return ;
     }

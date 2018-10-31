@@ -624,7 +624,7 @@
             return;
         }
 
-        var StrTo=$("idTo").value;
+        var StrTo=$("idTo").value.trim();
         var bFindAcc=0;
         var ToPubKey="";
         var ToID = ParseNum(StrTo);
@@ -1376,7 +1376,7 @@
         else
             SetVisibleBlock("idMiningParams",0);
 
-        SetStatusMining(" Mining account:<B>"+MiningAccount+"</B>  HashRate:<B>"+(Math.trunc(Data.HashRate*10)/10)+"</B>Mh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
+        SetStatusMining(" Mining on:<B>"+MiningAccount+"</B>  HashRate:<B>"+(Math.trunc(Data.HashRate*10)/10)+"</B>Mh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
         if(CONFIG_DATA.CONSTANTS.USE_MINING && Data.CountRunCPU!==Data.CountMiningCPU)
         {
             $("idUseMining").className="checkbox checkbox_red";
@@ -2344,20 +2344,23 @@
 
     <DIV id="TabAccounts" style="display: block">
         <BR>
-        <DIV style="float: left">
-            <input type="checkbox" class="checkbox" id="idAutoUpdate" onchange = "UseAutoUpdate()"/>
-            <label for="idAutoUpdate">Autoupdate</label>
+        <DIV>
+            <DIV style="float: left">
+                <input type="checkbox" class="checkbox" id="idAutoUpdate" onchange = "UseAutoUpdate()"/>
+                <label for="idAutoUpdate">Autoupdate</label>
+            </DIV>
+            <DIV style="float: left">
+                <input type="checkbox" class="checkbox" id="idUseMining" onchange = "UseMining()"/>
+                <label for="idUseMining">Mining</label>
+            </DIV>
+            <DIV style="float: left;display: none" id="idMiningParams">
+            <DIV style="float: left; color: blue;">CPU use:<input type="number" min=0 max=100 id="idPercentMining" onchange="SetPercentMining()"/>%</DIV>
+            <DIV style="float: left; margin: 2px 0 0 8px;" id="idStatusMining"></DIV>
+            </DIV>
         </DIV>
-        <DIV style="float: left">
-            <input type="checkbox" class="checkbox" id="idUseMining" onchange = "UseMining()"/>
-            <label for="idUseMining">Mining</label>
-        </DIV>
-        <DIV style="float: left;display: none" id="idMiningParams">
-        <DIV style="float: left; color: blue;">CPU use:<input type="number" min=0 max=100 id="idPercentMining" onchange="SetPercentMining()"/>%</DIV>
-        <DIV style="float: left; margin: 2px 0 0 8px;" id="idStatusMining"></DIV>
-        </DIV>
-        <BR><BR>
+        <BR>
         <DIV id="idDevelopService" style="display: none">
+            <BR>
             <INPUT type="button" id="idDown" onclick="SetVisibleBlock('idDevelopServiceView',!IsVisibleBlock('idDevelopServiceView'));SetImg(this,'idDevelopServiceView')"
                    class="btdoit bt" value="DEV SERVICE">
             <DIV id="idDevelopServiceView" style="display: none">
@@ -2397,9 +2400,9 @@
             </DIV>
         </DIV>
 
-        <DIV id="idCurrentBlockNum"></DIV>
+        <DIV id="idCurrentBlockNum" style="float: left"></DIV>
 
-        <DIV id="wallet_config_tab" style="display: none">
+        <DIV id="wallet_config_tab" style="display: none;float: left">
             Wallet data path: <B id="idDataPath"></B><BR>
             Public key: <B id="idPubKey"></B><BR>
             Node addr: <B id="idNodeAddr"></B>
@@ -2921,9 +2924,9 @@
                     <!--<th id="ReadUintFromArr(Item.AddrHash,18)" class="hash">Nonce2</th>-->
 
                     <th id="Item.TrDataLen" class="hash">Bytes</th>
-                    <th id="Item.Power" class="hash">Pow</th>
-                    <!--<th id="GetPowPower(Item.Hash1)" class="hash">Pow1</th>-->
-                    <!--<th id="GetPowPower(Item.Hash2)" class="hash">Pow2</th>-->
+                    <th id="Item.Power" class="num">Pow</th>
+                    <th id="GetPowPower(Item.Hash1)" class="num">Pow1</th>
+                    <th id="GetPowPower(Item.Hash2)" class="num">Pow2</th>
 
                     <th id="Item.Miner" class="hash">Miner</th>
                 </tr>
@@ -3045,7 +3048,7 @@
 
 
 
-    <DIV id="idStableScroll">
+    <DIV id="idStableScroll" align='center'>
         <A href="https://bitcointalk.org/index.php?topic=4573801.0">ANN</A>
         <A href="https://twitter.com/terafoundation">Twitter</A>
         <A href="https://web.telegram.org/#/im?p=@terafoundation">Telegram</A>

@@ -134,7 +134,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var PrevHash = CalcHashFromArray(arr, true);
         return PrevHash;
     }
-    StartLoadHistory(Node)
+    StartLoadHistory(Node, bSilent)
     {
         this.FREE_ALL_MEM_CHAINS()
         if(global.NO_HISTORY_MODE)
@@ -143,8 +143,10 @@ module.exports = class CBlock extends require("./db/block-db")
         }
         if(global.CREATE_ON_START && !LOCAL_RUN)
             return ;
-        this.RelayMode = true
+        if(!GrayConnect())
+            this.RelayMode = true
         this.LoadHistoryMode = true
+        this.LoadHistoryMessage = !bSilent
         this.LoadHistoryContext = {Node:Node, BlockNum:this.BlockNumDB, MapSend:{}, Foward:1, Pause:0, DeltaBlockNum:10}
         if(!this.ActualNodes.size)
         {
@@ -153,7 +155,8 @@ module.exports = class CBlock extends require("./db/block-db")
         }
         else
         {
-            ToLog("Start synchronization")
+            if(this.LoadHistoryMessage)
+                ToLog("Start synchronization")
         }
     }
     StartLoadBlockHeader(LoadHash, Num, StrInfo, bIsSum)
@@ -220,7 +223,8 @@ module.exports = class CBlock extends require("./db/block-db")
         if(!BlockDB || this.BlockNumDB >= GetCurrentBlockNumByTime() - BLOCK_PROCESSING_LENGTH - 2)
         {
             this.LoadHistoryMode = false
-            ToLog("Finish synchronization")
+            if(this.LoadHistoryMessage)
+                ToLog("Finish synchronization")
             if(!BlockDB)
                 return ;
         }
@@ -929,7 +933,8 @@ module.exports = class CBlock extends require("./db/block-db")
             for(var i = 0; i < arr.length; i++)
                 arr[i].AddToLoad = 1
             chain.CurNumArrLoad = 0
-            ToLog("Start blocks load id=" + chain.id + " Count=" + arr.length + " FROM: " + arr[0].BlockNum + " TO " + arr[arr.length - 1].BlockNum)
+            if(this.LoadHistoryMessage)
+                ToLog("Start blocks load id=" + chain.id + " Count=" + arr.length + " FROM: " + arr[0].BlockNum + " TO " + arr[arr.length - 1].BlockNum)
         }
     }
     LoopBlockLoad()
@@ -1032,7 +1037,8 @@ module.exports = class CBlock extends require("./db/block-db")
         if(!arr.length)
             return ;
         var startTime = process.hrtime();
-        ToLog("WRITE DATA Count:" + arr.length + "  " + arr[0].BlockNum + "-" + arr[arr.length - 1].BlockNum)
+        if(this.LoadHistoryMessage)
+            ToLog("WRITE DATA Count:" + arr.length + "  " + arr[0].BlockNum + "-" + arr[arr.length - 1].BlockNum)
         this.MapMining = undefined
         var CurrentBlockNum = GetCurrentBlockNumByTime();
         var Block;
@@ -1334,6 +1340,8 @@ module.exports = class CBlock extends require("./db/block-db")
             Block.Send = undefined
             ADD_TO_STAT("BLOCK_LOADED", 1)
             Info.Node.LoadBlockCount++
+            if(GrayConnect())
+                Info.Node.BlockProcessCount++
         }
     }
     SendCanBlock(Node, Block)

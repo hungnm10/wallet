@@ -188,6 +188,7 @@ module.exports = class CMessages extends require("./transaction-validator")
             var Tr = this.TimePoolTransaction[i];
             if(Tr.num <= this.CurrentBlockNum + 1)
             {
+                this.SendTransaction(Tr)
                 this.TimePoolTransaction.splice(i, 1)
                 var Res = this.AddTrToQuote(this.TreePoolTr, Tr, MAX_TRANSACTION_COUNT);
                 ToLogContext("Add " + TrName(Tr) + " for Block: " + this.CurrentBlockNum + " Res=" + Res)
@@ -196,9 +197,11 @@ module.exports = class CMessages extends require("./transaction-validator")
     }
     SendTransaction(Tr)
     {
-        return ;
+        if(!GrayConnect())
+            return ;
+        this.TreePoolTr.clear()
         var CurTime = GetCurrentTime(0) - 0;
-        var ArrNodes = this.GetHotTimeNodes();
+        var ArrNodes = this.GetActualNodes();
         for(var i = 0; i < ArrNodes.length; i++)
         {
             var Node = ArrNodes[i];

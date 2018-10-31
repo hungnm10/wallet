@@ -394,6 +394,8 @@ module.exports = class CNode
         Info.SendBytes = 0
         Info.SecretForReconnect = []
         Info.Reserv = []
+        if(GrayConnect())
+            Info.GrayConnect = 1
         return Info;
     }
     write(BufWrite)

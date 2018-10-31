@@ -565,7 +565,8 @@
                     if(SetData && SetData.result && SetData.arr.length===1)
                     {
                         var Smart=SetData.arr[0];
-                        SetSmartToDialog(Smart,1);
+                        LoadSmart("/file/"+Smart.BlockNum+"/"+Smart.TrNum);
+                        //SetSmartToDialog(Smart,1);
                     }
                     else
                     {

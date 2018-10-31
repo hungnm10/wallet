@@ -392,7 +392,7 @@ class SmartApp extends require("./dapp")
         if(Filter)
             Filter = Filter.toUpperCase()
         if(Category)
-            Category = parseInt(Category)
+            Category = ParseNum(Category)
         var WasError = 0;
         var arr = [];
         var Data;
@@ -432,6 +432,7 @@ class SmartApp extends require("./dapp")
     }
     ReadSmart(Num)
     {
+        Num = ParseNum(Num)
         var Smart = this.DBSmart.GetMap("ITEM" + Num);
         if(!Smart)
         {
@@ -963,6 +964,7 @@ function DO(Count)
 function $SetValue(ID,CoinSum)
 {
     DO(3000);
+    ID = ParseNum(ID);
     if(!RunContext.Smart.TokenGenerate)
     {
         throw "The smart-contract is not token generate, access to change values is denied";
@@ -997,6 +999,7 @@ function $SetValue(ID,CoinSum)
 function $Send(ToID,CoinSum,Description)
 {
     DO(3000);
+    ToID = ParseNum(ToID);
     if(typeof CoinSum === "number")
         CoinSum = COIN_FROM_FLOAT(CoinSum);
     if(CoinSum.SumCENT >= 1e9)
@@ -1019,6 +1022,8 @@ function $Send(ToID,CoinSum,Description)
 function $Move(FromID,ToID,CoinSum,Description)
 {
     DO(3000);
+    FromID = ParseNum(FromID);
+    ToID = ParseNum(ToID);
     var FromData = DApps.Accounts.ReadStateTR(FromID);
     var ToData = DApps.Accounts.ReadStateTR(ToID);
     if(FromData.Currency !== ToData.Currency)
@@ -1059,6 +1064,7 @@ function $Event(Description)
 function $ReadAccount(ID)
 {
     DO(900);
+    ID = ParseNum(ID);
     var Account = DApps.Accounts.ReadStateTR(ID);
     if(!Account)
         throw "Error read account Num: " + ID;
@@ -1068,6 +1074,7 @@ function $ReadAccount(ID)
 function $ReadState(ID)
 {
     DO(900);
+    ID = ParseNum(ID);
     var Account = DApps.Accounts.ReadStateTR(ID);
     if(!Account)
         throw "Error read state account Num: " + ID;
@@ -1100,6 +1107,7 @@ function $WriteState(Obj,ID)
     DO(3000);
     if(ID === undefined)
         ID = Obj.Num;
+    ID = ParseNum(ID);
     var Account = DApps.Accounts.ReadStateTR(ID);
     if(!Account)
         throw "Error write account Num: " + ID;
@@ -1160,6 +1168,7 @@ function $COIN_FROM_STRING(Sum)
 function $require(SmartNum)
 {
     DO(2000);
+    SmartNum = ParseNum(SmartNum);
     var Smart = DApps.Smart.ReadSmart(SmartNum);
     if(!Smart)
     {
@@ -1225,14 +1234,7 @@ function $parseInt(a)
 function $parseUint(a)
 {
     DO(10);
-    var Num = parseInt(a);
-    if(isNaN(Num))
-        Num = 0;
-    if(!Num)
-        Num = 0;
-    if(Num < 0)
-        Num = 0;
-    return Num;
+    return ParseNum(a);
 };
 
 function $String(a)
@@ -1296,7 +1298,3 @@ DApps["Smart"] = App;
 DAppByType[TYPE_TRANSACTION_SMART_CREATE] = App;
 DAppByType[TYPE_TRANSACTION_SMART_RUN] = App;
 DAppByType[TYPE_TRANSACTION_SMART_CHANGE] = App;
-global.DebugEvent = function (Description)
-{
-    ToLog(Description);
-};

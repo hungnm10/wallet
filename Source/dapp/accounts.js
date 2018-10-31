@@ -837,7 +837,7 @@ class AccountApp extends require("./dapp")
         {
             try
             {
-                F = CreateEval(Filter, "Cur,ID,Operation,Amount,Adviser,Name,PubKey,Smart,BlockNum")
+                F = CreateEval(Filter, "Cur,Currency,ID,Operation,Amount,Adviser,Name,PubKey,Smart,BlockNum")
             }
             catch(e)
             {
@@ -859,7 +859,8 @@ class AccountApp extends require("./dapp")
             Data.Name = NormalizeName(Data.Name)
             if(F)
             {
-                var Cur = 0;
+                var Cur = Data.Currency;
+                var Currency = Data.Currency;
                 var ID = Data.Num;
                 var Operation = Data.Value.OperationID;
                 var Amount = FLOAT_FROM_COIN(Data.Value);
@@ -869,7 +870,7 @@ class AccountApp extends require("./dapp")
                 var Smart = Data.Value.Smart;
                 try
                 {
-                    if(!F(Cur, ID, Operation, Amount, Adviser, Name, PubKey, Smart, Data.BlockNumCreate))
+                    if(!F(Cur, Currency, ID, Operation, Amount, Adviser, Name, PubKey, Smart, Data.BlockNumCreate))
                         continue;
                 }
                 catch(e)
@@ -1024,6 +1025,7 @@ class AccountApp extends require("./dapp")
         var arr = [];
         for(var key in DBChanges.BlockMap)
         {
+            key = ParseNum(key)
             var Data = DBChanges.BlockMap[key];
             if(Data.Changed)
             {
@@ -1064,6 +1066,7 @@ class AccountApp extends require("./dapp")
         DBChanges.BlockMaxAccount = DBChanges.TRMaxAccount
         for(var key in DBChanges.TRMap)
         {
+            key = ParseNum(key)
             var Data = DBChanges.TRMap[key];
             if(Data.Changed)
             {
@@ -1109,6 +1112,7 @@ class AccountApp extends require("./dapp")
     }
     ReadStateTR(Num)
     {
+        Num = ParseNum(Num)
         var TRMap = this.DBChanges.TRMap;
         var Data = TRMap[Num];
         if(!Data)
@@ -1141,6 +1145,8 @@ class AccountApp extends require("./dapp")
     }
     SendMoneyTR(Block, FromID, ToID, CoinSum, BlockNum, TrNum, DescriptionFrom, DescriptionTo, OperationCount)
     {
+        FromID = ParseNum(FromID)
+        ToID = ParseNum(ToID)
         if(CoinSum.SumCENT >= 1e9)
         {
             throw "ERROR SumCENT>=1e9";

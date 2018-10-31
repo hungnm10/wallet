@@ -170,19 +170,6 @@
         var SMART={},BASE_ACCOUNT={};
         window.onload=function()
         {
-            setInterval(function ()
-            {
-                GetData("DappWalletList",{Smart:glSmart}, function (SetData)
-                {
-                    if(SetData && SetData.result)
-                    {
-                        //$("idInstall").innerHTML='For install this application press:<button onclick="InstallApp()">Install</button>';
-                        if(SetData.arr.length===0)
-                            SetStatus('<DIV style="background-color: peachpuff;">For install this application goto CONFIG tab, select your account, press "Set" and enter smart number: <B>'+SMART.Num+'</B><DIV>');
-                    }
-                });
-            },2000);
-
             GetData("DappInfo",{Smart:glSmart}, function (SetData)
             {
                 if(SetData.Err)
@@ -277,6 +264,27 @@
         setInterval(LoopInfo,1000);
 
 
+
+        var WasCheckInstall=0;
+        function CheckInstall()
+        {
+            if(WasCheckInstall)
+                return;
+            WasCheckInstall=1;
+            setInterval(function ()
+            {
+                GetData("DappWalletList",{Smart:glSmart}, function (SetData)
+                {
+                    if(SetData && SetData.result)
+                    {
+                        //$("idInstall").innerHTML='For install this application press:<button onclick="InstallApp()">Install</button>';
+                        if(SetData.arr.length===0)
+                            SetStatus('<DIV style="background-color: peachpuff;">For install this application goto CONFIG tab, select your account, press "Set" and enter smart number: <B>'+SMART.Num+'</B><DIV>');
+                    }
+                });
+            },2000);
+        }
+
         //LIB
         function SetArrLog(arr)
         {
@@ -331,6 +339,6 @@
     var glDebugPath="";
 //    glDebugPath="./dapp-smart/forum.html";
 //    glDebugPath="./dapp-smart/DEX.html";
-    //{"HTMLBlock":10041198,"HTMLTr":0}
+    //{"HTMLBlock":10376751,"HTMLTr":1}
 </script>
 

@@ -19,7 +19,6 @@ if(global.LOCAL_RUN || global.TEST_NETWORK)
 }
 require('./library.js');
 require('./crypto-library.js');
-const os = require('os');
 
 function GetHashFromSeqAddr(SeqHash,AddrHash,BlockNum,PrevHash)
 {
@@ -144,203 +143,41 @@ function CreateHashMinimal(Block,MinerID)
     WriteUint32ToArrOnPos(Block.AddrHash, PrevHashNum, 28);
     return true;
 };
-var MAX_MEMORY = 0;
-var NonceArr2, BlockNumArr2;
-var bWasInitVer2;
-
-function InitVer2()
-{
-    bWasInitVer2 = 1;
-    var cpus = os.cpus();
-    var Memory = os.freemem();
-    var CountMiningCPU = cpus.length - 1;
-    if(Memory > 1000 * 1000000 && CountMiningCPU > 0)
-    {
-        Memory -= 500 * 1000000;
-        MAX_MEMORY = Math.min(Math.trunc(Memory / 40 / CountMiningCPU), 2000000000 / 32);
-        try
-        {
-            NonceArr2 = new Uint8Array(MAX_MEMORY * 32);
-            BlockNumArr2 = new Uint32Array(MAX_MEMORY);
-        }
-        catch(e)
-        {
-            NonceArr2 = undefined;
-            BlockNumArr2 = undefined;
-            MAX_MEMORY = 0;
-            return ;
-        }
-    }
-};
-var HashNonceConst = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
-function CreatePOWVersion2(Block)
-{
-    if(!bWasInitVer2)
-        InitVer2();
-    if(!MAX_MEMORY)
-        return false;
-    if(!BlockNumArr2)
-        return false;
-    if(!Block.LastNonce)
-        Block.LastNonce = 0;
-    if(!Block.HashCount)
-        Block.HashCount = 0;
-    if(!Block.MaxLider)
-    {
-        Block.HashCount = 0;
-        Block.DeltaNonce = Block.LastNonce;
-        Block.StartRunCount = Block.RunCount;
-        Block.MaxLider = {Nonce1:0, Nonce2:0, DeltaNum1:0, DeltaNum2:0, Hash1:[255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255], Hash2:[255, 255,
-            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-            255, 255, 255, 255, 255], };
-    }
-    else
-    {
-        if(!Block.WasCreateHash)
-        {
-            Block.RunCount = Math.trunc(Block.RunCount * 1.1);
-        }
-        else
-        {
-            Block.RunCount = Block.StartRunCount;
-        }
-    }
-    var MaxNum = Block.LastNonce - Block.DeltaNonce + Block.RunCount;
-    Block.RunCount = Math.min(Block.RunCount, MAX_MEMORY - (Block.LastNonce - Block.DeltaNonce));
-    var MaxLider = Block.MaxLider;
-    var BlockNum = Block.BlockNum;
-    var Miner = Block.MinerID;
-    var PrevHashNum = ReadUint32FromArr(Block.PrevHash, 28);
-    var HashBase = GetHashFromNum2(BlockNum, PrevHashNum);
-    var HashCurrent = GetHashFromArrNum2(Block.SeqHash, Miner, 0);
-    var Base0 = HashBase[0];
-    var Current0 = HashCurrent[0];
-    var bWasCreateHash = 0;
-    var StartRunCount = Block.StartRunCount;
-    var RunCount = Block.RunCount;
-    var LastNonce = Block.LastNonce;
-    var DeltaNonce = Block.DeltaNonce;
-    for(var nonce = 0; nonce < RunCount; nonce++)
-    {
-        var Nonce = LastNonce + nonce;
-        var HashNonce, DeltaNum, bCreate = 1;
-        var Num = Nonce - DeltaNonce;
-        if(BlockNumArr2[Num])
-        {
-            DeltaNum = BlockNum - BlockNumArr2[Num];
-            if(DeltaNum < DELTA_LONG_MINING)
-            {
-                var Num32 = Num * 32;
-                var Nonce0 = NonceArr2[Num32];
-                if((Base0 !== Nonce0) && (Current0 !== Nonce0))
-                    continue;
-                for(var i = 0; i < 32; i++)
-                    HashNonceConst[i] = NonceArr2[Num32 + i];
-                HashNonce = HashNonceConst;
-                bCreate = 0;
-            }
-            else
-            {
-                bCreate = 2;
-            }
-        }
-        if(bCreate)
-        {
-            bWasCreateHash = 1;
-            if(RunCount !== StartRunCount)
-                RunCount = Block.StartRunCount;
-            DeltaNum = 0;
-            HashNonce = GetHashFromNum3(BlockNum, Miner, Nonce);
-            var Num32 = Num * 32;
-            for(var i = 0; i < 32; i++)
-                NonceArr2[Num32 + i] = HashNonce[i];
-            BlockNumArr2[Num] = BlockNum;
-        }
-        if(Base0 ^ HashNonce[0] === 0)
-        {
-            var Hash1 = XORArr(HashBase, HashNonce);
-            if(CompareArr(MaxLider.Hash1, Hash1) > 0)
-            {
-                MaxLider.Hash1 = Hash1;
-                MaxLider.Nonce1 = Nonce;
-                MaxLider.DeltaNum1 = DeltaNum;
-            }
-        }
-        if(Current0 ^ HashNonce[0] === 0)
-        {
-            var Hash2 = XORArr(HashCurrent, HashNonce);
-            if(CompareArr(MaxLider.Hash2, Hash2) > 0)
-            {
-                MaxLider.Hash2 = Hash2;
-                MaxLider.Nonce2 = Nonce;
-                MaxLider.DeltaNum2 = DeltaNum;
-            }
-        }
-    }
-    Block.LastNonce += nonce;
-    Block.HashCount += nonce;
-    Block.WasCreateHash = bWasCreateHash;
-    Block.AddrHash = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    WriteUintToArrOnPos(Block.AddrHash, Miner, 0);
-    WriteUintToArrOnPos(Block.AddrHash, MaxLider.Nonce1, 12);
-    WriteUintToArrOnPos(Block.AddrHash, MaxLider.Nonce2, 18);
-    WriteUint16ToArrOnPos(Block.AddrHash, MaxLider.DeltaNum1, 24);
-    WriteUint16ToArrOnPos(Block.AddrHash, MaxLider.DeltaNum2, 26);
-    WriteUint32ToArrOnPos(Block.AddrHash, PrevHashNum, 28);
-    Block.Hash = MaxLider.Hash2;
-    if(CompareArr(MaxLider.Hash1, MaxLider.Hash2) > 0)
-    {
-        Block.PowHash = MaxLider.Hash1;
-    }
-    else
-    {
-        Block.PowHash = MaxLider.Hash2;
-    }
-    if(BlockNum >= global.BLOCKNUM_HASH_NEW)
-    {
-        Block.Hash = shaarr2(MaxLider.Hash1, MaxLider.Hash2);
-    }
-    return true;
-};
 var MAX_MEMORY3 = 0, SHIFT_MASKA3;
 var BufferNonce3, BufferBlockNum3;
 var bWasInitVer3;
 
-function InitVer3()
+function InitVer3(Block)
 {
     bWasInitVer3 = 1;
-    var cpus = os.cpus();
-    var Memory = os.freemem();
-    var CountMiningCPU = cpus.length - 1;
-    if(Memory > 1000 * 1000000 && CountMiningCPU > 0)
+    if(Block.ProcessMemorySize > 0)
     {
-        Memory -= 500 * 1000000;
         var MAXARRAYSIZE = (1 << 30) * 2 - 1;
-        var MaxArrCount = Math.min(Math.trunc(Memory / CountMiningCPU / 8), MAXARRAYSIZE);
-        MaxArrCount = MaxArrCount >>> 16;
+        var MaxArrCount = Math.min(Math.trunc(Block.ProcessMemorySize / 8), MAXARRAYSIZE);
         var BitCount = 0;
+        MAX_MEMORY3 = 1;
         for(var b = 0; b < 32; b++)
         {
-            if(MaxArrCount >= (1 << (b)))
-                BitCount = b;
-            else
+            if(MAX_MEMORY3 > MaxArrCount)
+            {
+                BitCount--;
+                MAX_MEMORY3 = MAX_MEMORY3 / 2;
                 break;
+            }
+            BitCount++;
+            MAX_MEMORY3 = MAX_MEMORY3 * 2;
         }
         SHIFT_MASKA3 = 32 - BitCount;
-        MAX_MEMORY3 = 1 << BitCount;
-        MAX_MEMORY3 *= 1 << 16;
-        MaxArrCount *= 1 << 16;
         BufferNonce3 = new Uint32Array(MAX_MEMORY3);
         BufferBlockNum3 = new Uint32Array(MAX_MEMORY3);
+        ToLog("MAX HASH ITEMS=" + Math.trunc(MAX_MEMORY3 / 1024 / 1024) + " M");
     }
 };
 
 function CreatePOWVersion3(Block)
 {
     if(!bWasInitVer3)
-        InitVer3();
+        InitVer3(Block);
     if(!MAX_MEMORY3)
         return 0;
     if(!Block.LastNonce)
@@ -360,12 +197,11 @@ function CreatePOWVersion3(Block)
     var LastNonce = Block.LastNonce;
     var BlockNum = Block.BlockNum;
     var Miner = Block.MinerID;
-    RunCount = 2000;
     for(var nonce = 0; nonce < RunCount; nonce++)
     {
-        var Nonce = LastNonce + nonce;
+        var Nonce = Math.trunc(4000000000 * Math.random());
         var HashNonce = GetHashFromNum3(BlockNum, Miner, Nonce);
-        var HashNum = ReadIndexromArr3(HashNonce, 0);
+        var HashNum = ReadIndexFromArr(HashNonce);
         var Index = HashNum;
         BufferNonce3[Index] = Nonce;
         BufferBlockNum3[Index] = BlockNum;
@@ -386,7 +222,8 @@ function CreatePOWVersion3(Block)
             Ret = 1;
         }
     }
-    for(var Nonce0 = START_NONCE; Nonce0 < START_NONCE + COUNT_FIND_A; Nonce0++)
+    var CountEnd = START_NONCE + RunCount;
+    for(var Nonce0 = START_NONCE; Nonce0 < CountEnd; Nonce0++)
     {
         var HashCurrent = GetHashFromArrNum2(Block.SeqHash, Miner, Nonce0);
         var Value2 = FindHashBuffer3(HashCurrent, BlockNum, Miner, 1);
@@ -434,7 +271,7 @@ function CreatePOWVersion3(Block)
 
 function FindHashBuffer3(HashFind,BlockNum,Miner,CountFind)
 {
-    var HashNum = ReadIndexromArr3(HashFind, 0);
+    var HashNum = ReadIndexFromArr(HashFind);
     for(var i = 0; i < CountFind; i++)
     {
         var Index = HashNum ^ i;
@@ -449,7 +286,7 @@ function FindHashBuffer3(HashFind,BlockNum,Miner,CountFind)
     return undefined;
 };
 
-function ReadIndexromArr3(arr)
+function ReadIndexFromArr(arr)
 {
     var value = (arr[0] << 23) * 2 + (arr[1] << 16) + (arr[2] << 8) + arr[3];
     value = value >>> SHIFT_MASKA3;

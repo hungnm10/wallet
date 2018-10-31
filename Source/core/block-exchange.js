@@ -973,10 +973,16 @@ module.exports = class CConsensus extends require("./block-loader")
         if(!CAN_START)
             return ;
         this.MiningBlock = undefined
-        if(this.LoadHistoryMode)
-            return ;
         this.StartConsensus()
         var CURRENTBLOCKNUM = this.CurrentBlockNum;
+        if(GrayConnect())
+        {
+            if(!this.LoadHistoryMode)
+                this.StartLoadHistory(undefined, 1)
+            return ;
+        }
+        if(this.LoadHistoryMode)
+            return ;
         var bWasSave = false;
         var LoadBlockNum;
         var LoadHash;
