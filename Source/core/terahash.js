@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-const START_NONCE = 0;
+var START_NONCE = 0;
 const COUNT_FIND_A = 1000;
 const COUNT_FIND_B = 64;
 const DELTA_LONG_MINING = 5000;
@@ -184,6 +184,8 @@ function CreatePOWVersion3(Block)
         Block.LastNonce = 0;
     if(!Block.HashCount)
         Block.HashCount = 0;
+    if(!Block.LastNonce0)
+        Block.LastNonce0 = 0;
     if(!Block.MaxLider)
     {
         Block.HashCount = 0;
@@ -222,6 +224,8 @@ function CreatePOWVersion3(Block)
             Ret = 1;
         }
     }
+    START_NONCE = Block.LastNonce0;
+    Block.LastNonce0 += RunCount;
     var CountEnd = START_NONCE + RunCount;
     for(var Nonce0 = START_NONCE; Nonce0 < CountEnd; Nonce0++)
     {

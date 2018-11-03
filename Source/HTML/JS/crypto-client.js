@@ -85,7 +85,7 @@ window.TYPE_TRANSACTION_CREATE = 100, window.MIN_POWER_POW_TR = 0, window.SetBlo
     {
         var r = new Date -  - DELTA_CURRENT_TIME2 - FIRST_TIME_BLOCK - CONSENSUS_PERIOD_TIME / 2;
         return Math.floor((r + CONSENSUS_PERIOD_TIME) / CONSENSUS_PERIOD_TIME);
-    };
+    }, window.NWMODE = r.NWMODE;
 }, window.GetCurrentBlockNumByTime = function ()
 {
     return 0;

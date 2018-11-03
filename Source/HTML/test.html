@@ -1,79 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" manifest="cache.manifest">
 <head>
     <meta charset="UTF-8">
+    <title>=TEST=</title>
 
-    <script type="text/javascript" src="../HTML/JS/client.js"></script>
 
+    <script>
+        if ('serviceWorker' in navigator) {
+            // Весь код регистрации у нас асинхронный.
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => navigator.serviceWorker.ready.then((worker) => {
+                    worker.sync.register('syncdata');
+                }))
+                .catch((err) => console.log(err));
+        }
+//        var caches = window.applicationCache;
+//        var response;
+//        var cachedResponse = caches.match(event.request).catch(function() {
+//            return fetch(event.request);
+//        }).then(function(r) {
+//            response = r;
+//            caches.open('v1').then(function(cache) {
+//                cache.put(event.request, response);
+//            });
+//            return response.clone();
+//        }).catch(function() {
+//            return caches.match('/wallet.png');
+//        });
+
+    </script>
 </head>
 <body>
-<img src="/HTML/PIC/wallet.png">
-<BR>
-
-
-
-TEST !!
-<INPUT type="button" onclick="RunTest()"  class="" value="Run">
-
-<script>
-    function $(id)
-    {
-        return document.getElementById(id);
-    }
-    function RunTest()
-    {
-          SendMessage("Test!!");
-    }
-    function SetStatus(Str)
-    {
-        var id = $("idStatus");
-        id.innerHTML=Str;
-    }
-
-    //Messages
-    var glSecret;
-    function SendMessage(Str)
-    {
-        var win = window.parent;
-
-        var Data=
-            {
-                Secret:glSecret,
-                Message:Str,
-            };
-        win.postMessage(Data, "*");
-
-    }
-    function listener(event)
-    {
-        var Data=event.data;
-        if(!Data || typeof Data!=="object")
-            return;
-        var StrFrom=window.location.protocol+"//"+window.location.host;
-        if (event.origin !== StrFrom)
-        {
-            SetStatus( "Err origin: " + event.origin);
-            return;
-        }
-
-        glSecret=Data.Secret;
-
-        //SetStatus( "получено: " + JSON.stringify(event.data));
-        SetStatus( "Получено: " + Data.Message);
-    }
-
-    if (window.addEventListener)
-    {
-        window.addEventListener("message", listener);
-    } else
-    {
-        // IE8
-        window.attachEvent("onmessage", listener);
-    }
-</script>
-
-<BR>
-<DIV id="idStatus"></DIV>
 
 </body>
 </html>

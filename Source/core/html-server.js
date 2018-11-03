@@ -419,7 +419,7 @@ HTTPCaller.GetWalletInfo = function ()
         NodeAddrStr:SERVER.addrStr, STAT_MODE:global.STAT_MODE, HTTPPort:global.HTTP_PORT_NUMBER, HTTPPassword:HTTP_PORT_PASSWORD,
         CONSTANTS:Constants, CheckPointBlockNum:CHECK_POINT.BlockNum, MiningAccount:global.GENERATE_BLOCK_ACCOUNT, CountMiningCPU:GetCountMiningCPU(),
         CountRunCPU:global.ArrMiningWrk.length, MiningPaused:global.MiningPaused, HashRate:HashRateOneSec, MIN_POWER_POW_TR:MIN_POWER_POW_TR,
-        PRICE_DAO:PRICE_DAO(SERVER.BlockNumDB), };
+        PRICE_DAO:PRICE_DAO(SERVER.BlockNumDB), NWMODE:global.NWMODE, };
     Ret.PrivateKey = WALLET.KeyPair.PrivKeyStr;
     Ret.PublicKey = WALLET.KeyPair.PubKeyStr;
     return Ret;
@@ -1110,21 +1110,6 @@ var MapFileHTML5 = {};
 function SendFileHTML(response,name,StrCookie)
 {
     let type = name.substr(name.length - 3, 3);
-    if(type === "tml")
-    {
-        if(MapFileHTML5[name] === undefined)
-        {
-            var name5 = name.replace("/HTML/", "/HTML5/");
-            if(fs.existsSync("./" + name5))
-                MapFileHTML5[name] = name5;
-            else
-                MapFileHTML5[name] = 0;
-        }
-        if(MapFileHTML5[name])
-        {
-            name = MapFileHTML5[name];
-        }
-    }
     fs.readFile("./" + name, function read(err,data)
     {
         if(err)
@@ -1221,6 +1206,8 @@ if(global.HTTP_PORT_NUMBER)
         if(!request.socket || !request.socket.remoteAddress)
             return ;
         var remoteAddress = request.socket.remoteAddress;
+        if(remoteAddress === "::1")
+            remoteAddress = "127.0.0.1";
         if(!global.HTTP_PORT_PASSWORD && remoteAddress.indexOf("127.0.0.1") < 0)
             return ;
         if(global.HTTP_IP_CONNECT && remoteAddress.indexOf("127.0.0.1") < 0 && remoteAddress.indexOf(global.HTTP_IP_CONNECT) < 0)
@@ -1340,8 +1327,11 @@ if(global.HTTP_PORT_NUMBER)
         {
             DoCommand(response, Type, Path, params, remoteAddress);
         }
-    }).listen(port);
-    ToLog("Run HTTP-server on port:" + port);
+    }).listen(port, function ()
+    {
+        global.HTTP_SERVER_START_OK = 1;
+        ToLog("Run HTTP-server on port:" + port);
+    });
     HTTPServer.on('error', function (err)
     {
         ToError("H##3");

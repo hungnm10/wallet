@@ -49,10 +49,14 @@ module.exports = class CBlock extends require("./db/block-db")
         this.MapBlockBodyLoad = {}
         if(!global.ADDRLIST_MODE && !this.VirtualMode)
         {
-            setTimeout(this.CheckStartedBlocks.bind(this), 100)
-            setInterval(this.LoopChainLoad.bind(this), 100)
-            setInterval(this.LoopBlockLoad.bind(this), 10)
-            setInterval(this.LoopBlockBodyLoad.bind(this), 1 * 1000)
+            let Self = this;
+            setTimeout(function ()
+            {
+                Self.CheckStartedBlocks()
+                setInterval(Self.LoopChainLoad.bind(Self), 100)
+                setInterval(Self.LoopBlockLoad.bind(Self), 10)
+                setInterval(Self.LoopBlockBodyLoad.bind(Self), 1 * 1000)
+            }, 1000)
         }
     }
     StopNode()
@@ -145,6 +149,10 @@ module.exports = class CBlock extends require("./db/block-db")
             return ;
         if(!GrayConnect())
             this.RelayMode = true
+        else
+            this.RelayMode = false
+        if(!bSilent)
+            this.RelayMode = true
         this.LoadHistoryMode = true
         this.LoadHistoryMessage = !bSilent
         this.LoadHistoryContext = {Node:Node, BlockNum:this.BlockNumDB, MapSend:{}, Foward:1, Pause:0, DeltaBlockNum:10}
@@ -198,7 +206,7 @@ module.exports = class CBlock extends require("./db/block-db")
         if(Context.PrevBlockNum === Context.BlockNum)
         {
             var DeltaTime = new Date() - Context.StartTimeHistory;
-            if(DeltaTime > 20 * 1000)
+            if(DeltaTime > 10 * 1000)
             {
                 ToLog("DETECT TIMEOUT LOADHISTORY")
                 this.StartLoadHistory()
@@ -1342,6 +1350,12 @@ module.exports = class CBlock extends require("./db/block-db")
             Info.Node.LoadBlockCount++
             if(GrayConnect())
                 Info.Node.BlockProcessCount++
+            if(this.LoadHistoryMode)
+            {
+                var Context = this.LoadHistoryContext;
+                Context.PrevBlockNum = Context.BlockNum
+                Context.StartTimeHistory = new Date()
+            }
         }
     }
     SendCanBlock(Node, Block)

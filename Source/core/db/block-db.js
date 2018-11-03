@@ -74,7 +74,7 @@ module.exports = class CDB extends require("../code")
         }
         var Time = process.hrtime(startTime);
         var deltaTime = (Time[0] * 1000 + Time[1] / 1e6) / 1000;
-        ToLog("**********************Time first read buffer: " + deltaTime + " sec")
+        ToLog("********************TIME BUFFER: " + deltaTime + " s")
         if(this.BlockNumDB > 100)
             this.ReWriteDAppTransactions(100)
         ToLog("START_BLOCK_NUM:" + this.BlockNumDB)

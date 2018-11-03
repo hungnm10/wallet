@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
+
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-Frame-Options" value="sameorigin">
@@ -151,6 +153,11 @@
                     SetError(escapeHtml(Data.Message));
                     break;
                 }
+                case "CheckInstall":
+                {
+                    CheckInstall();
+                    break;
+                }
 
 
             }
@@ -238,7 +245,7 @@
                     {
                         var Data=Arr[i];
                         Data.cmd="OnEvent";
-                        //console.log(Data.cmd);
+                        //console.log(JSON.stringify(Data));
                         SendMessage(Data);
                     }
                 }
@@ -299,12 +306,13 @@
 
 
                 var TR=MapSendTransaction[Item.key];
-                if(TR && !TR.WasSend)
+                if(TR && !TR.WasSend && Item.final)
                 {
                     var Data={};
                     Data.cmd="OnEvent";
                     Data.Description="Error: "+Item.text;
                     Data.Error=1;
+                    console.log(JSON.stringify(Item));
                     SendMessage(Data);
                     TR.WasSend=1;
                 }
@@ -339,6 +347,7 @@
     var glDebugPath="";
 //    glDebugPath="./dapp-smart/forum.html";
 //    glDebugPath="./dapp-smart/DEX.html";
-    //{"HTMLBlock":10376751,"HTMLTr":1}
+//      glDebugPath="./dapp-smart/gambling-1.html";
+    //{"HTMLBlock":10716589,"HTMLTr":0}
 </script>
 

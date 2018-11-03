@@ -285,11 +285,6 @@
             document.getElementById("idAccDescription").focus();
 
             var Select=document.getElementById("idAccount");
-//            if(Select.options.length)
-//            {
-//                document.getElementById("idAutoSetMining").checked=false;
-//            }
-
             SetViewWN();
         }
     }
@@ -1181,20 +1176,22 @@
             return Num;
         }
     }
+
+    //TODO - тормозит со временем!!!!
     function SetAccountsData(Data)
     {
         if(!Data || !Data.result)
             return;
         var arr=Data.ArrAcc;
 
-        if(arr.length===0 && WasCreateAccountInfo!==PubKeyStr && WalletStatus==="OK")
-        {
-            WalletStatus="";
-
-            SelectTab('TabAccounts');
-            SetVisibleBlock("edit_create_acc",false);
-            ViewNewAccount();
-        }
+//        if(arr.length===0 && WasCreateAccountInfo!==PubKeyStr && WalletStatus==="OK")
+//        {
+//            WalletStatus="";
+//
+//            SelectTab('TabAccounts');
+//            SetVisibleBlock("edit_create_acc",false);
+//            ViewNewAccount();
+//        }
 
         //select list
         var Select=document.getElementById("idAccount");
@@ -1268,7 +1265,8 @@
         SetBlockChainConstant(Data);
         MaxBlockNum=GetCurrentBlockNumByTime();
 
-        if(Data.RelayMode || !Data.CurBlockNum || !Data.BlockNumDB || Data.CurBlockNum>Data.BlockNumDB+BLOCK_PROCESSING_LENGTH*2)
+        //if(Data.RelayMode || !Data.CurBlockNum || !Data.BlockNumDB || Data.CurBlockNum>Data.BlockNumDB+BLOCK_PROCESSING_LENGTH*2)
+        if(Data.RelayMode && Data.CurBlockNum>Data.BlockNumDB+BLOCK_PROCESSING_LENGTH*2)
         {
             CanSendTransaction=0;
             var StrMode="";
@@ -2325,7 +2323,7 @@
 
 <body>
 <DIV align='center'>
-<DIV align='left' style="width: 800px;height: 920px; border: 1px solid #bfc1c0;">
+<DIV align='left' style="width: 800px;height2: 920px; border: 1px solid #bfc1c0;">
 
     <table id="TabHeader">
         <tr>
@@ -2537,7 +2535,7 @@
 
         <DIV id="idNetworkView" style="display: none">
             <H3>Network connections:</H3>
-            <INPUT type="checkbox" id="idUseDirectIP">Run server and use direct IPv4 address on this computer (recommended):<BR>
+            <INPUT type="checkbox" id="idUseDirectIP">Run server and use direct IP:<BR>
             IP:<INPUT  maxlength="16" id="idIP"> Port:<INPUT maxlength="9" id="idPort"><BR>
             <!--<INPUT type="checkbox" id="idUseIncomeGrayIP">Allow connection users without a direct ip:<BR>-->
             <!--White list nodes (HEX-format):<BR>-->
@@ -2925,8 +2923,8 @@
 
                     <th id="Item.TrDataLen" class="hash">Bytes</th>
                     <th id="Item.Power" class="num">Pow</th>
-                    <th id="GetPowPower(Item.Hash1)" class="num">Pow1</th>
-                    <th id="GetPowPower(Item.Hash2)" class="num">Pow2</th>
+                    <!--<th id="GetPowPower(Item.Hash1)" class="num">Pow1</th>-->
+                    <!--<th id="GetPowPower(Item.Hash2)" class="num">Pow2</th>-->
 
                     <th id="Item.Miner" class="hash">Miner</th>
                 </tr>
@@ -3053,6 +3051,7 @@
         <A href="https://twitter.com/terafoundation">Twitter</A>
         <A href="https://web.telegram.org/#/im?p=@terafoundation">Telegram</A>
         <A href="https://discord.gg/CvwrbeG">Discord</A>
+        <A href="https://github.com/terafoundation/wallet">GitHub</A>
         <!--progr76@gmail.com-->
     </DIV>
 
@@ -3068,3 +3067,4 @@
 </DIV>
 </body>
 </html>
+

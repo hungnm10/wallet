@@ -534,6 +534,7 @@ function RunSmartMethod(Block,SmartOrSmartID,Account,BlockNum,TrNum,PayContext,M
     {
         context.BlockNum = BlockNum;
         context.BlockHash = CopyArr(Block.Hash);
+        context.BlockAddrHash = CopyArr(Block.AddrHash);
         context.TrNum = TrNum;
         context.Account = GET_ACCOUNT(Account);
         context.Smart = GET_SMART(Smart);
@@ -1059,6 +1060,10 @@ function $Event(Description)
         BlockNum:RunContext.BlockNum, TrNum:RunContext.TrNum});
     if(global.DebugEvent)
         DebugEvent(Description);
+    if(WALLET.CurTrItem)
+    {
+        ToLogClient(Description, GetHexFromArr(WALLET.CurTrItem.HASH), false);
+    }
 };
 
 function $ReadAccount(ID)

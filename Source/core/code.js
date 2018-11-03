@@ -207,6 +207,7 @@ function UnpackCodeFile(fname)
 global.RestartNode = function RestartNode()
 {
     global.NeedRestart = 1;
+    setTimeout(DoExit, 5000);
     var it = SERVER.ActualNodes.iterator(), Node;
     while((Node = it.next()) !== null)
     {
@@ -218,19 +219,20 @@ global.RestartNode = function RestartNode()
     RunStopPOWProcess("STOP");
     ToLog("****************************************** RESTART!!!");
     console.log("EXIT 1");
-    setTimeout(function ()
+};
+
+function DoExit()
+{
+    console.log("EXIT 2");
+    if(global.nw || global.NWMODE)
     {
-        console.log("EXIT 2");
-        if(global.nw)
-        {
-            ToLog("RESTART NW");
-            var StrRun = '"' + process.argv[0] + '" .\n';
-            StrRun += '"' + process.argv[0] + '" .\n';
-            SaveToFile("run-next.bat", StrRun);
-            const child_process = require('child_process');
-            child_process.exec("run-next.bat", {shell:true});
-        }
-        console.log("EXIT 3");
-        process.exit(0);
-    }, 5000);
+        ToLog("RESTART NW");
+        var StrRun = '"' + process.argv[0] + '" .\n';
+        StrRun += '"' + process.argv[0] + '" .\n';
+        SaveToFile("run-next.bat", StrRun);
+        const child_process = require('child_process');
+        child_process.exec("run-next.bat", {shell:true});
+    }
+    console.log("EXIT 3");
+    process.exit(0);
 };

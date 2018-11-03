@@ -13,11 +13,6 @@ function $(id)
 {
     return document.getElementById(id);
 };
-
-function TesNW()
-{
-    window.location.assign('http://localhost:8000/');
-};
 if(window.nw)
 {
     window.Open = function (path,iconname,width,height)
@@ -51,7 +46,20 @@ else
 {
     window.Open = function (path,iconname,width,height)
     {
-        var win = window.open(path);
+        if(!window.NWMODE)
+        {
+            var win = window.open(path);
+        }
+        else
+        {
+            width = width || 840;
+            height = height || 1000;
+            var left = (screen.width - width) / 2;
+            var params = "left=" + left + ",top=24,menubar=no,location=no,resizable=yes,scrollbars=no,status=no";
+            params += ",width=" + width;
+            params += ",height=" + height;
+            var win = window.open(path, undefined, params);
+        }
     };
     window.GetData = function (Method,ObjPost,Func)
     {
@@ -814,7 +822,7 @@ function RetBaseAccount(Item)
 
 function ViewTransaction(BlockNum)
 {
-    window.Open('./HTML/blockviewer.html#' + BlockNum, 'viewer', 800, 800);
+    window.Open('/HTML/blockviewer.html#' + BlockNum, 'viewer', 800, 800);
 };
 
 function DateFromBlock(BlockNum)
@@ -1106,7 +1114,7 @@ function AddToInvoiceList(Item)
 
 function OpenDapps(Num)
 {
-    window.Open('./dapp/' + Num, 'dapp', 1200);
+    window.Open('/dapp/' + Num, 'dapp', 1200);
 };
 
 function ParseFileName(Str)
@@ -1214,7 +1222,7 @@ function SendCallMethod(Account,MethodName,Params,FromNum,FromSmartNum)
             MapSendID[FromNum].Date = (new Date()) - 0;
             WriteUint(Body, OperationID);
             Body.length += 10;
-            SendTrArrayWithSign(Body, Account, TR);
+            SendTrArrayWithSign(Body, FromNum, TR);
         });
     }
     else

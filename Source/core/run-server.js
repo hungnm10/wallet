@@ -58,7 +58,7 @@ process.on('error', function (err)
     ToLog(err.stack);
 });
 require("./html-server");
-RunServer(false);
+RunServer();
 setInterval(function run1()
 {
     DoConnectToNodes(ArrReconnect, "RECONNECT");
@@ -262,7 +262,9 @@ global.RunStopPOWProcess = RunStopPOWProcess;
 
 function DoGetNodes()
 {
-    if(!GrayConnect() && (!SERVER || SERVER.CanSend < 2))
+    if(!SERVER)
+        return ;
+    if(!GrayConnect() && SERVER.CanSend < 2)
         return ;
     if(!SERVER.NodesArrUnSort || !SERVER.NodesArrUnSort.length)
         return ;
@@ -285,10 +287,14 @@ function DoGetNodes()
 
 function DoConnectToNodes(Arr,Mode)
 {
-    if(!GrayConnect() && (!SERVER || SERVER.CanSend < 2))
+    if(!SERVER)
+        return ;
+    if(!GrayConnect() && SERVER.CanSend < 2)
     {
         return ;
     }
+    if(GrayConnect() && SERVER.ActualNodes.size > GetGrayServerConnections())
+        return ;
     if(Arr.length)
     {
         var MinProcessCount = SERVER.BusyLevel - 1;
@@ -315,7 +321,7 @@ function DoConnectToNodes(Arr,Mode)
     }
 };
 
-function RunServer(bVirtual)
+function RunServer()
 {
     idRunOnce = setInterval(RunOnce, 1000);
     ToLog("NETWORK: " + GetNetworkName());
@@ -340,7 +346,7 @@ function RunServer(bVirtual)
         SAVE_CONST(true);
     }
     KeyPair.setPrivateKey(Buffer.from(GetArrFromHex(global.SERVER_PRIVATE_KEY_HEX)));
-    new CServer(KeyPair, START_IP, START_PORT_NUMBER, false, bVirtual);
+    new CServer(KeyPair, START_IP, START_PORT_NUMBER, false, false);
     DoStartFindList();
 };
 

@@ -99,8 +99,9 @@ module.exports = class CSmartContract extends require("./block-exchange")
                 if(App)
                 {
                     DApps.Accounts.BeginTransaction()
-                    var Result = App.OnWriteTransaction(Block, arr[i], BlockNum, i);
                     var item = WALLET.ObservTree.find({HASH:shaarr(arr[i])});
+                    WALLET.CurTrItem = item
+                    var Result = App.OnWriteTransaction(Block, arr[i], BlockNum, i);
                     if(item)
                     {
                         var ResultStr = Result;
@@ -118,6 +119,7 @@ module.exports = class CSmartContract extends require("./block-exchange")
                         DApps.Accounts.CommitTransaction(BlockNum, i)
                     else
                         DApps.Accounts.RollBackTransaction()
+                    WALLET.CurTrItem = undefined
                 }
             }
         if(COUNT_MEM_BLOCKS)

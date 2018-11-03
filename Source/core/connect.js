@@ -616,7 +616,7 @@ module.exports = class CConnect extends require("./transfer-msg")
                 continue;
             if(Item.BlockProcessCount < 0)
                 continue;
-            if(Item.LastTime - 0 < CurTime - 3600 * 1000)
+            if(!GrayConnect() && Item.LastTime - 0 < CurTime - 3600 * 1000)
                 continue;
             var Value = {addrStr:Item.addrStr, ip:Item.ip, port:Item.port, FirstTime:Item.FirstTime, FirstTimeStr:Item.FirstTimeStr, LastTime:Item.LastTime - 0,
                 DeltaTime:Item.DeltaTime, Hot:Item.Hot, BlockProcessCount:Item.BlockProcessCount, Name:Item.Name, };
@@ -670,7 +670,7 @@ module.exports = class CConnect extends require("./transfer-msg")
         this.NodesArr.sort(SortNodeBlockProcessCount)
         if((GrayConnect() || !this.LoadHistoryMode) && (new Date()) - this.StartTime > 120 * 1000)
         {
-            var arr = this.GetDirectNodesArray(true).slice(1);
+            var arr = this.GetDirectNodesArray(true).slice(1, 200);
             SaveParams(GetDataPath("nodes.lst"), arr)
         }
     }
@@ -1222,6 +1222,26 @@ module.exports = class CConnect extends require("./transfer-msg")
         }
         return HotArr;
     }
+    DetectGrayMode()
+    {
+        var CurTime = (new Date) - 0;
+        var CountNodes = this.ActualNodes.size;
+        if(CountNodes)
+            this.LastNotZeroNodesTime = CurTime
+        else
+        {
+            if(!this.LastNotZeroNodesTime)
+                this.LastNotZeroNodesTime = CurTime
+            var DeltaTime = CurTime - this.LastNotZeroNodesTime;
+            if(DeltaTime > 5 * 1000)
+            {
+                ToLog("DETECT GRAY MODE")
+                if(!global.NET_WORK_MODE)
+                    global.NET_WORK_MODE = {ip:"", port:""}
+                NET_WORK_MODE.UseDirectIP = 0
+            }
+        }
+    }
     StartCheckTransferTree()
     {
         var ArrTree = this.GetTransferTree();
@@ -1229,30 +1249,39 @@ module.exports = class CConnect extends require("./transfer-msg")
         var CurTime = (new Date) - 0;
         if(GrayConnect())
         {
-            if(this.ActualNodes.size > MAX_GRAY_SERVER_COUNT)
-                return ;
-            this.NodesArr.sort(SortNodeBlockProcessCountGray)
-            var WasDoConnect = 0;
-            var arr = this.NodesArr;
-            for(var n = 0; arr && n < arr.length; n++)
+            var MustCount = GetGrayServerConnections();
+            if(this.ActualNodes.size < MustCount)
             {
-                var Node = arr[n];
-                if(!Node)
-                    continue;
-                if(!this.IsCanConnect(Node))
-                    continue;
-                var DeltaTime = CurTime - Node.StartTimeConnect;
-                if(!Node.Active && WasDoConnect < 5 && !Node.WasAddToConnect && DeltaTime >= Node.NextConnectDelta)
+                this.NodesArr.sort(SortNodeBlockProcessCountGray)
+                var WasDoConnect = 0;
+                var arr = this.NodesArr;
+                for(var n = 0; arr && n < arr.length; n++)
                 {
-                    AddNodeInfo(Node, "To connect")
-                    Node.WasAddToConnect = 1
-                    ArrConnect.push(Node)
-                    WasDoConnect++
+                    var Node = arr[n];
+                    if(!Node)
+                        continue;
+                    if(!this.IsCanConnect(Node))
+                        continue;
+                    var DeltaTime = CurTime - Node.StartTimeConnect;
+                    if(!Node.Active && WasDoConnect < 5 && !Node.WasAddToConnect && DeltaTime >= Node.NextConnectDelta)
+                    {
+                        AddNodeInfo(Node, "To connect")
+                        Node.WasAddToConnect = 1
+                        ArrConnect.push(Node)
+                        WasDoConnect++
+                    }
                 }
+            }
+            while(this.ActualNodes.size > MustCount)
+            {
+                var Node = this.ActualNodes.max();
+                AddNodeInfo(Node, "DeleteFromActive")
+                this.DeleteNodeFromActive(Node)
             }
         }
         else
         {
+            this.DetectGrayMode()
             for(var Level = 0; Level < ArrTree.length; Level++)
             {
                 var arr = ArrTree[Level];
@@ -1364,4 +1393,13 @@ function SortNodeBlockProcessCountGray(a,b)
         return a.DeltaTime - b.DeltaTime;
     return a.id - b.id;
 };
+
+function GetGrayServerConnections()
+{
+    var Count = MAX_GRAY_CONNECTIONS_TO_SERVER;
+    if(SERVER.LoadHistoryMode && SERVER.LoadHistoryMessage)
+        Count = Count * 10;
+    return Count;
+};
+global.GetGrayServerConnections = GetGrayServerConnections;
 global.SortNodeBlockProcessCount = SortNodeBlockProcessCount;

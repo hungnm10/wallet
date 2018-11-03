@@ -201,6 +201,7 @@ module.exports = class CMessages extends require("./transaction-validator")
             return ;
         this.TreePoolTr.clear()
         var CurTime = GetCurrentTime(0) - 0;
+        var Count = Math.trunc(MAX_GRAY_CONNECTIONS_TO_SERVER / 2);
         var ArrNodes = this.GetActualNodes();
         for(var i = 0; i < ArrNodes.length; i++)
         {
@@ -218,6 +219,9 @@ module.exports = class CMessages extends require("./transaction-validator")
             Node.TaskLastSend = CurTime
             this.SendF(Node, {"Method":"TRANSACTION", "Data":Tr})
             ToLogContext("Send " + TrName(Tr) + " to " + NodeName(Node))
+            Count--
+            if(Count <= 0)
+                break;
         }
     }
     static

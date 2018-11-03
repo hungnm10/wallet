@@ -95,6 +95,11 @@ function SetError(e)
     SendData({cmd:"SetError", Message:e});
 };
 
+function CheckInstall()
+{
+    SendData({cmd:"CheckInstall"});
+};
+
 function CurrencyName(e)
 {
     var n = MapCurrency[e];
@@ -173,7 +178,12 @@ function listener(e)
             }
         }
         else
-            "OnEvent" === n && window.OnEvent && window.OnEvent(t);
+            if("OnEvent" === n)
+            {
+                window.OnEvent && window.OnEvent(t);
+                var r = new CustomEvent("Event", {detail:t});
+                window.dispatchEvent(r);
+            }
     }
 };
 
@@ -222,7 +232,8 @@ document.addEventListener("DOMContentLoaded", function ()
             OpenRefFile(this.href);
         });
 }), window.addEventListener ? window.addEventListener("message", listener) : window.attachEvent("onmessage", listener);
-var SMART = {}, BASE_ACCOUNT = {}, INFO = {}, USER_ACCOUNT = [], USER_ACCOUNT_MAP = {}, WasStartInit = 0;
+var SMART = {}, BASE_ACCOUNT = {}, INFO = {}, USER_ACCOUNT = [], USER_ACCOUNT_MAP = {}, WasStartInit = 0, WasStartInit2 = 0,
+eventInit = new Event("Init"), eventInfo = new Event("UpdateInfo");
 
 function UpdateDappInfo()
 {
@@ -235,7 +246,8 @@ function UpdateDappInfo()
             SMART = (INFO = t).Smart, BASE_ACCOUNT = t.Account, SetBlockChainConstant(t), USER_ACCOUNT = t.WalletList, USER_ACCOUNT_MAP = {};
             for(var a = 0; a < USER_ACCOUNT.length; a++)
                 USER_ACCOUNT_MAP[USER_ACCOUNT[a].Num] = USER_ACCOUNT[a];
-            window.OnInit && !WasStartInit ? (WasStartInit = 1, window.OnInit(1)) : window.OnUpdateInfo && window.OnUpdateInfo();
+            window.OnInit && !WasStartInit ? (WasStartInit = 1, window.OnInit(1)) : window.OnUpdateInfo && window.OnUpdateInfo(), WasStartInit2 || (WasStartInit2 = 1,
+            window.dispatchEvent(eventInit)), window.dispatchEvent(eventInfo);
         }
     });
 };
