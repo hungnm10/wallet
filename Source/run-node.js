@@ -3,7 +3,7 @@ const os = require('os');
 if(!global.DATA_PATH || global.DATA_PATH==="")
     global.DATA_PATH="../DATA";
 global.CODE_PATH=process.cwd();
-global.HTTP_PORT_NUMBER = 80;
+global.HTTP_PORT_NUMBER = 8080;
 if(global.LOCAL_RUN===undefined)
     global.LOCAL_RUN=0;
 

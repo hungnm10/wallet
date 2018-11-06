@@ -2407,15 +2407,16 @@
             <BR>
 
 
-            <INPUT type="button" onclick="NewPrivateKey();" class="btdoit bt" value="New wallet..." id="idDown2">
-            <INPUT type="button" onclick="EditPrivateKey();SetImg(this,'edit_keys');" class="btdoit bt" value="Edit wallet" id="idDown">
-            <INPUT type="button" onclick="ViewNewAccount();SetImg(this,'edit_create_acc');" class="btdoit bt" value="New account" id="idDown">
-            <INPUT type="button" onclick="MiningSets();SetImg(this,'edit_mining_set');" class="btdoit bt" value="Set mining" id="idDown">
+            <INPUT type="button" onclick="MoveUp($('edit_keys'));NewPrivateKey();" class="btdoit bt" value="New wallet..." id="idDown2">
+            <INPUT type="button" onclick="MoveUp($('edit_keys'));EditPrivateKey();SetImg(this,'edit_keys');" class="btdoit bt" value="Edit wallet" id="idDown">
+            <INPUT type="button" onclick="MoveUp($('edit_create_acc'));ViewNewAccount();SetImg(this,'edit_create_acc');" class="btdoit bt" value="New account" id="idDown">
+            <INPUT type="button" onclick="MoveUp($('edit_mining_set'));MiningSets();SetImg(this,'edit_mining_set');" class="btdoit bt" value="Set mining" id="idDown">
             <INPUT type="button" onclick="ViewSetPassword();itemBtPassword=this; SetImg(itemBtPassword,'idBlockPassword');" class="bt btdoit" value="Set password" id="idDown">
 
         </DIV>
 
 
+        <DIV>
         <DIV id="edit_mining_set" style="display: none">
             <table class="form_input keys" id="grid_mining_set">
                 <tr>
@@ -2429,7 +2430,6 @@
                 </tr>
             </table>
         </DIV>
-
 
         <DIV id="edit_keys" style="display: none">
             <table class="form_input keys" id="grid_edit_key">
@@ -2457,9 +2457,6 @@
                 </tr>
             </table>
         </DIV>
-
-
-
 
         <DIV id="edit_create_acc" style="display: none">
             <table class="form_input keys" id="grid_edit_newacc">
@@ -2505,6 +2502,7 @@
 
             </table>
         </DIV>
+        </DIV>
 
 
         <BR>
@@ -2524,15 +2522,15 @@
         <B><DIV id="idMyTotalSum"></DIV></B>
 
 
-        <INPUT type="button" id="idDown" onclick="ViewNetworkMode();SetImg(this,'idNetworkView')"
+        <INPUT type="button" id="idDown" onclick="MoveUp($('idNetworkView'));ViewNetworkMode();SetImg(this,'idNetworkView')"
                class="btdoit bt" value="NET CONNECT">
-        <INPUT type="button" id="idDown" onclick="ViewRemoteParams();SetImg(this,'idRemoteView')"
+        <INPUT type="button" id="idDown" onclick="MoveUp($('idRemoteView'));ViewRemoteParams();SetImg(this,'idRemoteView')"
                class="btdoit bt" value="HTTP ACCESS">
-        <INPUT type="button" id="idDown" onclick="ViewConstant();SetImg(this,'idConstantView')"
+        <INPUT type="button" id="idDown" onclick="MoveUp($('idConstantView'));ViewConstant();SetImg(this,'idConstantView')"
                class="btdoit bt" value="CONSTANTS">
         <INPUT type="button" onclick="FindMyAccounts();" class="btdoit bt" value="Refresh accounts">
 
-
+        <DIV>
         <DIV id="idNetworkView" style="display: none">
             <H3>Network connections:</H3>
             <INPUT type="checkbox" id="idUseDirectIP">Run server and use direct IP:<BR>
@@ -2542,7 +2540,7 @@
             <TEXTAREA id="idNodeWhiteList" rows="4" cols="100" style="display: none"> </TEXTAREA>
             <BR>
 
-            <INPUT type="button" onclick="SetNetworkParams(0)" class="btdoit bt" value="Save">
+            <!--<INPUT type="button" onclick="SetNetworkParams(0)" class="btdoit bt" value="Save">-->
             <INPUT type="button" onclick="SetNetworkParams(1)" class="btdoit bt" value="Save and Restart">
             <HR>
         </DIV>
@@ -2561,7 +2559,7 @@
                 </tr>
             </table>
             <BR>
-            <INPUT type="button" onclick="SetRemoteParams(0)" class="btdoit bt" value="Save">
+            <!--<INPUT type="button" onclick="SetRemoteParams(0)" class="btdoit bt" value="Save">-->
             <INPUT type="button" onclick="SetRemoteParams(1)" class="btdoit bt" value="Save and Restart">
             <HR>
         </DIV>
@@ -2573,6 +2571,7 @@
             <INPUT type="button" onclick="SaveConstant(0)" class="btdoit bt" value="Save">
             <INPUT type="button" onclick="SaveConstant(1)" class="btdoit bt" value="Save and Restart">
             <HR>
+        </DIV>
         </DIV>
 
 
@@ -2862,10 +2861,20 @@
         <INPUT type="button" onclick="ViewCurrent(DefBlock,1,this)" class="btdoit bt btexlporer" id="idDown" value="Blocks & Tr">
         <INPUT type="button" onclick="ViewCurrent(DefActs,1,this)" class="btdoit bt btexlporer" id="idDown" value="Accounts acts">
         <INPUT type="button" onclick="ViewCurrent(DefHash,1,this)" class="btdoit bt btexlporer" id="idDown" value="Accounts hash">
-        <INPUT type="button" onclick="SetVisibleBlock('idUtilView',!IsVisibleBlock('idUtilView'));SetImg(this,'idUtilView');" class="btdoit bt btexlporer" id="idDown" value="Utilites">
+        <INPUT type="button" onclick="SetVisibleUtil(this)" class="btdoit bt btexlporer" id="idDown" value="Utilites">
+
+        <script>
+            function SetVisibleUtil(This)
+            {
+                MoveUp($("idUtilView"));
+                SetVisibleBlock('idUtilView',!IsVisibleBlock('idUtilView'));
+                SetImg(This,'idUtilView');
+            }
+        </script>
 
 
         <BR>
+        <DIV>
         <DIV id="idPaginationAccount" style="display: none">
             <HR>
             <DIV id="view_header" >Accounts</DIV><BR>
@@ -3008,6 +3017,7 @@
             <BR>
 
         </DIV>
+        </DIV>
 
     </DIV>
 
@@ -3046,14 +3056,6 @@
 
 
 
-    <DIV id="idStableScroll" align='center'>
-        <A href="https://bitcointalk.org/index.php?topic=4573801.0">ANN</A>
-        <A href="https://twitter.com/terafoundation">Twitter</A>
-        <A href="https://web.telegram.org/#/im?p=@terafoundation">Telegram</A>
-        <A href="https://discord.gg/CvwrbeG">Discord</A>
-        <A href="https://github.com/terafoundation/wallet">GitHub</A>
-        <!--progr76@gmail.com-->
-    </DIV>
 
 
     <audio style="visibility: hidden;" controls="controls" id="sound_coin">
@@ -3068,3 +3070,12 @@
 </body>
 </html>
 
+<DIV id="idStableScroll" align='center'>
+    <A href="http://terafoundation.org/" target="_blank">Web</A>
+    <A href="https://bitcointalk.org/index.php?topic=4573801.0" target="_blank">ANN</A>
+    <A href="https://twitter.com/terafoundation" target="_blank">Twitter</A>
+    <A href="https://web.telegram.org/#/im?p=@terafoundation" target="_blank">Telegram</A>
+    <A href="https://discord.gg/CvwrbeG" target="_blank">Discord</A>
+    <A href="https://github.com/terafoundation/wallet" target="_blank">GitHub</A>
+    <!--progr76@gmail.com-->
+</DIV>

@@ -385,7 +385,7 @@ function TestCreateTr()
         POWCreate:arr12,\
         }";
     var TR = {Type:100, Currency:0, PubKey:[2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0], Description:"Description", Adviser:4, };
+        0, 0, 0, 0, 0], Description:"Description", Adviser:10, };
     var Body = BufLib.GetBufferFromObject(TR, FORMAT_CREATE, 1000, {});
     var startTime = process.hrtime();
     var StartData = new Date() - 0;

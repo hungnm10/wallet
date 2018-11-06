@@ -26,6 +26,8 @@ module.exports = class CDB extends require("../code")
     }
     StartOneProcess()
     {
+        if(global.READ_ONLY_DB)
+            return ;
         var path = GetDataPath("DB/run");
         if(fs.existsSync(path))
         {
@@ -225,7 +227,7 @@ module.exports = class CDB extends require("../code")
     }
     WriteBodyDB(Block)
     {
-        var FileItem = BlockDB.OpenDBFile(FILE_NAME_BODY);
+        var FileItem = BlockDB.OpenDBFile(FILE_NAME_BODY, 1);
         var FD = FileItem.fd;
         var Position = FileItem.size;
         Block.TrDataPos = Position
@@ -356,7 +358,7 @@ module.exports = class CDB extends require("../code")
         BlockNum = Math.trunc(BlockNum)
         this.MapHeader = {}
         var Position = BlockNum * BLOCK_HEADER_SIZE;
-        var FI = BlockDB.OpenDBFile(FILE_NAME_HEADER);
+        var FI = BlockDB.OpenDBFile(FILE_NAME_HEADER, 1);
         var written = fs.writeSync(FI.fd, BufWrite, 0, BufWrite.length, Position);
         if(Position >= FI.size)
         {
@@ -484,7 +486,7 @@ module.exports = class CDB extends require("../code")
     }
     TruncateBlockDBInner(LastBlock)
     {
-        var FItem1 = BlockDB.OpenDBFile(FILE_NAME_HEADER);
+        var FItem1 = BlockDB.OpenDBFile(FILE_NAME_HEADER, 1);
         var size = (LastBlock.BlockNum + 1) * BLOCK_HEADER_SIZE;
         if(size < 0)
             size = 0
@@ -497,7 +499,7 @@ module.exports = class CDB extends require("../code")
     }
     TruncateBlockBodyDBInner()
     {
-        var FItem2 = BlockDB.OpenDBFile(FILE_NAME_BODY);
+        var FItem2 = BlockDB.OpenDBFile(FILE_NAME_BODY, 1);
         var size2 = 0;
         if(FItem2.size !== size2)
         {
@@ -525,10 +527,10 @@ module.exports = class CDB extends require("../code")
     }
     ClearDataBase()
     {
-        var FItem1 = BlockDB.OpenDBFile(FILE_NAME_HEADER);
+        var FItem1 = BlockDB.OpenDBFile(FILE_NAME_HEADER, 1);
         FItem1.size = 0
         fs.ftruncateSync(FItem1.fd, FItem1.size)
-        var FItem2 = BlockDB.OpenDBFile(FILE_NAME_BODY);
+        var FItem2 = BlockDB.OpenDBFile(FILE_NAME_BODY, 1);
         FItem2.size = 0
         fs.ftruncateSync(FItem2.fd, FItem2.size)
         for(var key in DApps)

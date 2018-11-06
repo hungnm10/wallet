@@ -1224,22 +1224,27 @@ module.exports = class CConnect extends require("./transfer-msg")
     }
     DetectGrayMode()
     {
+        if(global.NET_WORK_MODE)
+            return ;
         var CurTime = (new Date) - 0;
         var CountNodes = this.ActualNodes.size;
-        if(CountNodes)
-            this.LastNotZeroNodesTime = CurTime
-        else
+        if(CountNodes || this.StopDetectGrayMode)
         {
-            if(!this.LastNotZeroNodesTime)
-                this.LastNotZeroNodesTime = CurTime
-            var DeltaTime = CurTime - this.LastNotZeroNodesTime;
-            if(DeltaTime > 5 * 1000)
+            this.StopDetectGrayMode = 1
+            return ;
+        }
+        if(!this.LastNotZeroNodesTime)
+            this.LastNotZeroNodesTime = CurTime
+        var DeltaTime = CurTime - this.LastNotZeroNodesTime;
+        if(DeltaTime > 10 * 1000)
+        {
+            ToLog("DETECT GRAY MODE")
+            if(!global.NET_WORK_MODE)
             {
-                ToLog("DETECT GRAY MODE")
-                if(!global.NET_WORK_MODE)
-                    global.NET_WORK_MODE = {ip:"", port:""}
-                NET_WORK_MODE.UseDirectIP = 0
+                global.NET_WORK_MODE = {ip:"", port:""}
             }
+            NET_WORK_MODE.UseDirectIP = 0
+            SAVE_CONST()
         }
     }
     StartCheckTransferTree()

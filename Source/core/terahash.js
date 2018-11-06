@@ -9,8 +9,7 @@
 */
 
 var START_NONCE = 0;
-const COUNT_FIND_A = 1000;
-const COUNT_FIND_B = 64;
+const COUNT_FIND_HASH1 = 64;
 const DELTA_LONG_MINING = 5000;
 var BLOCKNUM_ALGO2 = 6560000;
 if(global.LOCAL_RUN || global.TEST_NETWORK)
@@ -212,7 +211,7 @@ function CreatePOWVersion3(Block)
     var Ret = 0;
     var PrevHashNum = ReadUint32FromArr(Block.PrevHash, 28);
     var HashBase = GetHashFromNum2(BlockNum, PrevHashNum);
-    var Value1 = FindHashBuffer3(HashBase, BlockNum, Miner, COUNT_FIND_B);
+    var Value1 = FindHashBuffer3(HashBase, BlockNum, Miner, COUNT_FIND_HASH1);
     if(Value1)
     {
         var Hash1 = XORArr(HashBase, Value1.Hash);
@@ -225,8 +224,8 @@ function CreatePOWVersion3(Block)
         }
     }
     START_NONCE = Block.LastNonce0;
-    Block.LastNonce0 += RunCount;
-    var CountEnd = START_NONCE + RunCount;
+    Block.LastNonce0 += Block.RunCount0;
+    var CountEnd = START_NONCE + Block.RunCount0;
     for(var Nonce0 = START_NONCE; Nonce0 < CountEnd; Nonce0++)
     {
         var HashCurrent = GetHashFromArrNum2(Block.SeqHash, Miner, Nonce0);

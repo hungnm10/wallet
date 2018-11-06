@@ -607,7 +607,7 @@ function RunSetCheckPoint()
     if(Block)
     {
         var Power = GetPowPower(Block.PowHash);
-        if(Power < 16 || CompareArr(Block.PowHash, Block.Hash) !== 0)
+        if(Power < 30)
         {
             ToLog("CANNOT SET CHECK POINT Power=" + Power + "  BlockNum=" + BlockNum);
             return ;
@@ -617,7 +617,7 @@ function RunSetCheckPoint()
         var AvgPow = SumCheckPow / CountCheckPow;
         if(CountCheckPow > 10)
         {
-            if(Power < AvgPow - 1)
+            if(Power < AvgPow - 2)
             {
                 ToLog("**************** CANNOT SET CHECK POINT Power=" + Power + "/" + AvgPow + "  BlockNum=" + BlockNum);
                 return ;
@@ -1120,7 +1120,6 @@ function SendFileHTML(response,name,StrCookie)
                 response.end();
                 return ;
             }
-            ToError(err);
             data = "Not found: " + name;
         }
         else
@@ -1141,6 +1140,7 @@ function SendFileHTML(response,name,StrCookie)
         response.end(data);
     });
 };
+global.SendFileHTML = SendFileHTML;
 
 function GetStrTime(now)
 {

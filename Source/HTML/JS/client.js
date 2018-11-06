@@ -500,6 +500,33 @@ function escapeHtml(string)
     });
 };
 
+function InsertAfter(elem,refElem)
+{
+    var parent = refElem.parentNode;
+    var next = refElem.nextSibling;
+    if(next)
+    {
+        return parent.insertBefore(elem, next);
+    }
+    else
+    {
+        return parent.appendChild(elem);
+    }
+};
+
+function MoveUp(elem)
+{
+    var parent = elem.parentNode;
+    for(var i = 0; i < parent.children.length; i++)
+    {
+        var item = parent.children[i];
+        if(item.id && item.id !== undefined)
+        {
+            return parent.insertBefore(elem, item);
+        }
+    }
+};
+
 function ViewGrid(APIName,Params,nameid,bClear,TotalSum)
 {
     GetData(APIName, Params, function (Data)
@@ -516,7 +543,10 @@ function ViewCurrent(Def,flag,This)
     {
         if(flag)
         {
-            SetVisibleBlock(Def.BlockName, !IsVisibleBlock(Def.BlockName));
+            var bVisible = IsVisibleBlock(Def.BlockName);
+            if(!bVisible)
+                MoveUp($(Def.BlockName));
+            SetVisibleBlock(Def.BlockName, !bVisible);
         }
         else
         {
@@ -1273,4 +1303,22 @@ function GetBodyCreateAcc(TR)
 function RetJSON(Item)
 {
     return JSON.stringify(Item);
+};
+Number.prototype.toStringF = function ()
+{
+    var data = String(this).split(/[eE]/);
+    if(data.length == 1)
+        return data[0];
+    var z = '', sign = this < 0 ? '-' : '', str = data[0].replace('.', ''), mag = Number(data[1]) + 1;
+    if(mag < 0)
+    {
+        z = sign + '0.';
+        while(mag++)
+            z += '0';
+        return z + str.replace(/^\-/, '');
+    }
+    mag -= str.length;
+    while(mag--)
+        z += '0';
+    return str + z;
 };

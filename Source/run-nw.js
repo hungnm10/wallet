@@ -26,7 +26,7 @@ setTimeout(function ()
         Path="";
     nw.Window.open(Path+'/HTML/wallet.html',
         {
-            width: 840,
+            width: 820,
             height: 1000,
             icon: "../HTML/PIC/wallet.png",
         }, function(win)

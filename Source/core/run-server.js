@@ -31,8 +31,6 @@ else
         FindList = [{"ip":"149.154.70.158", "port":40000}, ];
     }
 global.SERVER = undefined;
-var idRunOnce;
-var Worker;
 global.NeedRestart = 0;
 process.on('uncaughtException', function (err)
 {
@@ -57,6 +55,10 @@ process.on('error', function (err)
     ToError(err.stack);
     ToLog(err.stack);
 });
+if(global.HTTP_HOSTING_PORT && !global.NWMODE)
+{
+    Fork("./core/hosting-server.js", ["READONLYDB"]);
+}
 require("./html-server");
 RunServer();
 setInterval(function run1()
@@ -164,18 +166,11 @@ function RunStopPOWProcess(Mode)
         PathMiner = "./core/pow-process.js";
     if(ArrMiningWrk.length >= GetCountMiningCPU())
         return ;
-    var str_arg = "";
-    if(global.LOCAL_RUN)
-        str_arg = "LOCALRUN";
-    else
-        if(global.TEST_NETWORK)
-            str_arg = "TESTRUN";
     if(GrayConnect())
     {
         ToLog("CANNOT START MINER IN NOT DIRECT IP MODE");
         return ;
     }
-    const child_process = require('child_process');
     var Memory;
     if(global.SIZE_MINING_MEMORY)
         Memory = global.SIZE_MINING_MEMORY;
@@ -193,7 +188,7 @@ function RunStopPOWProcess(Mode)
     ToLog("START MINER PROCESS COUNT: " + GetCountMiningCPU() + " Memory: " + ProcessMemorySize / 1024 / 1024 + " Mb for eatch process");
     for(var R = 0; R < GetCountMiningCPU(); R++)
     {
-        let Worker = child_process.fork(PathMiner, [str_arg]);
+        let Worker = Fork(PathMiner);
         console.log("Worker pid: " + Worker.pid);
         ArrMiningWrk.push(Worker);
         Worker.Num = ArrMiningWrk.length;
@@ -253,8 +248,9 @@ function SetCalcPOW(Block)
         if(!CurWorker.bOnline)
             continue;
         CurWorker.send({cmd:"SetBlock", Account:GENERATE_BLOCK_ACCOUNT, MinerID:GENERATE_BLOCK_ACCOUNT, BlockNum:Block.BlockNum, SeqHash:Block.SeqHash,
-            Hash:Block.Hash, PrevHash:Block.PrevHash, Time:new Date() - 0, Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POWRunCount,
-            Percent:global.POW_MAX_PERCENT, CountMiningCPU:GetCountMiningCPU(), ProcessMemorySize:ProcessMemorySize, });
+            Hash:Block.Hash, PrevHash:Block.PrevHash, Time:new Date() - 0, Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POW_RUN_COUNT,
+            RunCount0:global.POW_RUN_COUNT0, Percent:global.POW_MAX_PERCENT, CountMiningCPU:GetCountMiningCPU(), ProcessMemorySize:ProcessMemorySize,
+        });
     }
 };
 global.SetCalcPOW = SetCalcPOW;
@@ -320,6 +316,7 @@ function DoConnectToNodes(Arr,Mode)
         }
     }
 };
+var idRunOnce;
 
 function RunServer()
 {
@@ -444,3 +441,20 @@ function CheckRewriteAllTr(Num,StrHash)
     }
 };
 global.CheckRewriteTr = CheckRewriteTr;
+
+function Fork(Path,ArrArgs)
+{
+    const child_process = require('child_process');
+    ArrArgs = ArrArgs || [];
+    if(global.LOCAL_RUN)
+        ArrArgs.push("LOCALRUN");
+    else
+        if(global.TEST_NETWORK)
+            ArrArgs.push("TESTRUN");
+    ArrArgs.push("PATH:" + global.DATA_PATH);
+    ArrArgs.push("HOSTING:" + global.HTTP_HOSTING_PORT);
+    if(!global.USE_PARAM_JS)
+        ArrArgs.push("NOPARAMJS");
+    var Worker = child_process.fork(Path, ArrArgs);
+    return Worker;
+};

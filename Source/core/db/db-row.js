@@ -46,7 +46,7 @@ module.exports = class CDBState extends require("./db")
         this.DeleteMap(Data.Num)
         var BufWrite = BufLib.GetBufferFromObject(Data, this.Format, this.DataSize, this.WorkStruct, 1);
         var Position = Data.Num * this.DataSize;
-        var FI = this.OpenDBFile(this.FileName);
+        var FI = this.OpenDBFile(this.FileName, 1);
         var written = fs.writeSync(FI.fd, BufWrite, 0, BufWrite.length, Position);
         if(written !== BufWrite.length)
         {
@@ -114,7 +114,7 @@ module.exports = class CDBState extends require("./db")
         var Position = (LastNum + 1) * this.DataSize;
         if(Position < 0)
             Position = 0
-        var FI = this.OpenDBFile(this.FileName);
+        var FI = this.OpenDBFile(this.FileName, 1);
         if(Position < FI.size)
         {
             this.LastHash = undefined

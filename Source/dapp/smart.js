@@ -830,12 +830,6 @@ function InitEval()
         DO(1);
         return 0;
     };
-    var arr = Object.getOwnPropertyNames($Math);
-    for(var name of arr)
-    {
-        Object.freeze($Math[name]);
-    }
-    Object.freeze($Math);
     Object.freeze($SetValue);
     Object.freeze($Send);
     Object.freeze($Move);
@@ -861,13 +855,29 @@ function InitEval()
     Object.freeze($String);
     Object.freeze($Number);
     Object.freeze($Boolean);
-    arr = Object.getOwnPropertyNames(JSON);
+    var arr = Object.getOwnPropertyNames(JSON);
     for(var name of arr)
     {
         $JSON[name] = JSON[name];
-        Object.freeze($JSON[name]);
     }
+    FreezeObjectChilds($Math);
+    Object.freeze($Math);
+    FreezeObjectChilds($JSON);
     Object.freeze($JSON);
+    FreezeObjectChilds(Number.prototype);
+    FreezeObjectChilds(String.prototype);
+    FreezeObjectChilds(Boolean.prototype);
+    FreezeObjectChilds(Array.prototype);
+    FreezeObjectChilds(Object.prototype);
+};
+
+function FreezeObjectChilds(Value)
+{
+    var arr = Object.getOwnPropertyNames(Value);
+    for(var name of arr)
+    {
+        Object.freeze(Value[name]);
+    }
 };
 
 function ChangePrototype()

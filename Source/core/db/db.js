@@ -52,8 +52,13 @@ module.exports = class
             delete this.DBMap[name]
         }
     }
-    OpenDBFile(name, bExist)
+    OpenDBFile(name, bWrite, bExist)
     {
+        if(bWrite && global.READ_ONLY_DB)
+        {
+            ToLogTrace("CANNOT WRITE - DB IN READ_ONLY MODE!!!")
+            process.exit()
+        }
         this.LastHash = undefined
         this.WasUpdate = 1
         var Item = this.DBMap[name];

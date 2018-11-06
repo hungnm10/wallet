@@ -430,10 +430,13 @@ table.keys
 
 #idStableScroll
 {
- z-index:0;
- position:absolute;
- top:800px;
- left:45%;
- height: 10px;
- color: darkred;
+    z-index:0;
+    position:absolute;
+    top:800px;
+    height: 10px;
+    color: darkred;
+    width: 97%;
+    margin: auto;
 }
+
+

@@ -4,14 +4,18 @@
 
 Attention:
 * After the installation shown below, enter the address your server in the browser. Example: 12.34.56.78:8080
-* To connect to the network and start sync, you must have a static (public) IP address and an open port.
+* For mining You must have a static (public) IP address and an open port.
 * We recommend not storing private keys on remote servers.
 * We recommend putting an additional password on the private key ("Set password" button) - in this case the private key will be stored in file in encrypted form.
-* If you do not set http-password, you can access only from the local address: 127.0.0.1
+* If you do not set http-password, you can access only from the local address: 127.0.0.1:8080
+* For remote access to the node only from the specified computer set the HTTP_IP_CONNECT constant (for example: "HTTP_IP_CONNECT": "122.22.33.11")
 
 
+## Installing from setup on Windows:
+https://github.com/terafoundation/wallet/raw/master/Bin/Win64/tera_setup.exe
 
-## Installing on Windows by steps:
+
+## Installing from source code on Windows by steps:
 
 1. Download and install Nodejs https://nodejs.org (v8.11 is recommended)
 2. Download and install git https://git-scm.com/download/win
@@ -100,7 +104,7 @@ sudo pm2 start run-node.js
 
 ```
 sudo ufw allow 30000/tcp
-sudo ufw allow 80/tcp
+sudo ufw allow 8080/tcp
 ```
 
 
@@ -113,6 +117,14 @@ cd wallet
 sudo git reset --hard 
 sudo git pull 
 ```
+
+## MAIN NETWORK
+Default values:
+```
+port:30000
+httpport:8080
+```
+
 
 
 ## TEST NETWORK
@@ -161,7 +173,7 @@ I do not recommend installing the test network on the same computer for the foll
 
 # FAQs
 
-## Solving connection problems (when no start sync)
+## Mining is possible only if there is a public IP
 * Check the presence of a direct ip-address (order from the provider)
 * Check if the port is routed from the router to your computer
 * Check the firewall (port must open on the computer)
@@ -169,6 +181,7 @@ I do not recommend installing the test network on the same computer for the foll
 
 
 ## Refs:
+* Web: http://terafoundation.org
 * Btt: https://bitcointalk.org/index.php?topic=4573801.0
 * Twitter: https://twitter.com/terafoundation
 * Telegram: https://web.telegram.org/#/im?p=@terafoundation

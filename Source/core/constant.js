@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 689;
+global.UPDATE_CODE_VERSION_NUM = 690;
 global.MIN_CODE_VERSION_NUM = 682;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
@@ -16,7 +16,7 @@ global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY"
 "COUNT_VIEW_ROWS", "ADDRLIST_MODE", "CheckPointDelta", "USE_MINING", "POW_MAX_PERCENT", "ALL_LOG_TO_CLIENT", "LIMIT_SEND_TRAFIC",
 "MAX_WNUM", "MIN_VER_STAT", "MAX_STAT_PERIOD", "STOPGETBLOCK", "RESTART_PERIOD_SEC", "HARD_PACKET_PERIOD120", "MINING_START_TIME",
 "MINING_PERIOD_TIME", "TRANSACTION_PROOF_COUNT", "USE_AUTO_UPDATE", "DEBUG_WALLET", "COUNT_MINING_CPU", "SIZE_MINING_MEMORY",
-"MAX_GRAY_CONNECTIONS_TO_SERVER", ];
+"MAX_GRAY_CONNECTIONS_TO_SERVER", "POW_RUN_COUNT0", "POW_RUN_COUNT", "HTTP_HOSTING_PORT", ];
 global.DEBUG_WALLET = 0;
 global.AUTO_COORECT_TIME = 1;
 global.DELTA_CURRENT_TIME = 0;
@@ -31,7 +31,8 @@ global.WALLET_NAME = "TERA";
 global.WALLET_DESCRIPTION = "";
 global.USE_MINING = 0;
 global.POW_MAX_PERCENT = 50;
-global.POWRunCount = 5000;
+global.POW_RUN_COUNT = 5000;
+global.POW_RUN_COUNT0 = 5000;
 global.POWRunPeriod = 1;
 global.CheckPointDelta = 20;
 global.ALL_LOG_TO_CLIENT = 1;
@@ -48,6 +49,7 @@ global.CHECK_RUN_MINING = 21 * 1000;
 global.CHECK_STOP_MINING = 10 * 1000;
 global.COUNT_MINING_CPU = 0;
 global.SIZE_MINING_MEMORY = 0;
+global.HTTP_HOSTING_PORT = 0;
 require("./startlib.js");
 global.MIN_POWER_POW_HANDSHAKE = 12;
 global.MIN_POWER_POW_MSG = 2;
@@ -83,18 +85,19 @@ global.HISTORY_BLOCK_COUNT = 40;
 global.MAX_STAT_PERIOD = 1 * 3600;
 global.MAX_SIZE_LOG = 200 * 1024 * 1024;
 global.DECENTRALIZATION_LENGTH_FACTOR = 0;
+global.READ_ONLY_DB = 0;
 global.USE_CHECK_SAVE_DB = 0;
 global.USE_KEY_DB = 0;
 global.USE_CHECK_KEY_DB = 0;
 global.START_NETWORK_DATE = 1530446400000;
 var NETWORK = "TERA-MAIN";
 global.DEF_MAJOR_VERSION = "0001";
-InitParamsArg();
 global.SMART_BLOCKNUM_START = 10000000;
 global.PRICE_DAO = function (BlockNum)
 {
     return {NewAccount:10, NewSmart:100, NewTokenSmart:10000};
 };
+InitParamsArg();
 if(global.LOCAL_RUN)
 {
     global.SMART_BLOCKNUM_START = 0;
@@ -115,7 +118,7 @@ else
         var Num = (new Date) - 0 - 50 * 1000;
         console.log("CURRENT NUM: " + (Math.trunc(Num / 1000) * 1000));
         global.SMART_BLOCKNUM_START = 0;
-        global.START_NETWORK_DATE = 1540718431000;
+        global.START_NETWORK_DATE = 1541326379000;
         global.BLOCKNUM_HASH_NEW = 1000;
         global.START_MINING = 1000;
         global.REF_PERIOD_MINING = 1000;
@@ -174,48 +177,62 @@ function InitParamsArg()
 {
     for(var i = 1; i < process.argv.length; i++)
     {
-        var str = process.argv[i];
-        if(str.substr(0, 9) == "httpport:")
+        var str = process.argv[i].toUpperCase();
+        if(str.substr(0, 9) == "HTTPPORT:")
         {
             global.HTTP_PORT_NUMBER = parseInt(str.substr(9));
         }
         else
-            if(str.substr(0, 9) == "password:")
+            if(str.substr(0, 9) == "PASSWORD:")
             {
                 global.HTTP_PORT_PASSWORD = str.substr(9);
             }
             else
-                if(str.substr(0, 5) == "path:")
+                if(str.substr(0, 5) == "PATH:")
                     global.DATA_PATH = str.substr(5);
                 else
-                    if(str.substr(0, 5) == "port:")
+                    if(str.substr(0, 5) == "PORT:")
                         global.START_PORT_NUMBER = parseInt(str.substr(5));
                     else
-                        if(str.substr(0, 3) == "ip:")
+                        if(str.substr(0, 3) == "IP:")
                             global.START_IP = str.substr(3);
                         else
-                            if(str == "childpow")
-                                global.CHILD_POW = true;
+                            if(str.substr(0, 8) == "HOSTING:")
+                            {
+                                global.HTTP_HOSTING_PORT = parseInt(str.substr(8));
+                            }
                             else
-                                if(str == "ADDRLIST")
-                                    global.ADDRLIST_MODE = true;
-                                else
-                                    if(str == "CREATEONSTART")
+                            {
+                                switch(str)
+                                {
+                                    case "CHILDPOW":
+                                        global.CHILD_POW = true;
+                                        break;
+                                    case "ADDRLIST":
+                                        global.ADDRLIST_MODE = true;
+                                        break;
+                                    case "CREATEONSTART":
                                         global.CREATE_ON_START = true;
-                                    else
-                                        if(str == "LOCALRUN")
-                                            global.LOCAL_RUN = 1;
-                                        else
-                                            if(str == "TESTRUN")
-                                                global.TEST_NETWORK = 1;
-                                            else
-                                                if(str == "NOLOCALRUN")
-                                                    global.LOCAL_RUN = 0;
-                                                else
-                                                    if(str == "NOAUTOUPDATE")
-                                                        global.USE_AUTO_UPDATE = 0;
-                                                    else
-                                                        if(str == "NOPARAMJS")
-                                                            global.USE_PARAM_JS = 0;
+                                        break;
+                                    case "LOCALRUN":
+                                        global.LOCAL_RUN = 1;
+                                        break;
+                                    case "TESTRUN":
+                                        global.TEST_NETWORK = 1;
+                                        break;
+                                    case "NOLOCALRUN":
+                                        global.LOCAL_RUN = 0;
+                                        break;
+                                    case "NOAUTOUPDATE":
+                                        global.USE_AUTO_UPDATE = 0;
+                                        break;
+                                    case "NOPARAMJS":
+                                        global.USE_PARAM_JS = 0;
+                                        break;
+                                    case "READONLYDB":
+                                        global.READ_ONLY_DB = 1;
+                                        break;
+                                }
+                            }
     }
 };
