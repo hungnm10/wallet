@@ -174,9 +174,15 @@
             window.attachEvent("onmessage", listener);
         }
 
-        var SMART={},BASE_ACCOUNT={};
+        var SMART={},BASE_ACCOUNT={},ACCOUNT_NUM=0;
         window.onload=function()
         {
+            var i=document.URL.indexOf("#");
+            if(i>0)
+            {
+                ACCOUNT_NUM=ParseNum(document.URL.substr(i+1));
+            }
+
             GetData("DappInfo",{Smart:glSmart}, function (SetData)
             {
                 if(SetData.Err)
@@ -350,7 +356,7 @@
     //    glDebugPath="./dapp-smart/gambling-1.html";
     //   glDebugPath="./dapp-smart/BTC-coin.html";
     //  glDebugPath="./dapp-smart/freeze.html";
-      glDebugPath="./dapp-smart/promise.html";
+    //  glDebugPath="./dapp-smart/promise.html";
     //{"HTMLBlock":11074886,"HTMLTr":0}
 </script>
 

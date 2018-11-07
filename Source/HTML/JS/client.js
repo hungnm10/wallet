@@ -780,7 +780,7 @@ function RetNumDapp(Item)
     return Item.Num;
 };
 
-function RetOpenDapps(Item,bNum)
+function RetOpenDapps(Item,bNum,AccountNum)
 {
     var Name = escapeHtml(Item.Name);
     if(bNum)
@@ -788,9 +788,9 @@ function RetOpenDapps(Item,bNum)
     if(Item.HTMLLength > 0)
     {
         if(Item.IconBlockNum)
-            return '<button class="bt_open_dapp" onclick="OpenDapps(' + Item.Num + ')"><img src="/file/' + Item.IconBlockNum + '/' + Item.IconTrNum + '" style="vertical-align:middle; max-width: 32px;"> ' + Name + '</button>';
+            return '<button class="bt_open_dapp" onclick="OpenDapps(' + Item.Num + ',' + AccountNum + ')"><img src="/file/' + Item.IconBlockNum + '/' + Item.IconTrNum + '" style="vertical-align:middle; max-width: 32px;"> ' + Name + '</button>';
         else
-            return '<button class="bt_open_dapp" onclick="OpenDapps(' + Item.Num + ')">' + Name + '</button>';
+            return '<button class="bt_open_dapp" onclick="OpenDapps(' + Item.Num + ',' + AccountNum + ')">' + Name + '</button>';
     }
     else
         if(Item.IconBlockNum)
@@ -846,7 +846,7 @@ function RetChangeSmart(Item)
     {
         if(Item.SmartObj.HTMLLength)
         {
-            Name = RetOpenDapps(Item.SmartObj, 1);
+            Name = RetOpenDapps(Item.SmartObj, 1, Item.Num);
             bOpen = 1;
         }
         else
@@ -1160,9 +1160,12 @@ function AddToInvoiceList(Item)
     localStorage["InvoiceList"] = JSON.stringify(arr);
 };
 
-function OpenDapps(Num)
+function OpenDapps(Num,AccountNum)
 {
-    window.Open('/dapp/' + Num, 'dapp', 1200);
+    if(AccountNum)
+        window.Open('/dapp/' + Num + '#' + AccountNum, 'dapp', 1200);
+    else
+        window.Open('/dapp/' + Num, 'dapp', 1200);
 };
 
 function ParseFileName(Str)
