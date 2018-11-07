@@ -11,6 +11,11 @@ global.START_PORT_NUMBER = 30000;
 global.CREATE_ON_START=0;
 
 global.LOCAL_RUN=0;
+
+require('./core/library.js');
+if(!global.HTTP_PORT_NUMBER)//try 2
+    global.HTTP_PORT_NUMBER=Math.trunc(10000*Math.random())+50000;
+
 require('./core/run-server');
 
 

@@ -328,6 +328,18 @@ table.keys
 {
     font-size: smaller;
 }
+#grid_history .red td
+{
+    color: darkred;
+}
+#grid_history .blue td
+{
+    color: darkblue;
+}
+#grid_history .green td
+{
+    color: darkgreen;
+}
 
 
 

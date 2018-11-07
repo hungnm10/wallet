@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 690;
+global.UPDATE_CODE_VERSION_NUM = 691;
 global.MIN_CODE_VERSION_NUM = 682;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
@@ -177,7 +177,8 @@ function InitParamsArg()
 {
     for(var i = 1; i < process.argv.length; i++)
     {
-        var str = process.argv[i].toUpperCase();
+        var str0 = process.argv[i];
+        var str = str0.toUpperCase();
         if(str.substr(0, 9) == "HTTPPORT:")
         {
             global.HTTP_PORT_NUMBER = parseInt(str.substr(9));
@@ -185,11 +186,11 @@ function InitParamsArg()
         else
             if(str.substr(0, 9) == "PASSWORD:")
             {
-                global.HTTP_PORT_PASSWORD = str.substr(9);
+                global.HTTP_PORT_PASSWORD = str0.substr(9);
             }
             else
                 if(str.substr(0, 5) == "PATH:")
-                    global.DATA_PATH = str.substr(5);
+                    global.DATA_PATH = str0.substr(5);
                 else
                     if(str.substr(0, 5) == "PORT:")
                         global.START_PORT_NUMBER = parseInt(str.substr(5));

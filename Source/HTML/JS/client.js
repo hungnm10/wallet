@@ -412,6 +412,18 @@ function ParseNum(Str)
     return Res;
 };
 
+function parseUint(Str)
+{
+    var Res = parseInt(Str);
+    if(isNaN(Res))
+        Res = 0;
+    if(!Res)
+        Res = 0;
+    if(Res < 0)
+        Res = 0;
+    return Res;
+};
+
 function CopyObjKeys(dest,src)
 {
     for(var key in src)
@@ -652,6 +664,7 @@ function CreateEval(formula,StrParams)
     return Ret;
 };
 var glWorkNum = 0;
+var CUR_ROW;
 
 function SetGridData(arr,id_name,TotalSum,bclear,revert)
 {
@@ -696,6 +709,7 @@ function SetGridData(arr,id_name,TotalSum,bclear,revert)
             }
         }
         row.Work = glWorkNum;
+        CUR_ROW = row;
         for(var n = 0; n < colcount; n++)
         {
             var cell = row.cells[n];
@@ -788,10 +802,14 @@ function RetOpenDapps(Item,bNum)
 function RetDirect(Value)
 {
     if(Value === "-")
+    {
         return "<B style='color:red'>-</B>";
+    }
     else
         if(Value === "+")
+        {
             return "<B style='color:green;'>+</B>";
+        }
         else
             return "";
 };

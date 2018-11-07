@@ -266,7 +266,8 @@
     {
         GetData("FindMyAccounts",{},function (Data)
         {
-           UpdatesData();
+            WasAccountsDataStr="";
+            UpdatesData();
         });
 
     }
@@ -1178,20 +1179,17 @@
     }
 
     //TODO - тормозит со временем!!!!
+    var WasAccountsDataStr;
     function SetAccountsData(Data)
     {
         if(!Data || !Data.result)
             return;
-        var arr=Data.ArrAcc;
+        var AccountsDataStr=JSON.stringify(Data);
+        if(AccountsDataStr===WasAccountsDataStr)
+            return;
+        WasAccountsDataStr=AccountsDataStr;
 
-//        if(arr.length===0 && WasCreateAccountInfo!==PubKeyStr && WalletStatus==="OK")
-//        {
-//            WalletStatus="";
-//
-//            SelectTab('TabAccounts');
-//            SetVisibleBlock("edit_create_acc",false);
-//            ViewNewAccount();
-//        }
+        var arr=Data.ArrAcc;
 
         //select list
         var Select=document.getElementById("idAccount");
