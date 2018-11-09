@@ -100,7 +100,14 @@ module.exports = class CCommon
                 SumDeltaHot += DeltaTime
             }
         }
-        var CountAll = SERVER.NodesArr.length;
+        var CountAll = 0;
+        var CurTime = GetCurrentTime() - 0;
+        for(var i = 0; i < SERVER.NodesArr.length; i++)
+        {
+            var Item = SERVER.NodesArr[i];
+            if(Item.LastTime === 0 || (CurTime - Item.LastTime) < 600 * 1000)
+                CountAll++
+        }
         ADD_TO_STAT("MAX:ALL_NODES", CountAll)
         ADD_TO_STAT("MAX:CONNECTED_NODES", Count)
         ADD_TO_STAT("MAX:HOT_NODES", CountHot)
