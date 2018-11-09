@@ -116,6 +116,7 @@
                             Data.Err=!SetData.result;
                             for(var key in SetData)
                                 Data[key]=SetData[key];
+                            Data.ACCOUNT_OPEN_NUM=ACCOUNT_OPEN_NUM;
                             SendMessage(Data);
                         }
                     });
@@ -174,13 +175,13 @@
             window.attachEvent("onmessage", listener);
         }
 
-        var SMART={},BASE_ACCOUNT={},ACCOUNT_NUM=0;
+        var SMART={},BASE_ACCOUNT={},ACCOUNT_OPEN_NUM=0;
         window.onload=function()
         {
             var i=document.URL.indexOf("#");
             if(i>0)
             {
-                ACCOUNT_NUM=ParseNum(document.URL.substr(i+1));
+                ACCOUNT_OPEN_NUM=ParseNum(document.URL.substr(i+1));
             }
 
             GetData("DappInfo",{Smart:glSmart}, function (SetData)
@@ -222,8 +223,8 @@
         {
             var iframe = document.createElement('iframe');
             iframe.name = 'dapp';
-            iframe.style.width = '100%';
-            iframe.style.height = '94vh';
+//            iframe.style.width = '100vw';
+//            iframe.style.height = '94%';
             iframe.sandbox="allow-scripts";
             SetData.Body='\
                     <meta charset="UTF-8">\
@@ -318,7 +319,7 @@
                     Data.cmd="OnEvent";
                     Data.Description="Error: "+Item.text;
                     Data.Error=1;
-                    console.log(JSON.stringify(Item));
+                    //console.log(JSON.stringify(Item));
                     SendMessage(Data);
                     TR.WasSend=1;
                 }
@@ -333,7 +334,7 @@
         }
         function SetError(Str,bNoSound)
         {
-            SetStatus("<DIV  align='left' style='color:red'><B>"+Str+"</B></DIV>");
+            SetStatus("<DIV style='color:red'><B>"+Str+"</B></DIV>");
         }
 
         function InstallApp()
@@ -342,21 +343,42 @@
         }
 
     </script>
+    <style>
+        iframe
+        {
+            position:fixed;
+            left:0;
+            top: 20px;
+            width: 100%;
+            height: 97vh;
+        }
+        #idStatus
+        {
+            text-align: center;
+            position:fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height:20px;
+            padding: 0;
+            margin: 0;
+        }
 
+    </style>
 </head>
 <body>
-<DIV id="idStatus" style="width: 100%;height: 20px"></DIV>
+<DIV id="idStatus">111</DIV>
 </body>
 </html>
 
 <script>
     var glDebugPath="";
-    //    glDebugPath="./dapp-smart/forum.html";
-    //    glDebugPath="./dapp-smart/DEX.html";
+        glDebugPath="./dapp-smart/forum.html";
+  //      glDebugPath="./dapp-smart/DEX.html";
     //    glDebugPath="./dapp-smart/gambling-1.html";
     //   glDebugPath="./dapp-smart/BTC-coin.html";
     //  glDebugPath="./dapp-smart/freeze.html";
     //  glDebugPath="./dapp-smart/promise.html";
-    //{"HTMLBlock":11074886,"HTMLTr":0}
+    //{"HTMLBlock":11318729,"HTMLTr":0}
 </script>
 

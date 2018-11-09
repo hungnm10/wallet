@@ -232,8 +232,8 @@ document.addEventListener("DOMContentLoaded", function ()
             OpenRefFile(this.href);
         });
 }), window.addEventListener ? window.addEventListener("message", listener) : window.attachEvent("onmessage", listener);
-var SMART = {}, BASE_ACCOUNT = {}, INFO = {}, USER_ACCOUNT = [], USER_ACCOUNT_MAP = {}, WasStartInit = 0, WasStartInit2 = 0,
-eventInit = new Event("Init"), eventInfo = new Event("UpdateInfo");
+var SMART = {}, BASE_ACCOUNT = {}, INFO = {}, USER_ACCOUNT = [], USER_ACCOUNT_MAP = {}, ACCOUNT_OPEN_NUM = 0, WasStartInit = 0,
+WasStartInit2 = 0, eventInit = new Event("Init"), eventInfo = new Event("UpdateInfo");
 
 function UpdateDappInfo()
 {
@@ -243,7 +243,8 @@ function UpdateDappInfo()
             SetError("Error Info");
         else
         {
-            SMART = (INFO = t).Smart, BASE_ACCOUNT = t.Account, SetBlockChainConstant(t), USER_ACCOUNT = t.WalletList, USER_ACCOUNT_MAP = {};
+            SMART = (INFO = t).Smart, BASE_ACCOUNT = t.Account, ACCOUNT_OPEN_NUM = t.ACCOUNT_OPEN_NUM, SetBlockChainConstant(t), USER_ACCOUNT = t.WalletList,
+            USER_ACCOUNT_MAP = {};
             for(var a = 0; a < USER_ACCOUNT.length; a++)
                 USER_ACCOUNT_MAP[USER_ACCOUNT[a].Num] = USER_ACCOUNT[a];
             window.OnInit && !WasStartInit ? (WasStartInit = 1, window.OnInit(1)) : window.OnUpdateInfo && window.OnUpdateInfo(), WasStartInit2 || (WasStartInit2 = 1,

@@ -839,10 +839,6 @@ module.exports = class CDB extends require("../code")
                     }
                     arr[i] = Power
                     arrmy[i] = PowerMy
-                    if(arr[i] > 10000)
-                        var sss = 1;
-                    if(arr[i] <= 0)
-                        var sss2 = 1;
                     ArrPower[i2] = arr[i]
                     ArrPowerMy[i2] = arrmy[i]
                     if(num > FinishNumStat)
@@ -864,6 +860,13 @@ module.exports = class CDB extends require("../code")
         var arr = this.StatMap[name];
         if(!arr)
             arr = []
+        var arrT = this.StatMap["POWER_BLOCKCHAIN"];
+        for(var i = 0; i < arrT.length; i++)
+            if(!arrT[i])
+            {
+                this.StatMap = undefined
+                break;
+            }
         return arr;
     }
 };

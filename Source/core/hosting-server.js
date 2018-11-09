@@ -15,6 +15,30 @@ global.DATA_PATH = GetNormalPathString(global.DATA_PATH);
 global.CODE_PATH = GetNormalPathString(global.CODE_PATH);
 require("./library");
 global.READ_ONLY_DB = 1;
+var LastAlive = new Date() - 0;
+setTimeout(function ()
+{
+    setInterval(CheckAlive, 1000);
+}, 20000);
+process.on('message', function (msg)
+{
+    LastAlive = (new Date()) - 0;
+    if(msg.cmd === "Exit")
+    {
+        process.exit(0);
+    }
+});
+
+function CheckAlive()
+{
+    var Delta = (new Date()) - LastAlive;
+    if(Math.abs(Delta) > CHECK_STOP_CHILD_PROCESS)
+    {
+        ToLog("HOSTING: Stop and exit: " + Delta + "/" + global.CHECK_STOP_CHILD_PROCESS);
+        process.exit(0);
+        return ;
+    }
+};
 process.on('uncaughtException', function (err)
 {
     ToError(err.stack);
@@ -29,7 +53,10 @@ process.on('error', function (err)
     ToLog(err.stack);
 });
 if(!global.HTTP_HOSTING_PORT)
+{
     ToLogTrace("global.HTTP_HOSTING_PORT=" + global.HTTP_HOSTING_PORT);
+    process.exit();
+}
 var CServerDB = require("./db/block-db");
 var KeyPair = crypto.createECDH('secp256k1');
 KeyPair.setPrivateKey(Buffer.from([77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,

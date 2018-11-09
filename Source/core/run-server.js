@@ -55,10 +55,32 @@ process.on('error', function (err)
     ToError(err.stack);
     ToLog(err.stack);
 });
+var idHostingAliveInterval = 0;
+var HostingWorker;
 if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 {
-    Fork("./core/hosting-server.js", ["READONLYDB"]);
+    HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
+    idHostingAliveInterval = setInterval(function ()
+    {
+        if(!HostingWorker.connected)
+        {
+            ToLog("NOT HOSTING CONNECTED. RESTART!");
+            HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
+        }
+        else
+        {
+            HostingWorker.send({cmd:"Alive"});
+        }
+    }, 2000);
 }
+global.StopHostingServer = function ()
+{
+    if(idHostingAliveInterval)
+        clearInterval(idHostingAliveInterval);
+    idHostingAliveInterval = 0;
+    if(HostingWorker && HostingWorker.connected)
+        HostingWorker.send({cmd:"Exit"});
+};
 require("./html-server");
 RunServer();
 setInterval(function run1()

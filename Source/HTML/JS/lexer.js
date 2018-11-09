@@ -8,7 +8,6 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-﻿;
 const LOC_ADD_NAME = "$";
 module.exports = function ()
 {

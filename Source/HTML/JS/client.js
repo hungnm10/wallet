@@ -933,6 +933,7 @@ function SetVisibleBlock(name,bSet)
         if(bSet)
         {
             Item.style.display = 'block';
+            DoStableScroll();
         }
         else
         {
@@ -987,6 +988,7 @@ function SaveValuesByArr(Arr,DopStr)
 };
 var MapCurrency = {};
 MapCurrency[0] = "TERA";
+MapCurrency[16] = "BTC";
 var MapCategory = {};
 MapCategory[0] = "-";
 MapCategory[1] = "Art & Music";

@@ -217,6 +217,7 @@ global.RestartNode = function RestartNode()
     SERVER.StopServer();
     SERVER.StopNode();
     RunStopPOWProcess("STOP");
+    StopHostingServer();
     ToLog("****************************************** RESTART!!!");
     console.log("EXIT 1");
 };

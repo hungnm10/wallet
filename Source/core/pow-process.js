@@ -21,7 +21,7 @@ var idInterval = void 0, Block = {};
 function CheckAlive()
 {
     var e = new Date - LastAlive;
-    Math.abs(e) > CHECK_STOP_MINING && PROCESS.exit(0);
+    Math.abs(e) > CHECK_STOP_CHILD_PROCESS && PROCESS.exit(0);
 };
 
 function CalcPOWHash()
