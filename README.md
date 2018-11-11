@@ -187,4 +187,5 @@ I do not recommend installing the test network on the same computer for the foll
 * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 * Discord: https://discord.gg/CvwrbeG
 * [Документация на русском](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
+* [Документация по смарт-контрактам на русском](https://docs.google.com/document/d/1SkD4yc_POaGRMJRC6yGkDfdJUuKbcyq3JpG0cBXeYGM/edit?usp=sharing)
 

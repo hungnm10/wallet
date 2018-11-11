@@ -243,5 +243,6 @@ Version = 3 - поддержка переводов на счета со сма�
 * Twitter: https://twitter.com/terafoundation
 * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 * Discord [RUS]: https://discord.gg/dzSGKyR
+* [Документация по смарт-контрактам на русском](https://docs.google.com/document/d/1SkD4yc_POaGRMJRC6yGkDfdJUuKbcyq3JpG0cBXeYGM/edit?usp=sharing)
 
 
