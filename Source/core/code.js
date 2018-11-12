@@ -219,12 +219,12 @@ global.RestartNode = function RestartNode()
     RunStopPOWProcess("STOP");
     StopHostingServer();
     ToLog("****************************************** RESTART!!!");
-    console.log("EXIT 1");
+    ToLog("EXIT 1");
 };
 
 function DoExit()
 {
-    console.log("EXIT 2");
+    ToLog("EXIT 2");
     if(global.nw || global.NWMODE)
     {
         ToLog("RESTART NW");
@@ -234,6 +234,6 @@ function DoExit()
         const child_process = require('child_process');
         child_process.exec("run-next.bat", {shell:true});
     }
-    console.log("EXIT 3");
+    ToLog("EXIT 3");
     process.exit(0);
 };

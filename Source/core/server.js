@@ -333,6 +333,8 @@ module.exports = class CTransport extends require("./connect")
             return ;
         var Key = "" + Node.ip.trim();
         Node.DeltaBan = Node.DeltaBan * 2
+        if(!Node.DeltaBan)
+            Node.DeltaBan = 1000
         this.BAN_IP[Key] = {TimeTo:(GetCurrentTime(0) - 0) + Node.DeltaBan * 1000}
         this.DeleteNodeFromActiveByIP(Node.ip)
         ToLog("ADD TO BAN: " + NodeName(Node) + " " + Str)

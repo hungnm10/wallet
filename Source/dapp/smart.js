@@ -487,6 +487,14 @@ function GetParsing(Str)
 function GetSmartEvalContext(Smart)
 {
     var EvalContext = DApps.Smart.DBSmart.GetMap("EVAL" + Smart.Num);
+    if(0)
+        if(Smart.Num === 13)
+        {
+            const fs = require("fs");
+            var Path = "./dapp-smart/DEX.js";
+            Smart.Code = fs.readFileSync(Path, {encoding:"utf8"});
+            EvalContext = undefined;
+        }
     if(!EvalContext)
     {
         var CodeLex = GetParsing(Smart.Code);

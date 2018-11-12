@@ -558,7 +558,9 @@ module.exports = class CConnect extends require("./transfer-msg")
         {
             for(var i = 0; i < arr.length; i++)
             {
-                this.AddToArrNodes(arr[i], true)
+                var Item = this.AddToArrNodes(arr[i], true);
+                if(Item)
+                    Item.LastTimeGetNode = CurTime - 0
             }
         }
         Info.Node.IsAddrList = Data.IsAddrList
@@ -1230,6 +1232,7 @@ module.exports = class CConnect extends require("./transfer-msg")
         var CountNodes = this.ActualNodes.size;
         if(CountNodes || this.StopDetectGrayMode)
         {
+            this.SetDirectMode()
             this.StopDetectGrayMode = 1
             return ;
         }
@@ -1243,7 +1246,17 @@ module.exports = class CConnect extends require("./transfer-msg")
             {
                 global.NET_WORK_MODE = {ip:"", port:""}
             }
-            NET_WORK_MODE.UseDirectIP = 0
+            global.NET_WORK_MODE.UseDirectIP = 0
+            SAVE_CONST()
+        }
+    }
+    SetDirectMode()
+    {
+        var CountNodes = this.ActualNodes.size;
+        if(CountNodes && !global.NET_WORK_MODE)
+        {
+            global.NET_WORK_MODE = {ip:"", port:"30000"}
+            global.NET_WORK_MODE.UseDirectIP = 1
             SAVE_CONST()
         }
     }

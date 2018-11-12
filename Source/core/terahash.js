@@ -144,7 +144,7 @@ function CreateHashMinimal(Block,MinerID)
 };
 var MAX_MEMORY3 = 0, SHIFT_MASKA3;
 var BufferNonce3, BufferBlockNum3;
-var bWasInitVer3;
+var bWasInitVer3, bWasInitVerOK3;
 
 function InitVer3(Block)
 {
@@ -167,8 +167,20 @@ function InitVer3(Block)
             MAX_MEMORY3 = MAX_MEMORY3 * 2;
         }
         SHIFT_MASKA3 = 32 - BitCount;
-        BufferNonce3 = new Uint32Array(MAX_MEMORY3);
-        BufferBlockNum3 = new Uint32Array(MAX_MEMORY3);
+        try
+        {
+            BufferNonce3 = new Uint32Array(MAX_MEMORY3);
+            BufferBlockNum3 = new Uint32Array(MAX_MEMORY3);
+        }
+        catch(e)
+        {
+            SHIFT_MASKA3 = SHIFT_MASKA3 + 1;
+            MAX_MEMORY3 = MAX_MEMORY3 / 2;
+            ToLog("WAS ALLOC MEMORY ERROR. NEW TRY: " + MAX_MEMORY3);
+            BufferNonce3 = new Uint32Array(MAX_MEMORY3);
+            BufferBlockNum3 = new Uint32Array(MAX_MEMORY3);
+        }
+        bWasInitVerOK3 = 1;
         ToLog("MAX HASH ITEMS=" + Math.trunc(MAX_MEMORY3 / 1024 / 1024) + " M");
     }
 };
@@ -177,7 +189,7 @@ function CreatePOWVersion3(Block)
 {
     if(!bWasInitVer3)
         InitVer3(Block);
-    if(!MAX_MEMORY3)
+    if(!bWasInitVerOK3)
         return 0;
     if(!Block.LastNonce)
         Block.LastNonce = 0;
@@ -198,14 +210,14 @@ function CreatePOWVersion3(Block)
     var LastNonce = Block.LastNonce;
     var BlockNum = Block.BlockNum;
     var Miner = Block.MinerID;
-    for(var nonce = 0; nonce < RunCount; nonce++)
+    var StartNonceRnd = Block.LastNonce + Math.trunc(3000000000 * Math.random());
+    var List = GetNonceHashArr(BlockNum, Miner, StartNonceRnd, RunCount);
+    for(var n = 0; n < RunCount; n++)
     {
-        var Nonce = Math.trunc(4000000000 * Math.random());
-        var HashNonce = GetHashFromNum3(BlockNum, Miner, Nonce);
-        var HashNum = ReadIndexFromArr(HashNonce);
-        var Index = HashNum;
-        BufferNonce3[Index] = Nonce;
-        BufferBlockNum3[Index] = BlockNum;
+        var Nonce = List.ArrNonce[n];
+        var HashNum = List.ArrHash[n] >>> SHIFT_MASKA3;
+        BufferNonce3[HashNum] = Nonce;
+        BufferBlockNum3[HashNum] = BlockNum;
     }
     Block.LastNonce += RunCount;
     var Ret = 0;
@@ -294,4 +306,18 @@ function ReadIndexFromArr(arr)
     var value = (arr[0] << 23) * 2 + (arr[1] << 16) + (arr[2] << 8) + arr[3];
     value = value >>> SHIFT_MASKA3;
     return value;
+};
+global.GetNonceHashArr = function (BlockNum,Miner,StartNonceRnd,CountNonce)
+{
+    var ArrNonce = [];
+    var ArrHash = [];
+    for(var n = 0; n < CountNonce; n++)
+    {
+        var Nonce = StartNonceRnd + n;
+        var HashNonce = GetHashFromNum3(BlockNum, Miner, Nonce);
+        var HashNum = (HashNonce[0] << 23) * 2 + (HashNonce[1] << 16) + (HashNonce[2] << 8) + HashNonce[3];
+        ArrNonce[n] = Nonce;
+        ArrHash[n] = HashNum;
+    }
+    return {ArrNonce:ArrNonce, ArrHash:ArrHash};
 };

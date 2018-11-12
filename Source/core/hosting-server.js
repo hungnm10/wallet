@@ -34,7 +34,7 @@ function CheckAlive()
     var Delta = (new Date()) - LastAlive;
     if(Math.abs(Delta) > CHECK_STOP_CHILD_PROCESS)
     {
-        ToLog("HOSTING: Stop and exit: " + Delta + "/" + global.CHECK_STOP_CHILD_PROCESS);
+        ToLog("HOSTING: ALIVE TIMEOUT Stop and exit: " + Delta + "/" + global.CHECK_STOP_CHILD_PROCESS);
         process.exit(0);
         return ;
     }

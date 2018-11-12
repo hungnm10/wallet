@@ -49,6 +49,7 @@ module.exports = class CNode
     }
     ResetNode()
     {
+        this.LastTimeGetNode = 0
         this.DeltaGlobTime = 0
         this.CountDeltaTime = 0
         this.DeltaTime = 1000

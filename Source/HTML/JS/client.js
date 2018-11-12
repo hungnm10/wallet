@@ -105,7 +105,7 @@ function SUM_TO_STRING(Value,Currency,bFloat)
     if(Value.SumCOIN || Value.SumCENT)
         if(bFloat)
         {
-            Str = "" + FLOAT_FROM_COIN(Value);
+            Str = "" + FLOAT_FROM_COIN(Value).toStringF();
         }
         else
         {

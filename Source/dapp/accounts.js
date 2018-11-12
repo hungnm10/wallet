@@ -767,6 +767,8 @@ class AccountApp extends require("./dapp")
     }
     IsHole(num)
     {
+        if(global.ALL_ACCOUNTS_ROWS)
+            return 0;
         var ArrHole = this.GetHole();
         for(var i = 0; i < ArrHole.length; i++)
             if(num >= ArrHole[i].s && num <= ArrHole[i].f)

@@ -199,8 +199,8 @@ function RunStopPOWProcess(Mode)
     else
     {
         const os = require('os');
-        Memory = os.freemem() - 512 * 1024 * 1014;
-        if(Memory < 512 * 1024 * 1014)
+        Memory = os.freemem() - (512 + GetCountMiningCPU() * 100) * 1024 * 1014;
+        if(Memory < 0)
         {
             ToLog("Not enough memory to start processes.");
             return ;

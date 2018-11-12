@@ -47,6 +47,12 @@ td.cur
 {
     text-align: left;
     width: 50px;
+    font-size:smaller;
+}
+td.snum
+{
+    text-align: center;
+    width: 20px;
 }
 
 td.direct
@@ -177,7 +183,7 @@ table.form_input
 .accname
 {
     width: 180px;
-    font-family: "courier new", "times new roman", monospace;
+    font-family: Cambria,sans-serif;
     align-content: left;
     text-align: left;
     word-break: break-all;
@@ -450,5 +456,6 @@ table.keys
     width: 97%;
     margin: auto;
 }
+
 
 

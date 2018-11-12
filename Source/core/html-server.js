@@ -567,6 +567,8 @@ HTTPCaller.SetCheckPoint = function (BlockNum)
 
 function SetCheckPointOnBlock(BlockNum)
 {
+    if(WALLET.WalletOpen === false)
+        return 0;
     var Block = SERVER.ReadBlockHeaderDB(BlockNum);
     if(!Block)
         return 0;
