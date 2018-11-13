@@ -828,8 +828,7 @@
         }
         else
         {
-            Str='\
-            <BR><DIV>'+Item.text+
+            Str='<BR><DIV>'+Item.text+
             '<INPUT type="button" class="delete" onclick="DeleteDiagram(\''+Item.id+'\')" value="X"></DIV>\
             <BR><canvas  class="DIAGRAM" width="1100" height="'+MinHeight+'" id="'+Item.id+'"></canvas>';
         }
@@ -840,7 +839,7 @@
         else
         {
             var diargams = document.getElementById("diargams");
-            diargams.innerHTML+="<DIV id='"+Item.id+"'>"+Str+"</DIV>";
+            diargams.innerHTML+="<DIV id='B"+Item.id+"'>"+Str+"</DIV>";
         }
     }
     function DeleteDiagram(id)
