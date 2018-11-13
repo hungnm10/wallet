@@ -168,7 +168,7 @@ function UpdateCodeFiles(StartNum)
             {
                 ToLog("UnpackCodeFile:" + Name);
                 UnpackCodeFile(Path);
-                global.RestartNode();
+                global.RestartNode(1);
                 return 1;
             }
             else
@@ -204,10 +204,20 @@ function UnpackCodeFile(fname)
     });
     reader.close();
 };
-global.RestartNode = function RestartNode()
+global.RestartNode = function RestartNode(bForce)
 {
     global.NeedRestart = 1;
     setTimeout(DoExit, 5000);
+    if(global.nw || global.NWMODE)
+    {
+    }
+    else
+    {
+        StopHostingServer();
+        RunStopPOWProcess("STOP");
+        ToLog("********************************** FORCE RESTART!!!");
+        return ;
+    }
     var it = SERVER.ActualNodes.iterator(), Node;
     while((Node = it.next()) !== null)
     {

@@ -26,12 +26,17 @@ setTimeout(function ()
 {
     var Path;
     if(global.HTTP_SERVER_START_OK)
+    {
         Path='http://localhost:'+HTTP_PORT_NUMBER;
+    }
     else
+    {
+        ToLog("ERR HTTP-SERVER NOT STARTING");
         Path="";
+    }
     nw.Window.open(Path+'/HTML/wallet.html',
         {
-            width: 820,
+            width: 840,
             height: 1000,
             icon: "../HTML/PIC/wallet.png",
         }, function(win)

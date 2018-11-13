@@ -110,7 +110,7 @@
 
                     item.cells[0].innerText=name;
                     item.insertCell(arr.length);
-                    item.cells[arr.length+1].innerHTML=`<INPUT type="button" class="add" onclick="AddDiagram('${name}')" value="Add">`;
+                    item.cells[arr.length+1].innerHTML='<INPUT type="button" class="add" onclick="AddDiagram(\''+name+'\')" value="Add">';
                 }
 
 

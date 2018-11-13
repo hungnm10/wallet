@@ -786,6 +786,10 @@
         var ToID = ParseNum(document.getElementById("idTo").value);
         if(ToID && $("idWhiteOnSend").checked)
             localStorage["White:"+ToID]=1;
+        if($("idOnSendNoShow").checked)
+        {
+            GetData("SaveConstant",{CHECK_SEND:0});
+        }
     }
     function SendMoneyBefore()
     {
@@ -802,6 +806,7 @@
         if(CONFIG_DATA.CONSTANTS.CHECK_SEND)
         {
             var StrTo=" to "+GetAccountText(Item,ToID);
+            $("idOnSendNoShow").checked=0;
             $("idWhiteOnSend").checked=0;
             $("idOnSendText").innerText=""+$("idSumSend").value+" "+$("idCoinName").innerText+StrTo;
             SetVisibleBlock("idBlockOnSend",1);
@@ -1286,7 +1291,8 @@
         if(CONFIG_DATA.CONSTANTS.WALLET_NAME)
             Name=CONFIG_DATA.CONSTANTS.WALLET_NAME;
 
-        SetTitle(Name+" 0."+Data.VersionNum);
+        var StrVersion=" 0."+Data.VersionNum;
+        SetTitle(Name+StrVersion);
 
         if(CONFIG_DATA.CONSTANTS.COUNT_VIEW_ROWS)
             CountViewRows=CONFIG_DATA.CONSTANTS.COUNT_VIEW_ROWS;
@@ -1342,7 +1348,7 @@
         HistoryMaxNum=Data.HistoryMaxNum;
 
         DeltaTime=DeltaTime.toFixed(3);
-        var Str="Blockchain: <B>"+Data.BlockNumDB+"</B>  Current: <B>"+Data.CurBlockNum+"</B> Time delta:<B>"+DeltaTime+" sec</B>";
+        var Str="Blockchain: <B>"+Data.BlockNumDB+"</B>  Current: <B>"+Data.CurBlockNum+"</B> Time delta:<B>"+DeltaTime+" sec</B> Wallet ver:"+"<B>"+StrVersion+"</B>";
         document.getElementById("idCurrentBlockNum").innerHTML=Str;
 
 
@@ -1357,6 +1363,8 @@
             document.getElementById("idDataPath").innerText=Data.DATA_PATH;
         if(document.getElementById("idNodeAddr").innerText!==Data.NodeAddrStr)
             document.getElementById("idNodeAddr").innerText=Data.NodeAddrStr;
+
+
 
         //document.getElementById("idTo").max=MaxAccID;
         document.getElementById("idAdviser").max=MaxAccID;
@@ -1374,15 +1382,7 @@
 
         if(Data.NeedRestart)
         {
-            SetStatus("<H1 align='center' style='color:blue'>Restarting program...</H1>");
-            if(!WasSetRestart)
-            {
-                WasSetRestart=1;
-                setTimeout(function ()
-                {
-                    window.location.reload();
-                },10*1000)
-            }
+            DoRestartWallet();
         }
 
 
@@ -1403,7 +1403,7 @@
         else
             SetVisibleBlock("idMiningParams",0);
 
-        SetStatusMining(" Mining on:<B>"+MiningAccount+"</B>  HashRate:<B>"+(Math.trunc(Data.HashRate*10)/10)+"</B>Mh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
+        SetStatusMining(" Mining on:<B>"+MiningAccount+"</B>  HashRate:<B>"+(Math.floor(Data.HashRate*10)/10)+"</B>Mh/s CPU RUN:<B>"+Data.CountRunCPU+"</B>/"+Data.CountMiningCPU+" "+(Data.MiningPaused?"<B style='color:darkred;'>=PAUSED=</B>":""));
         if(CONFIG_DATA.CONSTANTS.USE_MINING && Data.CountRunCPU!==Data.CountMiningCPU)
         {
             $("idUseMining").className="checkbox checkbox_red";
@@ -1467,6 +1467,18 @@
                 }
             }
         });
+    }
+    function DoRestartWallet()
+    {
+        SetStatus("<H1 align='center' style='color:blue'>Restarting program...</H1>");
+        if(!WasSetRestart)
+        {
+            WasSetRestart=1;
+            setTimeout(function ()
+            {
+                window.location.reload();
+            },10*1000)
+        }
     }
 
     function SetVisibleBtOpenWallet()
@@ -1613,6 +1625,8 @@
                 SetVisibleBlock('idNetworkView',false);
             }
         });
+        if(bRestart)
+            DoRestartWallet();
 
     }
 
@@ -1651,6 +1665,8 @@
                 SetVisibleBlock('idConstantView',false);
             }
         });
+        if(bRestart)
+            DoRestartWallet();
     }
 
 
@@ -1686,6 +1702,8 @@
                 SetStatus("Set HTTP params OK");
             }
         });
+        if(bRestart)
+            DoRestartWallet();
     }
 
 </script>
@@ -2069,7 +2087,7 @@
 
         Data.StartBlockNum=ServerCurBlockNum+10;
 
-        Data.EndBlockNum=Data.StartBlockNum+Math.trunc(AutoDelta/Data.DeltaTime);
+        Data.EndBlockNum=Data.StartBlockNum+Math.floor(AutoDelta/Data.DeltaTime);
 
         var Str=JSON.stringify(Data,"",2);
         document.getElementById("idDevService").value=Str;
@@ -2102,6 +2120,7 @@
     function RestartNode()
     {
         GetData("RestartNode",{});
+        DoRestartWallet();
     }
 
 
@@ -2358,18 +2377,19 @@
         z-index:100;
         position:absolute;
         height:150px;
-        width:400px;
+        width:380px;
         top:20%;
         left:0;
-        transform: translateX(50vw) translateX(-200px);
+        transform: translateX(50vw) translateX(-190px);
 
         font-size: larger;
         padding: 10px;
-        background: #f7efa3;
-        color: #c40a0d;
+        background: #2b372d;
+        color: white;
         text-align: left;
-        box-shadow: 0 0 0 1px #880000;
-        border-radius: 4px;
+        border: 1px solid gray;
+        box-shadow: 0 0 0 2px darkgrey;
+        border-radius: 8px;
     }
     .radius
     {
@@ -2402,19 +2422,21 @@
         transform: translateY(-50px) translateX(-30px);
     }
 </style>
-
+<script>
+    $("idHintStyle").disabled=1;
+</script>
 
 <body>
 <DIV align='center'>
-<DIV align='left' style="width: 800px;height2: 920px; border: 1px solid #bfc1c0;">
+<DIV align='left' style="width: 800px;height2: 920px; border2: 1px solid #727473;">
 
     <table id="TabHeader">
         <tr>
-            <th><INPUT id="MTabAccounts" type="button" onclick="SelectTab('TabAccounts')" class="bttab" value="CONFIG"></th>
-            <th><INPUT id="MTabSend" type="button" onclick="SelectTab('TabSend')" class="bttab" value="SEND"></th>
-            <th><INPUT id="MTabHistory" type="button" onclick="SelectTab('TabHistory')" class="bttab" value="HISTORY"></th>
-            <th><INPUT id="MTabDapps" type="button" onclick="SelectTab('TabDapps')" class="bttab" value="DApps"></th>
-            <th><INPUT id="MTabExplorer" type="button" onclick="SelectTab('TabExplorer')" class="bttab" value="EXPLORER"></th>
+            <th><DIV id="MTabAccounts" onclick="SelectTab('TabAccounts')" class="bttab">CONFIG</DIV></th>
+            <th><DIV id="MTabSend" onclick="SelectTab('TabSend')" class="bttab">SEND</DIV></th>
+            <th><DIV id="MTabHistory" onclick="SelectTab('TabHistory')" class="bttab">HISTORY</DIV></th>
+            <th><DIV id="MTabDapps" onclick="SelectTab('TabDapps')" class="bttab">DApps</DIV></th>
+            <th><DIV id="MTabExplorer" onclick="SelectTab('TabExplorer')" class="bttab">EXPLORER</DIV></th>
         </tr>
     </table>
 
@@ -2654,6 +2676,7 @@
             <option value="styleBrown">Brown</option>
             <option value="styleBlue">Blue</option>
             <option value="styleGreen">Green</option>
+            <option value="styleDark">Dark</option>
         </select>
 
 
@@ -3143,10 +3166,12 @@
         <DIV align="center">
             Send <B id="idOnSendText"></B> ?
             <BR>
-            <BR>
             <button onclick="SendMoney2()" id="idBtOnSend" class="radius">Send</button>
             <button onclick='SetVisibleBlock("idBlockOnSend",0);' class="radius">Cancel</button>
-            <DIV style="color: black;font-size: smaller"><input type="checkbox" id="idWhiteOnSend"/> Add this account to white list</DIV>
+            <DIV align="left">
+            <DIV style="font-size: smaller"><input type="checkbox" id="idWhiteOnSend"/> Add this account to white list</DIV>
+            <DIV style="font-size: smaller"><input type="checkbox" id="idOnSendNoShow"/> Do not show this warning again</DIV>
+            </DIV>
         </DIV>
     </DIV>
 

@@ -197,9 +197,9 @@
             AvgValue=Item.AvgValue;
 
         if(AvgValue<50)
-            AvgValue=AvgValue.toFixed(1);
+            AvgValue=AvgValue.toFixed(2);
         else
-            AvgValue=Math.trunc(AvgValue);
+            AvgValue=Math.floor(AvgValue);
 
 
         if(Item.MaxValue!==undefined)
@@ -822,16 +822,16 @@
         if(Item.isLine)
         {
             if(Item.text)
-                Str=`<BR><B>${Item.text}</B><INPUT type="button" class="delete" onclick="DeleteDiagram('${Item.id}')" value="X">`
+                Str="<BR><B>"+Item.text+'</B><INPUT type="button" class="delete" onclick="DeleteDiagram(\''+Item.id+'\')" value="X">'
             else
                 Str="<HR>"
         }
         else
         {
-            Str=`
-            <BR><DIV>${Item.text}
-            <INPUT type="button" class="delete" onclick="DeleteDiagram('${Item.id}')" value="X"></DIV>
-            <BR><canvas  class="DIAGRAM" width='1100' height='${MinHeight}' id='${Item.id}'></canvas>`;
+            Str='\
+            <BR><DIV>'+Item.text+
+            '<INPUT type="button" class="delete" onclick="DeleteDiagram(\''+Item.id+'\')" value="X"></DIV>\
+            <BR><canvas  class="DIAGRAM" width="1100" height="'+MinHeight+'" id="'+Item.id+'"></canvas>';
         }
 
         var ElBlock=document.getElementById("B"+Item.id);
@@ -840,7 +840,7 @@
         else
         {
             var diargams = document.getElementById("diargams");
-            diargams.innerHTML+=`<DIV id='B${Item.id}'>${Str}</DIV>`;
+            diargams.innerHTML+="<DIV id='"+Item.id+"'>"+Str+"</DIV>";
         }
     }
     function DeleteDiagram(id)

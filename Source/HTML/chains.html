@@ -1185,7 +1185,7 @@
 
             var StrInfo="";
             StrInfo+="<DIV class='nodestatus'>"
-            StrInfo+=`Blocks:${MaxNum} ${GlErr}</B>`
+            StrInfo+="Blocks:"+MaxNum+" "+GlErr+"</B>";
             StrInfo+="</DIV>"
 
             for(var n=0;n<ResDataArr.length;n++)
@@ -1200,25 +1200,25 @@
                     var color=Domen.color;
 
 
-                    StrInfo+=`<DIV class='nodestatus' style="background:${color}">`
+                    StrInfo+="<DIV class='nodestatus' style='background:'"+color+"'>";
                     if(Domen.name!=="")
-                        StrInfo+=`<A href='${Domen.name}'>`;
+                        StrInfo+="<A href='"+Domen.name+"'>";
 
                     Data.DELTA_CURRENT_TIME=Math.floor(Data.DELTA_CURRENT_TIME)/1000;
 
                     if(Domen.Hot)
                     {
-                        StrInfo+=`dt:${Data.DELTA_CURRENT_TIME}`;
+                        StrInfo+="dt:"+Data.DELTA_CURRENT_TIME+"}";
                         if(Domen.name!=="")
                             StrInfo+="</A>";
-                        StrInfo+=` Mem: <B>${mem}</B>Mb`;
+                        StrInfo+=" Mem: <B>"+mem+"</B>Mb";
                     }
                     else
                     {
-                        StrInfo+=`dt:${Data.DELTA_CURRENT_TIME}`;
+                        StrInfo+="dt:"+Data.DELTA_CURRENT_TIME;
                         if(Domen.name!=="")
                             StrInfo+="</A>";
-                        StrInfo+=` Mem: ${mem}Mb`;
+                        StrInfo+=" Mem: "+mem+"Mb";
                     }
                     StrInfo+="</DIV>"
 

@@ -105,7 +105,7 @@ module.exports = class CCommon
         for(var i = 0; i < SERVER.NodesArr.length; i++)
         {
             var Item = SERVER.NodesArr[i];
-            if(Item.LastTime && (CurTime - Item.LastTime) < 600 * 1000)
+            if(Item.LastTime && (CurTime - Item.LastTime) < 300 * 1000)
                 CountAll++
             else
                 if(Item.LastTimeGetNode && (CurTime - Item.LastTimeGetNode) < 600 * 1000)

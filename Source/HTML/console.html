@@ -301,7 +301,7 @@
         Body[8]=(glNumSend>>>16) & 0xFF;
         Body[9]=(glNumSend>>>24) & 0xFF;
 
-        var rnd=Math.trunc(Math.random()*1000000000);
+        var rnd=Math.floor(Math.random()*1000000000);
         Body[10]=rnd&0xFF;
         Body[11]=(rnd>>>8) & 0xFF;
         Body[12]=(rnd>>>16) & 0xFF;

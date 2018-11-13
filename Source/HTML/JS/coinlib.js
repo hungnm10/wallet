@@ -8,94 +8,48 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-const MAX_SUM_TER = 1e9;
-const MAX_SUM_CENT = 1e9;
+var MAX_SUM_TER = 1e9, MAX_SUM_CENT = 1e9;
 
-function ADD(Coin,Value2)
+function ADD(N,C)
 {
-    Coin.SumCOIN += Value2.SumCOIN;
-    Coin.SumCENT += Value2.SumCENT;
-    if(Coin.SumCENT >= MAX_SUM_CENT)
-    {
-        Coin.SumCENT -= MAX_SUM_CENT;
-        Coin.SumCOIN++;
-    }
-    return true;
+    return N.SumCOIN += C.SumCOIN, N.SumCENT += C.SumCENT, N.SumCENT >= MAX_SUM_CENT && (N.SumCENT -= MAX_SUM_CENT, N.SumCOIN++),
+    !0;
 };
 
-function SUB(Coin,Value2)
+function SUB(N,C)
 {
-    Coin.SumCOIN -= Value2.SumCOIN;
-    if(Coin.SumCENT >= Value2.SumCENT)
-    {
-        Coin.SumCENT -= Value2.SumCENT;
-    }
-    else
-    {
-        Coin.SumCENT = MAX_SUM_CENT + Coin.SumCENT - Value2.SumCENT;
-        Coin.SumCOIN--;
-    }
-    if(Coin.SumCOIN < 0)
-    {
-        return false;
-    }
-    return true;
+    return N.SumCOIN -= C.SumCOIN, N.SumCENT >= C.SumCENT ? N.SumCENT -= C.SumCENT : (N.SumCENT = MAX_SUM_CENT + N.SumCENT - C.SumCENT,
+    N.SumCOIN--), !(N.SumCOIN < 0);
 };
 
-function DIV(Coin,Value)
+function DIV(N,C)
 {
-    Coin.SumCOIN = Coin.SumCOIN / Value;
-    Coin.SumCENT = Math.trunc(Coin.SumCENT / Value);
-    var SumCOIN = Math.trunc(Coin.SumCOIN);
-    var SumCENT = Math.trunc((Coin.SumCOIN - SumCOIN) * MAX_SUM_CENT);
-    Coin.SumCOIN = SumCOIN;
-    Coin.SumCENT = Coin.SumCENT + SumCENT;
-    if(Coin.SumCENT >= MAX_SUM_CENT)
-    {
-        Coin.SumCENT -= MAX_SUM_CENT;
-        Coin.SumCOIN++;
-    }
-    return true;
+    N.SumCOIN = N.SumCOIN / C, N.SumCENT = Math.trunc(N.SumCENT / C);
+    var S = Math.trunc(N.SumCOIN), u = Math.trunc((N.SumCOIN - S) * MAX_SUM_CENT);
+    return N.SumCOIN = S, N.SumCENT = N.SumCENT + u, N.SumCENT >= MAX_SUM_CENT && (N.SumCENT -= MAX_SUM_CENT, N.SumCOIN++), !0;
 };
 
-function FLOAT_FROM_COIN(Coin)
+function FLOAT_FROM_COIN(N)
 {
-    var Sum = Coin.SumCOIN + Coin.SumCENT / 1e9;
-    return Sum;
+    return N.SumCOIN + N.SumCENT / 1e9;
 };
 
-function COIN_FROM_FLOAT(Sum)
+function COIN_FROM_FLOAT(N)
 {
-    var SumCOIN = Math.trunc(Sum);
-    var SumCENT = Math.trunc((Sum - SumCOIN) * MAX_SUM_CENT);
-    var Coin = {SumCOIN:SumCOIN, SumCENT:SumCENT};
-    var Sum2 = FLOAT_FROM_COIN(Coin);
-    if(Sum2 !== Sum2)
-    {
+    var C = Math.trunc(N), S = {SumCOIN:C, SumCENT:Math.trunc((N - C) * MAX_SUM_CENT)}, u = FLOAT_FROM_COIN(S);
+    if(u != u)
         throw "ERR CHECK COIN_FROM_FLOAT";
-    }
-    return Coin;
+    return S;
 };
 
-function ISZERO(Coin)
+function ISZERO(N)
 {
-    if(Coin.SumCOIN === 0 && Coin.SumCENT === 0)
-        return true;
-    else
-        return false;
+    return 0 === N.SumCOIN && 0 === N.SumCENT;
 };
 
-function COIN_FROM_STRING(Str)
+function COIN_FROM_STRING(N)
 {
     throw "TODO: COIN_FROM_STRING";
 };
-if(typeof global === "object")
-{
-    global.ADD = ADD;
-    global.SUB = SUB;
-    global.DIV = DIV;
-    global.ISZERO = ISZERO;
-    global.FLOAT_FROM_COIN = FLOAT_FROM_COIN;
-    global.COIN_FROM_FLOAT = COIN_FROM_FLOAT;
-    global.COIN_FROM_STRING = COIN_FROM_STRING;
-}
+"object" == typeof global && (global.ADD = ADD, global.SUB = SUB, global.DIV = DIV, global.ISZERO = ISZERO, global.FLOAT_FROM_COIN = FLOAT_FROM_COIN,
+global.COIN_FROM_FLOAT = COIN_FROM_FLOAT, global.COIN_FROM_STRING = COIN_FROM_STRING);

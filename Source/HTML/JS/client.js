@@ -9,222 +9,74 @@
 */
 
 
-function $(id)
+function $(e)
 {
-    return document.getElementById(id);
+    return document.getElementById(e);
 };
-if(window.nw)
+var ServerHTTP;
+
+function SUM_TO_STRING(e,t,r)
 {
-    window.Open = function (path,iconname,width,height)
-    {
-        width = width || 840;
-        height = height || 1000;
-        var params = {width:width, height:height};
-        if(iconname)
-            params.icon = "../HTML/PIC/" + iconname + ".png";
-        window.nw.Window.open(path, params, function (win)
-        {
-        });
-    };
-    window.GetData = function (Method,ObjPost,Func)
-    {
-        window.nw.global.RunRPC({path:Method, obj:ObjPost}, Func);
-    };
-    let ServerHTTP = undefined;
-    global.RunRPC = function (message,Func)
-    {
-        if(!ServerHTTP)
-            ServerHTTP = require('../core/html-server');
-        var reply = ServerHTTP.SendData(message);
-        if(Func)
-        {
-            Func(reply);
-        }
-    };
-}
-else
+    var n;
+    return n = e.SumCOIN || e.SumCENT ? r ? "" + FLOAT_FROM_COIN(e).toStringF() : e.SumCOIN + "." + Rigth("000000000" + e.SumCENT,
+    9) : "", void 0 !== t && ("" === n && (n = "0"), n += " " + CurrencyName(t)), n;
+};
+
+function GetArrFromHex(e)
 {
-    window.Open = function (path,iconname,width,height)
-    {
-        if(!window.NWMODE)
+    for(var t = [], r = 0; e && r < e.length / 2; r++)
+        t[r] = parseInt(e.substr(2 * r, 2), 16);
+    return t;
+};
+
+function GetHexFromArr(e)
+{
+    e instanceof Array || !e.data || (e = e.data);
+    for(var t = "", r = 0; e && r < e.length; r++)
+        if(e[r])
         {
-            var win = window.open(path);
+            var n = (255 & e[r]).toString(16);
+            1 === n.length && (n = "0" + n), t += n;
         }
         else
-        {
-            width = width || 840;
-            height = height || 1000;
-            var left = (screen.width - width) / 2;
-            var params = "left=" + left + ",top=24,menubar=no,location=no,resizable=yes,scrollbars=no,status=no";
-            params += ",width=" + width;
-            params += ",height=" + height;
-            var win = window.open(path, undefined, params);
-        }
-    };
-    window.GetData = function (Method,ObjPost,Func)
-    {
-        if(Method.substr(0, 1) !== "/")
-            Method = "/" + Method;
-        var StrPost = null;
-        var serv = new XMLHttpRequest();
-        if(ObjPost !== null)
-        {
-            StrPost = JSON.stringify(ObjPost);
-            serv.open("POST", Method, true);
-        }
-        else
-        {
-            throw "ERROR GET-TYPE";
-        }
-        serv.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        serv.onreadystatechange = function ()
-        {
-            if(serv.readyState == 4)
-            {
-                if(serv.status == 200)
-                {
-                    if(Func)
-                    {
-                        Func(JSON.parse(serv.responseText), serv.responseText);
-                    }
-                }
-                else
-                {
-                    if(Func)
-                        Func(undefined);
-                }
-            }
-        };
-        serv.send(StrPost);
-    };
-}
+            t += "00";
+    return t.toUpperCase();
+};
 
-function SUM_TO_STRING(Value,Currency,bFloat)
+function GetStrFromAddr(e)
 {
-    var Str;
-    if(Value.SumCOIN || Value.SumCENT)
-        if(bFloat)
-        {
-            Str = "" + FLOAT_FROM_COIN(Value).toStringF();
-        }
-        else
-        {
-            Str = "" + Value.SumCOIN + "." + Rigth("000000000" + Value.SumCENT, 9);
-        }
-    else
-        Str = "";
-    if(Currency !== undefined)
+    return GetHexFromArr(e);
+};
+
+function GetHexFromArrBlock(e,t)
+{
+    for(var r = "", n = [], a = 0; a < e.length; a++)
+        n[a % t] = e[a], n.length >= t && (r += GetHexFromArr(n) + "\n", n = []);
+    return n.length && (r += GetHexFromArr(n)), r;
+};
+
+function Rigth(e,t)
+{
+    return e.length < t ? e : e.substr(e.length - t);
+};
+
+function toUTF8Array(e)
+{
+    for(var t = [], r = 0; r < e.length; r++)
     {
-        if(Str === "")
-            Str = "0";
-        Str += " " + CurrencyName(Currency);
+        var n = e.charCodeAt(r);
+        n < 128 ? t.push(n) : n < 2048 ? t.push(192 | n >> 6, 128 | 63 & n) : n < 55296 || 57344 <= n ? t.push(224 | n >> 12, 128 | n >> 6 & 63,
+        128 | 63 & n) : (r++, n = 65536 + ((1023 & n) << 10 | 1023 & e.charCodeAt(r)), t.push(240 | n >> 18, 128 | n >> 12 & 63, 128 | n >> 6 & 63,
+        128 | 63 & n));
     }
-    return Str;
+    return t;
 };
 
-function GetArrFromHex(Str)
+function Utf8ArrayToStr(e)
 {
-    var array = [];
-    for(var i = 0; Str && i < Str.length / 2; i++)
-    {
-        array[i] = parseInt(Str.substr(i * 2, 2), 16);
-    }
-    return array;
-};
-
-function GetHexFromArr(arr)
-{
-    if(!(arr instanceof Array) && arr.data)
-        arr = arr.data;
-    var Str = "";
-    for(var i = 0; arr && i < arr.length; i++)
-    {
-        if(!arr[i])
-            Str += "00";
-        else
-        {
-            var Val = arr[i] & 255;
-            var A = Val.toString(16);
-            if(A.length === 1)
-                A = "0" + A;
-            Str = Str + A;
-        }
-    }
-    return Str.toUpperCase();
-};
-
-function GetStrFromAddr(arr)
-{
-    return GetHexFromArr(arr);
-};
-
-function GetHexFromArrBlock(Arr,LenBlock)
-{
-    var Str = "";
-    var Arr2 = [];
-    for(var i = 0; i < Arr.length; i++)
-    {
-        Arr2[i % LenBlock] = Arr[i];
-        if(Arr2.length >= LenBlock)
-        {
-            Str += GetHexFromArr(Arr2) + "\n";
-            Arr2 = [];
-        }
-    }
-    if(Arr2.length)
-    {
-        Str += GetHexFromArr(Arr2);
-    }
-    return Str;
-};
-
-function Rigth(Str,Count)
-{
-    if(Str.length < Count)
-        return Str;
-    else
-        return Str.substr(Str.length - Count);
-};
-
-function toUTF8Array(str)
-{
-    var utf8 = [];
-    for(var i = 0; i < str.length; i++)
-    {
-        var charcode = str.charCodeAt(i);
-        if(charcode < 0x80)
-            utf8.push(charcode);
-        else
-            if(charcode < 0x800)
-            {
-                utf8.push(0xc0 | (charcode >> 6), 0x80 | (charcode & 0x3f));
-            }
-            else
-                if(charcode < 0xd800 || charcode >= 0xe000)
-                {
-                    utf8.push(0xe0 | (charcode >> 12), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
-                }
-                else
-                {
-                    i++;
-                    charcode = 0x10000 + (((charcode & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff));
-                    utf8.push(0xf0 | (charcode >> 18), 0x80 | ((charcode >> 12) & 0x3f), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
-                }
-    }
-    return utf8;
-};
-
-function Utf8ArrayToStr(array)
-{
-    var out, i, len, c;
-    var char2, char3;
-    out = "";
-    len = array.length;
-    i = 0;
-    while(i < len)
-    {
-        c = array[i++];
-        switch(c >> 4)
+    var t, r, n, a, o;
+    for(t = "", r = e.length, i = 0; i < r; )
+        switch((n = e[i++]) >> 4)
         {
             case 0:
             case 1:
@@ -234,1114 +86,697 @@ function Utf8ArrayToStr(array)
             case 5:
             case 6:
             case 7:
-                out += String.fromCharCode(c);
+                t += String.fromCharCode(n);
                 break;
             case 12:
             case 13:
-                char2 = array[i++];
-                out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
+                a = e[i++], t += String.fromCharCode((31 & n) << 6 | 63 & a);
                 break;
             case 14:
-                char2 = array[i++];
-                char3 = array[i++];
-                out += String.fromCharCode(((c & 0x0F) << 12) | ((char2 & 0x3F) << 6) | ((char3 & 0x3F) << 0));
-                break;
+                a = e[i++], o = e[i++], t += String.fromCharCode((15 & n) << 12 | (63 & a) << 6 | (63 & o) << 0);
         }
-    }
-    for(var i = 0; i < out.length; i++)
-    {
-        if(out.charCodeAt(i) < 32)
+    for(var i = 0; i < t.length; i++)
+        if(t.charCodeAt(i) < 32)
         {
-            out = out.substr(0, i);
+            t = t.substr(0, i);
             break;
         }
-    }
-    return out;
+    return t;
 };
 
-function GetArr32FromStr(Str)
+function GetArr32FromStr(e)
 {
-    return GetArrFromStr(Str, 32);
+    return GetArrFromStr(e, 32);
 };
 
-function GetArrFromStr(Str,Len)
+function GetArrFromStr(e,t)
 {
-    var arr = toUTF8Array(Str);
-    for(var i = arr.length; i < Len; i++)
+    for(var r = toUTF8Array(e), n = r.length; n < t; n++)
+        r[n] = 0;
+    return r.slice(0, t);
+};
+
+function WriteByte(e,t)
+{
+    e[e.length] = 255 & t;
+};
+
+function WriteUint(e,t)
+{
+    var r = e.length;
+    e[r] = 255 & t, e[r + 1] = t >>> 8 & 255, e[r + 2] = t >>> 16 & 255, e[r + 3] = t >>> 24 & 255;
+    var n = Math.floor(t / 4294967296);
+    e[r + 4] = 255 & n, e[r + 5] = n >>> 8 & 255;
+};
+
+function WriteUint16(e,t)
+{
+    var r = e.length;
+    e[r] = 255 & t, e[r + 1] = t >>> 8 & 255;
+};
+
+function WriteUint32(e,t)
+{
+    var r = e.length;
+    e[r] = 255 & t, e[r + 1] = t >>> 8 & 255, e[r + 2] = t >>> 16 & 255, e[r + 3] = t >>> 24 & 255;
+};
+
+function WriteStr(e,t,r)
+{
+    t || (t = "");
+    var n, a = toUTF8Array(t), o = e.length;
+    r ? n = r : (65535 < (n = a.length) && (n = 65535), e[o] = 255 & n, e[o + 1] = n >>> 8 & 255, o += 2);
+    for(var i = 0; i < n; i++)
+        e[o + i] = a[i];
+};
+
+function WriteArr(e,t,r)
+{
+    for(var n = e.length, a = 0; a < r; a++)
+        e[n + a] = t[a];
+};
+
+function WriteTr(e,t)
+{
+    var r = t.length, n = e.length;
+    e[n] = 255 & r, e[n + 1] = r >>> 8 & 255, n += 2;
+    for(var a = 0; a < r; a++)
+        e[n + a] = t[a];
+};
+
+function ReadUintFromArr(e,t)
+{
+    void 0 === t && (t = e.len, e.len += 6);
+    var r = 2 * (e[t + 5] << 23) + (e[t + 4] << 16) + (e[t + 3] << 8) + e[t + 2];
+    return r = 256 * (r = 256 * r + e[t + 1]) + e[t];
+};
+
+function ReadUintNext_DEL(e)
+{
+    var t = e.len, r = 2 * (e[t + 5] << 23) + (e[t + 4] << 16) + (e[t + 3] << 8) + e[t + 2];
+    return r = 256 * (r = 256 * r + e[t + 1]) + e[t], e.len += 6, r;
+};
+
+function ReadStr(e)
+{
+    var t = e[e.len] + 256 * e[e.len + 1];
+    e.len += 2;
+    var r = Utf8ArrayToStr(e.slice(e.len, e.len + t));
+    return e.len += t, r;
+};
+
+function ReadArr(e,t)
+{
+    for(var r = [], n = e.len, a = 0; a < t; a++)
+        r[a] = e[n + a];
+    return e.len += t, r;
+};
+
+function ParseNum(e)
+{
+    var t = parseInt(e);
+    return isNaN(t) && (t = 0), t || (t = 0), t < 0 && (t = 0), t;
+};
+
+function parseUint(e)
+{
+    var t = parseInt(e);
+    return isNaN(t) && (t = 0), t || (t = 0), t < 0 && (t = 0), t;
+};
+
+function CopyObjKeys(e,t)
+{
+    for(var r in t)
+        e[r] = t[r];
+};
+
+function SaveToArr(e,t)
+{
+    for(var r in t)
     {
-        arr[i] = 0;
-    }
-    return arr.slice(0, Len);
-};
-
-function WriteByte(arr,Num)
-{
-    arr[arr.length] = Num & 0xFF;
-};
-
-function WriteUint(arr,Num)
-{
-    var len = arr.length;
-    arr[len] = Num & 0xFF;
-    arr[len + 1] = (Num >>> 8) & 0xFF;
-    arr[len + 2] = (Num >>> 16) & 0xFF;
-    arr[len + 3] = (Num >>> 24) & 0xFF;
-    var NumH = Math.floor(Num / 4294967296);
-    arr[len + 4] = NumH & 0xFF;
-    arr[len + 5] = (NumH >>> 8) & 0xFF;
-};
-
-function WriteUint16(arr,Num)
-{
-    var len = arr.length;
-    arr[len] = Num & 0xFF;
-    arr[len + 1] = (Num >>> 8) & 0xFF;
-};
-
-function WriteUint32(arr,Num)
-{
-    var len = arr.length;
-    arr[len] = Num & 0xFF;
-    arr[len + 1] = (Num >>> 8) & 0xFF;
-    arr[len + 2] = (Num >>> 16) & 0xFF;
-    arr[len + 3] = (Num >>> 24) & 0xFF;
-};
-
-function WriteStr(arr,Str,ConstLength)
-{
-    if(!Str)
-        Str = "";
-    var arrStr = toUTF8Array(Str);
-    var length;
-    var len = arr.length;
-    if(ConstLength)
-    {
-        length = ConstLength;
-    }
-    else
-    {
-        length = arrStr.length;
-        if(length > 65535)
-            length = 65535;
-        arr[len] = length & 0xFF;
-        arr[len + 1] = (length >>> 8) & 0xFF;
-        len += 2;
-    }
-    for(var i = 0; i < length; i++)
-    {
-        arr[len + i] = arrStr[i];
-    }
-};
-
-function WriteArr(arr,arr2,ConstLength)
-{
-    var len = arr.length;
-    for(var i = 0; i < ConstLength; i++)
-    {
-        arr[len + i] = arr2[i];
-    }
-};
-
-function WriteTr(arr,arr2)
-{
-    var len2 = arr2.length;
-    var len = arr.length;
-    arr[len] = len2 & 0xFF;
-    arr[len + 1] = (len2 >>> 8) & 0xFF;
-    len += 2;
-    for(var i = 0; i < len2; i++)
-    {
-        arr[len + i] = arr2[i];
-    }
-};
-
-function ReadUintFromArr(arr,len)
-{
-    if(len === undefined)
-    {
-        len = arr.len;
-        arr.len += 6;
-    }
-    var value = (arr[len + 5] << 23) * 2 + (arr[len + 4] << 16) + (arr[len + 3] << 8) + arr[len + 2];
-    value = value * 256 + arr[len + 1];
-    value = value * 256 + arr[len];
-    return value;
-};
-
-function ReadUintNext_DEL(arr)
-{
-    var len = arr.len;
-    var value = (arr[len + 5] << 23) * 2 + (arr[len + 4] << 16) + (arr[len + 3] << 8) + arr[len + 2];
-    value = value * 256 + arr[len + 1];
-    value = value * 256 + arr[len];
-    arr.len += 6;
-    return value;
-};
-
-function ReadStr(arr)
-{
-    var length = arr[arr.len] + arr[arr.len + 1] * 256;
-    arr.len += 2;
-    var arr2 = arr.slice(arr.len, arr.len + length);
-    var Str = Utf8ArrayToStr(arr2);
-    arr.len += length;
-    return Str;
-};
-
-function ReadArr(arr,length)
-{
-    var Ret = [];
-    var len = arr.len;
-    for(var i = 0; i < length; i++)
-    {
-        Ret[i] = arr[len + i];
-    }
-    arr.len += length;
-    return Ret;
-};
-
-function ParseNum(Str)
-{
-    var Res = parseInt(Str);
-    if(isNaN(Res))
-        Res = 0;
-    if(!Res)
-        Res = 0;
-    if(Res < 0)
-        Res = 0;
-    return Res;
-};
-
-function parseUint(Str)
-{
-    var Res = parseInt(Str);
-    if(isNaN(Res))
-        Res = 0;
-    if(!Res)
-        Res = 0;
-    if(Res < 0)
-        Res = 0;
-    return Res;
-};
-
-function CopyObjKeys(dest,src)
-{
-    for(var key in src)
-    {
-        dest[key] = src[key];
-    }
-};
-
-function SaveToArr(Arr,Obj)
-{
-    for(var key in Obj)
-    {
-        Arr[0]++;
-        var Value = Obj[key];
-        switch(typeof Value)
+        e[0]++;
+        var n = t[r];
+        switch(typeof n)
         {
             case "number":
-                WriteByte(Arr, 241);
-                WriteUint(Arr, Value);
+                WriteByte(e, 241), WriteUint(e, n);
                 break;
             case "string":
-                WriteByte(Arr, 242);
-                WriteStr(Arr, Value);
+                WriteByte(e, 242), WriteStr(e, n);
                 break;
             case "object":
-                if(Value && (Value.length > 0 || Value.length === 0) && Value.length <= 240)
+                if(n && (0 < n.length || 0 === n.length) && n.length <= 240)
                 {
-                    WriteByte(Arr, Value.length);
-                    WriteArr(Arr, Value, Value.length);
+                    WriteByte(e, n.length), WriteArr(e, n, n.length);
                     break;
                 }
             default:
-                WriteByte(Arr, 250);
+                WriteByte(e, 250);
         }
     }
 };
 
-function LoadFromArr(Arr,Obj)
+function LoadFromArr(e,t)
 {
-    if(!Arr.length)
-        return false;
-    var Count = Arr[0];
-    Arr.len = 1;
-    for(var key in Obj)
+    if(!e.length)
+        return !1;
+    var r = e[0];
+    for(var n in e.len = 1, t)
     {
-        if(!Count)
+        if(!r)
             break;
-        Count--;
-        var Type = Arr[Arr.len];
-        Arr.len++;
-        switch(Type)
+        r--;
+        var a = e[e.len];
+        switch(e.len++, a)
         {
             case 241:
-                Obj[key] = ReadUintFromArr(Arr);
+                t[n] = ReadUintFromArr(e);
                 break;
             case 242:
-                Obj[key] = ReadStr(Arr);
+                t[n] = ReadStr(e);
                 break;
             default:
-                if(Type <= 240)
+                if(a <= 240)
                 {
-                    var length = Type;
-                    Obj[key] = ReadArr(Arr, length);
+                    var o = a;
+                    t[n] = ReadArr(e, o);
                     break;
                 }
-                else
-                {
-                    Obj[key] = undefined;
-                }
+                t[n] = void 0;
         }
     }
-    if(Arr[0])
-        return true;
-    else
-        return false;
+    return !!e[0];
 };
-var entityMap = {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':'&quot;', "'":'&#39;', "/":'&#x2F;', "\n":'<BR>', " ":'&nbsp;', };
-
-function escapeHtml(string)
+window.nw ? (window.Open = function (e,t,r,n)
 {
-    string = string.replace(/\\n/g, "\n");
-    string = string.replace(/\\"/g, "\"");
-    return String(string).replace(/[\s\n&<>"'\/]/g, function (s)
+    var a = {width:r = r || 840, height:n = n || 1e3};
+    t && (a.icon = "../HTML/PIC/" + t + ".png"), window.nw.Window.open(e, a, function (e)
     {
-        return entityMap[s];
+    });
+}, window.GetData = function (e,t,r)
+{
+    window.nw.global.RunRPC({path:e, obj:t}, r);
+}, global.RunRPC = function (e,t)
+{
+    ServerHTTP || (ServerHTTP = require("../core/html-server"));
+    var r = ServerHTTP.SendData(e);
+    t && t(r);
+}) : (window.Open = function (e,t,r,n)
+{
+    if(window.NWMODE)
+    {
+        r = r || 840, n = n || 1e3;
+        var a = "left=" + (screen.width - r) / 2 + ",top=24,menubar=no,location=no,resizable=yes,scrollbars=no,status=no";
+        a += ",width=" + r, a += ",height=" + n;
+        window.open(e, void 0, a);
+    }
+    else
+        window.open(e);
+}, window.GetData = function (e,t,r)
+{
+    "/" !== e.substr(0, 1) && (e = "/" + e);
+    var n = null, a = new XMLHttpRequest;
+    if(null === t)
+        throw "ERROR GET-TYPE";
+    n = JSON.stringify(t), a.open("POST", e, !0), a.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"), a.onreadystatechange = function ()
+    {
+        4 == a.readyState && (200 == a.status ? r && r(JSON.parse(a.responseText), a.responseText) : r && r(void 0));
+    }, a.send(n);
+});
+var entityMap = {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;", "/":"&#x2F;", "\n":"<BR>", " ":"&nbsp;"};
+
+function escapeHtml(e)
+{
+    return e = (e = e.replace(/\\n/g, "\n")).replace(/\\"/g, '"'), String(e).replace(/[\s\n&<>"'\/]/g, function (e)
+    {
+        return entityMap[e];
     });
 };
 
-function InsertAfter(elem,refElem)
+function InsertAfter(e,t)
 {
-    var parent = refElem.parentNode;
-    var next = refElem.nextSibling;
-    if(next)
+    var r = t.parentNode, n = t.nextSibling;
+    return n ? r.insertBefore(e, n) : r.appendChild(e);
+};
+
+function MoveUp(e)
+{
+    for(var t = e.parentNode, r = 0; r < t.children.length; r++)
     {
-        return parent.insertBefore(elem, next);
-    }
-    else
-    {
-        return parent.appendChild(elem);
+        var n = t.children[r];
+        if(n.id && void 0 !== n.id)
+            return t.insertBefore(e, n);
     }
 };
 
-function MoveUp(elem)
+function ViewGrid(e,t,r,n,a)
 {
-    var parent = elem.parentNode;
-    for(var i = 0; i < parent.children.length; i++)
+    GetData(e, t, function (e)
     {
-        var item = parent.children[i];
-        if(item.id && item.id !== undefined)
-        {
-            return parent.insertBefore(elem, item);
-        }
-    }
-};
-
-function ViewGrid(APIName,Params,nameid,bClear,TotalSum)
-{
-    GetData(APIName, Params, function (Data)
-    {
-        if(!Data || !Data.result)
-            return ;
-        SetGridData(Data.arr, nameid, TotalSum, bClear);
+        e && e.result && SetGridData(e.arr, r, a, n);
     });
 };
 
-function ViewCurrent(Def,flag,This)
+function ViewCurrent(e,t,r)
 {
-    if(Def.BlockName)
+    if(e.BlockName)
     {
-        if(flag)
+        if(t)
         {
-            var bVisible = IsVisibleBlock(Def.BlockName);
-            if(!bVisible)
-                MoveUp($(Def.BlockName));
-            SetVisibleBlock(Def.BlockName, !bVisible);
+            var n = IsVisibleBlock(e.BlockName);
+            n || MoveUp($(e.BlockName)), SetVisibleBlock(e.BlockName, !n);
         }
         else
-        {
-            SetVisibleBlock(Def.BlockName, true);
-        }
-        if(!IsVisibleBlock(Def.BlockName))
+            SetVisibleBlock(e.BlockName, !0);
+        if(!IsVisibleBlock(e.BlockName))
             return ;
     }
-    var item = $(Def.NumName);
-    var Filter = "", Filter2 = "";
-    if(Def.FilterName)
-    {
-        Filter = $(Def.FilterName).value;
-    }
-    if(Def.FilterName2)
-    {
-        Filter2 = $(Def.FilterName2).value;
-    }
-    if(!Def.Param3)
-        Def.Param3 = "";
-    ViewGrid(Def.APIName, {StartNum:ParseNum(item.value), CountNum:GetCountViewRows(Def), Param3:Def.Param3, Filter:Filter, Filter2:Filter2,
-    }, Def.TabName, 1, Def.TotalSum);
-    SaveValues();
-    if(This)
-        SetImg(This, Def.BlockName);
+    var a = $(e.NumName), o = "", i = "";
+    e.FilterName && (o = $(e.FilterName).value), e.FilterName2 && (i = $(e.FilterName2).value), e.Param3 || (e.Param3 = ""), ViewGrid(e.APIName,
+        {StartNum:ParseNum(a.value), CountNum:GetCountViewRows(e), Param3:e.Param3, Filter:o, Filter2:i}, e.TabName, 1, e.TotalSum),
+    SaveValues(), r && SetImg(r, e.BlockName);
 };
 
-function ViewPrev(Def)
+function ViewPrev(e)
 {
-    var item = document.getElementById(Def.NumName);
-    var Num = ParseNum(item.value);
-    Num -= GetCountViewRows(Def);
-    if(Num < 0)
-        Num = 0;
-    item.value = Num;
-    ViewCurrent(Def);
+    var t = document.getElementById(e.NumName), r = ParseNum(t.value);
+    (r -= GetCountViewRows(e)) < 0 && (r = 0), t.value = r, ViewCurrent(e);
 };
 
-function ViewNext(Def,MaxNum)
+function ViewNext(e,t)
 {
-    var item = document.getElementById(Def.NumName);
-    var Num = ParseNum(item.value);
-    Num += GetCountViewRows(Def);
-    if(Def.FilterName)
-    {
-        if(document.getElementById(Def.FilterName).value)
-        {
-            Num = document.getElementById(Def.TabName).MaxNum + 1;
-        }
-    }
-    if(Num < MaxNum)
-    {
-        item.value = Num;
-    }
-    else
-    {
-        item.value = MaxNum - MaxNum % GetCountViewRows(Def);
-    }
-    ViewCurrent(Def);
+    var r = document.getElementById(e.NumName), n = ParseNum(r.value);
+    n += GetCountViewRows(e), e.FilterName && document.getElementById(e.FilterName).value && (n = document.getElementById(e.TabName).MaxNum + 1),
+    r.value = n < t ? n : t - t % GetCountViewRows(e), ViewCurrent(e);
 };
 
-function ViewBegin(Def)
+function ViewBegin(e)
 {
-    document.getElementById(Def.NumName).value = 0;
-    ViewCurrent(Def);
+    document.getElementById(e.NumName).value = 0, ViewCurrent(e);
 };
 
-function ViewEnd(Def,MaxNum)
+function ViewEnd(e,t)
 {
-    document.getElementById(Def.NumName).value = MaxNum - MaxNum % GetCountViewRows(Def);
-    ViewCurrent(Def);
+    document.getElementById(e.NumName).value = t - t % GetCountViewRows(e), ViewCurrent(e);
 };
 
-function GetCountViewRows(Def)
+function GetCountViewRows(e)
 {
-    if(Def.CountViewRows)
-        return Def.CountViewRows;
-    else
-        return CountViewRows;
+    return e.CountViewRows ? e.CountViewRows : CountViewRows;
 };
 
 function DoStableScroll()
 {
-    var item = $("idStableScroll");
-    if(!item)
-        return ;
-    var scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight,
-    document.documentElement.offsetHeight, document.body.clientHeight, document.documentElement.clientHeight);
-    var itemlHeight = Math.max(item.scrollHeight, item.offsetHeight, item.clientHeight);
-    scrollHeight = scrollHeight - itemlHeight;
-    item.style.top = "" + scrollHeight + "px";
+    var e = $("idStableScroll");
+    if(e)
+    {
+        var t = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight,
+        document.body.clientHeight, document.documentElement.clientHeight);
+        t -= Math.max(e.scrollHeight, e.offsetHeight, e.clientHeight), e.style.top = t + "px";
+    }
 };
 var glEvalMap = {};
 
 function CreateEval(formula,StrParams)
 {
     var Ret = glEvalMap[formula];
-    if(!Ret)
-    {
-        eval("function M(" + StrParams + "){return " + formula + "}; Ret=M;");
-        glEvalMap[formula] = Ret;
-    }
-    return Ret;
+    return Ret || (eval("function M(" + StrParams + "){return " + formula + "}; Ret=M;"), glEvalMap[formula] = Ret), Ret;
 };
-var glWorkNum = 0;
-var CUR_ROW;
+var glWorkNum = 0, CUR_ROW;
 
-function SetGridData(arr,id_name,TotalSum,bclear,revert)
+function SetGridData(e,t,r,n,a)
 {
-    var htmlTable = document.getElementById(id_name);
-    if(bclear)
-        ClearTable(htmlTable);
-    if(!htmlTable.ItemsMap)
-    {
-        htmlTable.ItemsMap = {};
-        htmlTable.RowCount = 0;
-    }
-    var map = htmlTable.ItemsMap;
+    var o = document.getElementById(t);
+    n && ClearTable(o), o.ItemsMap || (o.ItemsMap = {}, o.RowCount = 0);
+    var i = o.ItemsMap;
     glWorkNum++;
-    var ValueTotal = {SumCOIN:0, SumCENT:0};
-    var row0 = htmlTable.rows[0];
-    var row0cells = row0.cells;
-    var colcount = row0cells.length;
-    for(var i = 0; arr && i < arr.length; i++)
+    for(var u = {SumCOIN:0, SumCENT:0}, l = o.rows[0].cells, c = l.length, s = 0; e && s < e.length; s++)
     {
-        var Item = arr[i];
-        var ID = Item.Num;
-        htmlTable.MaxNum = Item.Num;
-        var row = map[ID];
-        if(!row)
+        var m = e[s], g = m.Num;
+        if(o.MaxNum = m.Num, !(S = i[g]))
         {
-            htmlTable.RowCount++;
-            if(revert)
-                row = htmlTable.insertRow(1);
-            else
-                row = htmlTable.insertRow( - 1);
-            map[ID] = row;
-            for(var n = 0; n < colcount; n++)
+            o.RowCount++, S = a ? o.insertRow(1) : o.insertRow( - 1), i[g] = S;
+            for(var f = 0; f < c; f++)
             {
-                var cell0 = row0cells[n];
-                if(cell0.innerText == "")
-                    continue;
-                cell0.F = CreateEval(cell0.id, "Item");
-                if(cell0.id.substr(0, 1) === "(")
-                    cell0.H = 1;
-                var cell = row.insertCell(n);
-                cell.className = cell0.className;
+                if("" != (d = l[f]).innerText)
+                    d.F = CreateEval(d.id, "Item"), "(" === d.id.substr(0, 1) && (d.H = 1), (p = S.insertCell(f)).className = d.className;
             }
         }
-        row.Work = glWorkNum;
-        CUR_ROW = row;
-        for(var n = 0; n < colcount; n++)
+        S.Work = glWorkNum, CUR_ROW = S;
+        for(f = 0; f < c; f++)
         {
-            var cell = row.cells[n];
-            if(!cell)
-                continue;
-            var cell0 = row0cells[n];
-            if(cell0.H)
-            {
-                var text = "" + cell0.F(Item);
-                text.trim();
-                if(cell.innerHTML !== text)
-                    cell.innerHTML = text;
-            }
-            else
-            {
-                var text = "" + cell0.F(Item);
-                text.trim();
-                if(cell.innerText !== text)
-                    cell.innerText = text;
-            }
+            var p, d, v;
+            if(p = S.cells[f])
+                if((d = l[f]).H)
+                    (v = "" + d.F(m)).trim(), p.innerHTML !== v && (p.innerHTML = v);
+                else
+                    (v = "" + d.F(m)).trim(), p.innerText !== v && (p.innerText = v);
         }
-        if(TotalSum && Item.Currency === 0)
-            ADD(ValueTotal, Item.Value);
+        r && 0 === m.Currency && ADD(u, m.Value);
     }
-    for(var key in map)
+    for(var y in i)
     {
-        var row = map[key];
-        if(row.Work !== glWorkNum)
-        {
-            htmlTable.deleteRow(row.rowIndex);
-            delete map[key];
-        }
+        var S;
+        (S = i[y]).Work !== glWorkNum && (o.deleteRow(S.rowIndex), delete i[y]);
     }
-    if(TotalSum)
-    {
-        var id = document.getElementById(TotalSum);
-        id.innerText = "Total: " + SUM_TO_STRING(ValueTotal, 0);
-    }
+    r && (document.getElementById(r).innerText = "Total: " + SUM_TO_STRING(u, 0));
     DoStableScroll();
 };
 
-function ClearTable(htmlTable)
+function ClearTable(e)
 {
-    for(var i = htmlTable.rows.length - 1; i > 0; i--)
-        htmlTable.deleteRow(i);
-    htmlTable.ItemsMap = {};
-    htmlTable.RowCount = 0;
+    for(var t = e.rows.length - 1; 0 < t; t--)
+        e.deleteRow(t);
+    e.ItemsMap = {}, e.RowCount = 0;
 };
 
-function RetOpenBlock(BlockNum,TrDataLen)
+function RetOpenBlock(e,t)
 {
-    if(BlockNum && TrDataLen)
-        return '<INPUT type="button" onclick="ViewTransaction(' + BlockNum + ')" class="" value="' + BlockNum + '">';
-    else
-        return BlockNum;
+    return e && t ? '<INPUT type="button" onclick="ViewTransaction(' + e + ')" class="" value="' + e + '">' : e;
 };
 
-function RetBool(Value)
+function RetBool(e)
 {
-    if(Value)
-        return "✔";
-    else
-        return "";
+    return e ? "✔" : "";
 };
 
-function RetNumDapp(Item)
+function RetNumDapp(e)
 {
-    return Item.Num;
+    return e.Num;
 };
 
-function RetOpenDapps(Item,bNum,AccountNum)
+function RetOpenDapps(e,t,r)
 {
-    var Name = escapeHtml(Item.Name);
-    if(bNum)
-        Name = "" + Item.Num + "." + Name;
-    if(Item.HTMLLength > 0)
+    var n = escapeHtml(e.Name);
+    if(t && (n = e.Num + "." + n), 0 < e.HTMLLength)
     {
-        if(Item.IconBlockNum)
-            return '<button class="bt_open_dapp" onclick="OpenDapps(' + Item.Num + ',' + AccountNum + ')"><img src="/file/' + Item.IconBlockNum + '/' + Item.IconTrNum + '" style="vertical-align:middle; max-width: 32px;"> ' + Name + '</button>';
-        else
-            return '<button class="bt_open_dapp" onclick="OpenDapps(' + Item.Num + ',' + AccountNum + ')">' + Name + '</button>';
+        var a = n;
+        return e.IconBlockNum && (a = '<img src="/file/' + e.IconBlockNum + "/" + e.IconTrNum + '" style="vertical-align:middle; max-width: 32px;"> ' + n),
+        '<button class="bt_open_dapp" style="margin: -2px 0 0 0" onclick="OpenDapps(' + e.Num + "," + r + ')">' + a + "</button>";
     }
-    else
-        if(Item.IconBlockNum)
-            return '<img src="/file/' + Item.IconBlockNum + '/' + Item.IconTrNum + '" style="vertical-align:middle; max-width: 32px;"> ' + Name;
-        else
-            return Name;
+    return e.IconBlockNum ? '<img src="/file/' + e.IconBlockNum + "/" + e.IconTrNum + '" style="vertical-align:middle; max-width: 32px;"> ' + n : n;
 };
 
-function RetDirect(Value)
+function RetDirect(e)
 {
-    if(Value === "-")
+    return "-" === e ? "<B style='color:red'>-</B>" : "+" === e ? "<B style='color:green;'>+</B>" : "";
+};
+
+function RetCategory(e)
+{
+    var t = "", r = 0;
+    return e.Category1 && MapCategory[e.Category1] && (t += ++r + "." + MapCategory[e.Category1] + "<BR>"), e.Category2 && MapCategory[e.Category2] && (t += ++r + "." + MapCategory[e.Category2] + "<BR>"),
+    e.Category3 && MapCategory[e.Category3] && (t += ++r + "." + MapCategory[e.Category3] + "<BR>"), t = t.substr(0, t.length - 4);
+};
+
+function RetChangeSmart(e)
+{
+    var t = "", r = "", n = 0;
+    e.SmartObj && (e.SmartObj.HTMLLength ? (t = RetOpenDapps(e.SmartObj, 1, e.Num), n = 1) : t = e.SmartObj.Num + "." + escapeHtml(e.SmartObj.Name) + "<BR>",
+    window.DEBUG_WALLET && (r = "<BR>State:" + JSON.stringify(e.SmartState)));
+    var a = 20;
+    return n && (a = 40), '<DIV style="width: 200px;">' + t + '<button onclick="ChangeSmart(' + e.Num + "," + e.Value.Smart + ')" class="setsmart" style="height: ' + a + 'px;">Set</button>' + r + "</DIV>";
+};
+
+function RetBaseAccount(e)
+{
+    var t = "" + e.Account;
+    return 1 < e.AccountLength && (t += "-" + (e.Account + e.AccountLength - 1)), t;
+};
+
+function ViewTransaction(e)
+{
+    window.Open("/HTML/blockviewer.html#" + e, "viewer", 800, 800);
+};
+
+function DateFromBlock(e)
+{
+    var t;
+    window.FIRST_TIME_BLOCK ? t = (t = (t = new Date(window.FIRST_TIME_BLOCK + 1e3 * e).toISOString()).substr(0, t.indexOf("."))).replace("T",
+    " ") : t = "";
+    return t;
+};
+
+function SetCheckPoint(e)
+{
+    e ? GetData("SetCheckPoint", e, function (e)
     {
-        return "<B style='color:red'>-</B>";
-    }
-    else
-        if(Value === "+")
+        e && SetStatus(e.text, !e.result);
+    }) : SetError("Not set BlockNum");
+};
+
+function AddDiagramToArr(e,t)
+{
+    for(var r = 0, n = 0; n < e.length; n++)
+        if(e[n].name === t.name)
         {
-            return "<B style='color:green;'>+</B>";
-        }
-        else
-            return "";
-};
-
-function RetCategory(Item)
-{
-    var Str = "";
-    var Num = 0;
-    if(Item.Category1 && MapCategory[Item.Category1])
-    {
-        Num++;
-        Str += "" + Num + "." + MapCategory[Item.Category1] + "<BR>";
-    }
-    if(Item.Category2 && MapCategory[Item.Category2])
-    {
-        Num++;
-        Str += "" + Num + "." + MapCategory[Item.Category2] + "<BR>";
-    }
-    if(Item.Category3 && MapCategory[Item.Category3])
-    {
-        Num++;
-        Str += "" + Num + "." + MapCategory[Item.Category3] + "<BR>";
-    }
-    Str = Str.substr(0, Str.length - 4);
-    return Str;
-};
-
-function RetChangeSmart(Item)
-{
-    var Name = "";
-    var State = "";
-    var bOpen = 0;
-    if(Item.SmartObj)
-    {
-        if(Item.SmartObj.HTMLLength)
-        {
-            Name = RetOpenDapps(Item.SmartObj, 1, Item.Num);
-            bOpen = 1;
-        }
-        else
-            Name = "" + Item.SmartObj.Num + "." + escapeHtml(Item.SmartObj.Name) + "<BR>";
-        if(window.DEBUG_WALLET)
-            State = "<BR>State:" + JSON.stringify(Item.SmartState);
-    }
-    if(bOpen)
-        return '<DIV style="width: 200px">' + Name + '<button onclick="ChangeSmart(' + Item.Num + ',' + Item.Value.Smart + ')" style="height: 40px; padding-top: 0px;" class="button">Set</button>' + State + '</DIV>';
-    else
-        return Name + '<button onclick="ChangeSmart(' + Item.Num + ',' + Item.Value.Smart + ')" style="" class="button">Set</button>' + State;
-};
-
-function RetBaseAccount(Item)
-{
-    var Str = "" + Item.Account;
-    if(Item.AccountLength > 1)
-        Str += "-" + (Item.Account + Item.AccountLength - 1);
-    return Str;
-};
-
-function ViewTransaction(BlockNum)
-{
-    window.Open('/HTML/blockviewer.html#' + BlockNum, 'viewer', 800, 800);
-};
-
-function DateFromBlock(BlockNum)
-{
-    var Str;
-    if(window.FIRST_TIME_BLOCK)
-    {
-        var now = new Date(window.FIRST_TIME_BLOCK + BlockNum * 1000);
-        Str = now.toISOString();
-        Str = Str.substr(0, Str.indexOf("."));
-        Str = Str.replace("T", " ");
-    }
-    else
-        Str = "";
-    return Str;
-};
-
-function SetCheckPoint(BlockNum)
-{
-    if(!BlockNum)
-    {
-        SetError("Not set BlockNum");
-        return ;
-    }
-    GetData("SetCheckPoint", BlockNum, function (Data)
-    {
-        if(Data)
-        {
-            SetStatus(Data.text, !Data.result);
-        }
-    });
-};
-
-function AddDiagramToArr(Arr,Item)
-{
-    var bWas = 0;
-    for(var i = 0; i < Arr.length; i++)
-    {
-        if(Arr[i].name === Item.name)
-        {
-            Item.Delete = 0;
-            Arr[i] = Item;
-            bWas = 1;
+            t.Delete = 0, e[n] = t, r = 1;
             break;
         }
-    }
-    if(!bWas)
-    {
-        Item.num = Arr.length;
-        Arr.push(Item);
-    }
+    r || (t.num = e.length, e.push(t));
 };
 
-function SetVisibleBlock(name,bSet)
+function SetVisibleBlock(e,t)
 {
-    var Item = document.getElementById(name);
-    if(bSet && typeof bSet === "string")
-        Item.style.display = bSet;
-    else
-        if(bSet)
-        {
-            Item.style.display = 'block';
-            DoStableScroll();
-        }
-        else
-        {
-            Item.style.display = 'none';
-        }
-    return Item;
+    var r = document.getElementById(e);
+    return t && "string" == typeof t ? r.style.display = t : t ? (r.style.display = "block", DoStableScroll()) : r.style.display = "none",
+    r;
 };
 
-function IsVisibleBlock(name)
+function IsVisibleBlock(e)
 {
-    var Item = document.getElementById(name);
-    if(Item.style.display === 'block' || Item.style.display === "table-row")
-        return true;
-    else
-        return false;
+    var t = document.getElementById(e);
+    return "block" === t.style.display || "table-row" === t.style.display;
 };
 
-function LoadValuesByArr(Arr,DopStr)
+function LoadValuesByArr(e,t)
 {
-    if(!DopStr)
-        DopStr = "";
-    if(localStorage["VerSave"] !== "3")
+    if(t || (t = ""), "3" !== localStorage.VerSave)
         return 0;
-    for(var i = 0; i < Arr.length; i++)
+    for(var r = 0; r < e.length; r++)
     {
-        var name = Arr[i];
-        var Item = document.getElementById(name);
-        var name2 = DopStr + name;
-        if(Item.type === "checkbox")
-            Item.checked = parseInt(localStorage.getItem(name2));
-        else
-            Item.value = localStorage.getItem(name2);
+        var n = e[r], a = document.getElementById(n), o = t + n;
+        "checkbox" === a.type ? a.checked = parseInt(localStorage.getItem(o)) : a.value = localStorage.getItem(o);
     }
     return 1;
 };
 
-function SaveValuesByArr(Arr,DopStr)
+function SaveValuesByArr(e,t)
 {
-    if(!DopStr)
-        DopStr = "";
-    localStorage["VerSave"] = "3";
-    for(var i = 0; i < Arr.length; i++)
+    t || (t = ""), localStorage.VerSave = "3";
+    for(var r = 0; r < e.length; r++)
     {
-        var name = Arr[i];
-        var name2 = DopStr + name;
-        var Item = $(name);
-        if(Item.type === "checkbox")
-            window.localStorage.setItem(name2, 0 + Item.checked);
-        else
-            window.localStorage.setItem(name2, Item.value);
+        var n = e[r], a = t + n, o = $(n);
+        "checkbox" === o.type ? window.localStorage.setItem(a, 0 + o.checked) : window.localStorage.setItem(a, o.value);
     }
 };
-var MapCurrency = {};
-MapCurrency[0] = "TERA";
-MapCurrency[16] = "BTC";
-var MapCategory = {};
-MapCategory[0] = "-";
-MapCategory[1] = "Art & Music";
-MapCategory[2] = "Big Data & AI";
-MapCategory[3] = "Business";
-MapCategory[4] = "Commerce & Advertising";
-MapCategory[5] = "Communications";
-MapCategory[6] = "Content Management";
-MapCategory[7] = "Crowdfunding";
-MapCategory[8] = "Data Storage";
-MapCategory[9] = "Drugs & Healthcare";
-MapCategory[10] = "Education";
-MapCategory[11] = "Energy & Utilities";
-MapCategory[12] = "Events & Entertainment";
-MapCategory[13] = "eСommerce";
-MapCategory[14] = "Finance";
-MapCategory[15] = "Gambling & Betting";
-MapCategory[16] = "Gaming & VR";
-MapCategory[17] = "Healthcare";
-MapCategory[18] = "Identity & Reputation";
-MapCategory[19] = "Industry";
-MapCategory[20] = "Infrastructure";
-MapCategory[21] = "Investment";
-MapCategory[22] = "Live Streaming";
-MapCategory[23] = "Machine Learning & AI";
-MapCategory[24] = "Marketing";
-MapCategory[25] = "Media";
-MapCategory[26] = "Mining";
-MapCategory[27] = "Payments";
-MapCategory[28] = "Platform";
-MapCategory[29] = "Provenance & Notary";
-MapCategory[30] = "Real Estate";
-MapCategory[31] = "Recruitment";
-MapCategory[32] = "Service";
-MapCategory[33] = "Social Network";
-MapCategory[34] = "Social project";
-MapCategory[35] = "Supply & Logistics";
-MapCategory[36] = "Trading & Investing";
-MapCategory[37] = "Transport";
-MapCategory[38] = "Travel & Tourisim";
-MapCategory[39] = "Bounty";
-MapCategory[40] = "Code-library";
+var MapCurrency = {0:"TERA", 16:"BTC"}, MapCategory = {};
 
-function GetTokenName(Num,Name)
+function GetTokenName(e,t)
 {
-    if(!Name)
-        Name = "Token";
-    return "(" + Num + "." + Name + ")";
-    return "{" + Num + "." + Name + "}";
+    return t || (t = "Token"), "(" + e + "." + t + ")";
 };
 
-function CurrencyNameItem(Item)
+function CurrencyNameItem(e)
 {
-    var Name = MapCurrency[Item.Currency];
-    if(!Name)
-    {
-        if(Item.CurrencyObj)
-            Name = GetTokenName(Item.Currency, Item.CurrencyObj.ShortName);
-        else
-            Name = GetTokenName(Item.Currency, "");
-        MapCurrency[Item.Currency] = Name;
-    }
-    return Name;
+    var t = MapCurrency[e.Currency];
+    return t || (t = e.CurrencyObj ? GetTokenName(e.Currency, e.CurrencyObj.ShortName) : GetTokenName(e.Currency, ""), MapCurrency[e.Currency] = t),
+    t;
 };
 
-function CurrencyName(Num)
+function CurrencyName(e)
 {
-    var Name = MapCurrency[Num];
-    if(!Name)
+    var r = MapCurrency[e];
+    return r || (GetData("GetDappsAll", {StartNum:e, CountNum:1}, function (e)
     {
-        GetData("GetDappsAll", {StartNum:Num, CountNum:1}, function (Data)
+        if(e && e.result)
         {
-            if(Data && Data.result)
-            {
-                var Smart = Data.arr[0];
-                Name = GetTokenName(Smart.Num, Smart.ShortName);
-                MapCurrency[Smart.Num] = Name;
-            }
-        });
-        Name = GetTokenName(Num, "");
-    }
-    return Name;
-};
-
-function FillSelect(IdName,arr,bNatural)
-{
-    var Select = $(IdName);
-    var Value = Select.value;
-    var Options = Select.options;
-    var strJSON = JSON.stringify(arr);
-    if(Select.strJSON === strJSON)
-        return ;
-    Select.strJSON = strJSON;
-    var Value = Select.value;
-    if(bNatural)
-    {
-        Options.length = 0;
-        for(var key in arr)
-        {
-            var name = arr[key];
-            Options[Options.length] = new Option(name, key);
-            if(key == Value)
-                Select.value = key;
+            var t = e.arr[0];
+            r = GetTokenName(t.Num, t.ShortName), MapCurrency[t.Num] = r;
         }
-    }
-    else
+    }), r = GetTokenName(e, "")), r;
+};
+
+function FillSelect(e,t,r)
+{
+    var n = $(e), a = n.value, o = n.options, i = JSON.stringify(t);
+    if(n.strJSON !== i)
     {
-        Options.length = 0;
-        for(var i = 0; i < arr.length; i++)
-        {
-            var item = arr[i];
-            Options[Options.length] = new Option(item.text, item.value);
-            if(item.value == Value)
-                Select.value = item.value;
-        }
-        if(!arr.length)
-            for(var key in arr)
+        n.strJSON = i;
+        a = n.value;
+        if(r)
+            for(var u in o.length = 0, t)
             {
-                var item = arr[key];
-                Options[Options.length] = new Option(item.text, item.value);
-                if(item.value == Value)
-                    Select.value = item.value;
+                var l = t[u];
+                o[o.length] = new Option(l, u), u == a && (n.value = u);
             }
-    }
-};
-
-function GetArrFromSelect(IdName)
-{
-    var Select = $(IdName);
-    var Options = Select.options;
-    var arr = [];
-    for(var i = 0; i < Options.length; i++)
-    {
-        var item = Options[i];
-        arr.push({text:item.text, value:item.value});
-    }
-    return arr;
-};
-
-function FillCategory(IdName)
-{
-    var arr = [];
-    for(var key in MapCategory)
-    {
-        arr.push({sort:MapCategory[key].toUpperCase(), text:MapCategory[key], value:key});
-    }
-    arr.sort(function (a,b)
-    {
-        if(a.sort < b.sort)
-            return  - 1;
-        if(a.sort > b.sort)
-            return 1;
-        return 0;
-    });
-    FillSelect(IdName, arr);
-};
-
-function AddToInvoiceList(Item)
-{
-    var arr;
-    var Str = localStorage["InvoiceList"];
-    if(Str)
-    {
-        arr = JSON.parse(Str);
-    }
-    else
-    {
-        arr = [];
-    }
-    arr.unshift(Item);
-    localStorage["InvoiceList"] = JSON.stringify(arr);
-};
-
-function OpenDapps(Num,AccountNum)
-{
-    if(AccountNum)
-        window.Open('/dapp/' + Num + '#' + AccountNum, 'dapp', 1200);
-    else
-        window.Open('/dapp/' + Num, 'dapp', 1200);
-};
-
-function ParseFileName(Str)
-{
-    var Ret = {BlockNum:0, TrNum:0};
-    var index1 = Str.indexOf("file/");
-    if(index1)
-    {
-        var index2 = Str.indexOf("/", index1 + 6);
-        Ret.BlockNum = parseInt(Str.substr(index1 + 5, index2 - index1 - 5));
-        Ret.TrNum = parseInt(Str.substr(index2 + 1));
-    }
-    return Ret;
-};
-var glTrSendNum = 0;
-window.MapSendTransaction = {};
-
-function SendTransaction(Body,TR,SumPow,F)
-{
-    if(Body.length > 16000)
-    {
-        if(window.SetStatus)
-            SetStatus("Error length transaction =" + Body.length + " (max size=16000)");
-        if(F)
-            F(1, TR, Body);
-        return ;
-    }
-    glTrSendNum++;
-    CreateNonceAndSend(1, 0);
-    
-function CreateNonceAndSend(bCreateNonce,startnonce)
-    {
-        var CurTrNum = glTrSendNum;
-        var nonce = startnonce;
-        if(bCreateNonce)
-            nonce = CreateHashBodyPOWInnerMinPower(Body, SumPow);
-        var StrHex = GetHexFromArr(Body);
-        GetData("SendTransactionHex", StrHex, function (Data)
+        else
         {
-            if(Data)
+            for(var c = o.length = 0; c < t.length; c++)
             {
-                var key = GetHexFromArr(shaarr(Body));
-                if(window.SetStatus)
-                    SetStatus("Send '" + key.substr(0, 8) + "' result:" + Data.text);
-                if(Data.text === "Not add")
+                var s = t[c];
+                o[o.length] = new Option(s.text, s.value), s.value == a && (n.value = s.value);
+            }
+            if(!t.length)
+                for(var u in t)
                 {
-                    CreateNonceAndSend(1, nonce + 1);
+                    s = t[u];
+                    o[o.length] = new Option(s.text, s.value), s.value == a && (n.value = s.value);
                 }
+        }
+    }
+};
+
+function GetArrFromSelect(e)
+{
+    for(var t = $(e).options, r = [], n = 0; n < t.length; n++)
+    {
+        var a = t[n];
+        r.push({text:a.text, value:a.value});
+    }
+    return r;
+};
+
+function FillCategory(e)
+{
+    var t = [];
+    for(var r in MapCategory)
+        t.push({sort:MapCategory[r].toUpperCase(), text:MapCategory[r], value:r});
+    t.sort(function (e,t)
+    {
+        return e.sort < t.sort ?  - 1 : e.sort > t.sort ? 1 : 0;
+    }), FillSelect(e, t);
+};
+
+function AddToInvoiceList(e)
+{
+    var t, r = localStorage.InvoiceList;
+    (t = r ? JSON.parse(r) : []).unshift(e), localStorage.InvoiceList = JSON.stringify(t);
+};
+
+function OpenDapps(e,t)
+{
+    t ? window.Open("/dapp/" + e + "#" + t, "dapp", 1200) : window.Open("/dapp/" + e, "dapp", 1200);
+};
+
+function ParseFileName(e)
+{
+    var t = {BlockNum:0, TrNum:0}, r = e.indexOf("file/");
+    if(r)
+    {
+        var n = e.indexOf("/", r + 6);
+        t.BlockNum = parseInt(e.substr(r + 5, n - r - 5)), t.TrNum = parseInt(e.substr(n + 1));
+    }
+    return t;
+};
+MapCategory[0] = "-", MapCategory[1] = "Art & Music", MapCategory[2] = "Big Data & AI", MapCategory[3] = "Business", MapCategory[4] = "Commerce & Advertising",
+MapCategory[5] = "Communications", MapCategory[6] = "Content Management", MapCategory[7] = "Crowdfunding", MapCategory[8] = "Data Storage",
+MapCategory[9] = "Drugs & Healthcare", MapCategory[10] = "Education", MapCategory[11] = "Energy & Utilities", MapCategory[12] = "Events & Entertainment",
+MapCategory[13] = "eСommerce", MapCategory[14] = "Finance", MapCategory[15] = "Gambling & Betting", MapCategory[16] = "Gaming & VR",
+MapCategory[17] = "Healthcare", MapCategory[18] = "Identity & Reputation", MapCategory[19] = "Industry", MapCategory[20] = "Infrastructure",
+MapCategory[21] = "Investment", MapCategory[22] = "Live Streaming", MapCategory[23] = "Machine Learning & AI", MapCategory[24] = "Marketing",
+MapCategory[25] = "Media", MapCategory[26] = "Mining", MapCategory[27] = "Payments", MapCategory[28] = "Platform", MapCategory[29] = "Provenance & Notary",
+MapCategory[30] = "Real Estate", MapCategory[31] = "Recruitment", MapCategory[32] = "Service", MapCategory[33] = "Social Network",
+MapCategory[34] = "Social project", MapCategory[35] = "Supply & Logistics", MapCategory[36] = "Trading & Investing", MapCategory[37] = "Transport",
+MapCategory[38] = "Travel & Tourisim", MapCategory[39] = "Bounty", MapCategory[40] = "Code-library";
+var glTrSendNum = 0;
+
+function SendTransaction(i,u,l,c)
+{
+    if(16e3 < i.length)
+        return window.SetStatus && SetStatus("Error length transaction =" + i.length + " (max size=16000)"), void (c && c(1, u, i));
+    glTrSendNum++, function r(e,t)
+    {
+        var n = glTrSendNum;
+        var a = t;
+        e && (a = CreateHashBodyPOWInnerMinPower(i, l));
+        var o = GetHexFromArr(i);
+        GetData("SendTransactionHex", o, function (e)
+        {
+            if(e)
+            {
+                var t = GetHexFromArr(shaarr(i));
+                if(window.SetStatus && SetStatus("Send '" + t.substr(0, 8) + "' result:" + e.text), "Not add" === e.text)
+                    r(1, a + 1);
                 else
-                    if(Data.text === "Bad time")
-                    {
-                        if(window.SetStatus)
-                            SetStatus("Next send...");
-                        setTimeout(function ()
+                    if("Bad time" === e.text)
+                        window.SetStatus && SetStatus("Next send..."), setTimeout(function ()
                         {
-                            if(CurTrNum === glTrSendNum)
-                                CreateNonceAndSend(0, nonce);
+                            n === glTrSendNum && r(0, a);
                         }, 100);
-                    }
                     else
                     {
-                        var key = GetHexFromArr(shaarr(Body));
-                        MapSendTransaction[key] = TR;
-                        if(F)
-                            F(0, TR, Body);
+                        var t = GetHexFromArr(shaarr(i));
+                        MapSendTransaction[t] = u, c && c(0, u, i);
                     }
             }
         });
-    };
+    }(1, 0);
 };
+window.MapSendTransaction = {};
 var MapSendID = {};
 
-function SendCallMethod(Account,MethodName,Params,FromNum,FromSmartNum)
+function SendCallMethod(e,t,r,n,a)
 {
-    var TR = {Type:135};
-    let Body = [TR.Type];
-    WriteUint(Body, Account);
-    WriteStr(Body, MethodName);
-    WriteStr(Body, JSON.stringify(Params));
-    WriteUint(Body, FromNum);
-    if(FromNum)
+    var o = {Type:135}, i = [o.Type];
+    WriteUint(i, e), WriteStr(i, t), WriteStr(i, JSON.stringify(r)), WriteUint(i, n), n ? GetData("GetAccount", n, function (e)
     {
-        GetData("GetAccount", FromNum, function (Data)
-        {
-            if(!Data || Data.result !== 1)
+        if(e && 1 === e.result)
+            if(e.Item.Value.Smart === a)
             {
-                SetStatus("Error account number: " + FromNum);
-                return ;
-            }
-            if(Data.Item.Value.Smart !== FromSmartNum)
-            {
-                SetStatus("Error - The account:" + FromNum + " does not belong to a smart contract:" + FromSmartNum);
-                return ;
-            }
-            var OperationID = Data.Item.Value.OperationID;
-            if(!MapSendID[FromNum] || (new Date() - MapSendID[FromNum].Date) > 8 * 1000)
-            {
-                MapSendID[FromNum] = {OperationID:OperationID + 10};
+                var t = e.Item.Value.OperationID;
+                !MapSendID[n] || 8e3 < new Date - MapSendID[n].Date ? MapSendID[n] = {OperationID:t + 10} : t = MapSendID[n].OperationID, MapSendID[n].OperationID++,
+                MapSendID[n].Date = new Date - 0, WriteUint(i, t), i.length += 10, SendTrArrayWithSign(i, n, o);
             }
             else
-            {
-                OperationID = MapSendID[FromNum].OperationID;
-            }
-            MapSendID[FromNum].OperationID++;
-            MapSendID[FromNum].Date = (new Date()) - 0;
-            WriteUint(Body, OperationID);
-            Body.length += 10;
-            SendTrArrayWithSign(Body, FromNum, TR);
-        });
-    }
-    else
-    {
-        WriteUint(Body, 0);
-        Body.length += 10;
-        Body.length += 64;
-        Body.length += 12;
-        SendTransaction(Body, TR);
-    }
+                SetStatus("Error - The account:" + n + " does not belong to a smart contract:" + a);
+        else
+            SetStatus("Error account number: " + n);
+    }) : (WriteUint(i, 0), i.length += 10, i.length += 64, i.length += 12, SendTransaction(i, o));
 };
 
-function SendTrArrayWithSign(Body,Account,TR)
+function SendTrArrayWithSign(r,e,n)
 {
-    var StrHex = GetHexFromArr(Body);
-    GetData("GetSignFromHEX", {Hex:StrHex, Account:Account}, function (Data)
+    var t = GetHexFromArr(r);
+    GetData("GetSignFromHEX", {Hex:t, Account:e}, function (e)
     {
-        if(Data && Data.result)
+        if(e && e.result)
         {
-            var Arr = GetArrFromHex(Data.Sign);
-            WriteArr(Body, Arr, 64);
-            Body.length += 12;
-            SendTransaction(Body, TR);
+            var t = GetArrFromHex(e.Sign);
+            WriteArr(r, t, 64), r.length += 12, SendTransaction(r, n);
         }
     });
 };
 
-function GetTrCreateAcc(Currency,PubKey,Description,Adviser,Smart)
+function GetTrCreateAcc(e,t,r,n,a)
 {
-    var TR = {Type:TYPE_TRANSACTION_CREATE, Currency:Currency, PubKey:PubKey, Name:Description, Adviser:Adviser, Smart:Smart, };
-    return TR;
+    return {Type:TYPE_TRANSACTION_CREATE, Currency:e, PubKey:t, Name:r, Adviser:n, Smart:a};
 };
 
-function GetBodyCreateAcc(TR)
+function GetBodyCreateAcc(e)
 {
-    var Body = [];
-    WriteByte(Body, TR.Type);
-    WriteUint(Body, TR.Currency);
-    WriteArr(Body, GetArrFromHex(TR.PubKey), 33);
-    WriteStr(Body, TR.Name, 40);
-    WriteUint(Body, TR.Adviser);
-    WriteUint32(Body, TR.Smart);
-    Body.length += 3;
-    Body.length += 12;
-    return Body;
+    var t = [];
+    return WriteByte(t, e.Type), WriteUint(t, e.Currency), WriteArr(t, GetArrFromHex(e.PubKey), 33), WriteStr(t, e.Name, 40), WriteUint(t,
+    e.Adviser), WriteUint32(t, e.Smart), t.length += 3, t.length += 12, t;
 };
 
-function RetJSON(Item)
+function RetJSON(e)
 {
-    return JSON.stringify(Item);
+    return JSON.stringify(e);
 };
 Number.prototype.toStringF = function ()
 {
-    var data = String(this).split(/[eE]/);
-    if(data.length == 1)
-        return data[0];
-    var z = '', sign = this < 0 ? '-' : '', str = data[0].replace('.', ''), mag = Number(data[1]) + 1;
-    if(mag < 0)
+    var e = String(this).split(/[eE]/);
+    if(1 == e.length)
+        return e[0];
+    var t = "", r = this < 0 ? "-" : "", n = e[0].replace(".", ""), a = Number(e[1]) + 1;
+    if(a < 0)
     {
-        z = sign + '0.';
-        while(mag++)
-            z += '0';
-        return z + str.replace(/^\-/, '');
+        for(t = r + "0."; a++; )
+            t += "0";
+        return t + n.replace(/^\-/, "");
     }
-    mag -= str.length;
-    while(mag--)
-        z += '0';
-    return str + z;
+    for(a -= n.length; a--; )
+        t += "0";
+    return n + t;
 };

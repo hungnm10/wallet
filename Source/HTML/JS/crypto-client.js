@@ -36,15 +36,15 @@ function GetPowValue(r)
 
 function CreateNoncePOWExtern(r,e,n,t)
 {
-    for(var E = [], _ = 0; _ < r.length; _++)
-        E[_] = r[_];
+    for(var E = [], o = 0; o < r.length; o++)
+        E[o] = r[o];
     t || (t = 0);
-    for(var o = 0, T = MAX_SUPER_VALUE_POW, a = t; a <= t + n; a++)
+    for(var _ = 0, T = MAX_SUPER_VALUE_POW, a = t; a <= t + n; a++)
     {
-        var u = GetPowValue(GetHashWithValues(E, a, e, !0));
-        u < T && (o = a, T = u);
+        var i = GetPowValue(GetHashWithValues(E, a, e, !0));
+        i < T && (_ = a, T = i);
     }
-    return o;
+    return _;
 };
 
 function CreateHashBody(r,e,n)
@@ -60,7 +60,7 @@ function GetBlockNumTr(r)
     var e = GetCurrentBlockNumByTime();
     if(r[0] === TYPE_TRANSACTION_CREATE)
     {
-        var n = 10 * Math.trunc(e / 10);
+        var n = 10 * Math.floor(e / 10);
         n < e && (n += 10), e = n;
     }
     return e;

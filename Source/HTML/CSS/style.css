@@ -1,9 +1,17 @@
 ﻿
+
 /*STYLE STYLE STYLE*/
 /*STYLE STYLE STYLE*/
 /*STYLE STYLE STYLE*/
 /*STYLE STYLE STYLE*/
 
+body
+{
+
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 300;
+}
 
 
 body.styleBrown .bt
@@ -138,3 +146,74 @@ body.styleBlue input,textarea,select
     color: black;
 }
 
+/*dark*/
+body.styleDark
+{
+    background: #282828;
+    color: white;
+}
+
+body.styleDark .bt
+{
+    background: #4c4c4c;
+    color: white;
+    border: 1px solid #5a5a5a;
+}
+
+
+
+body.styleDark table.grid
+{
+    background: #565656;
+}
+
+body.styleDark .bttab
+{
+    background: #202225;
+    color:white;
+}
+body.styleDark .bttab:hover
+{
+    background: #6f767c;
+    color: #ffe377;
+}
+
+body.styleDark .current
+{
+    background: #565b61;
+    color:white;
+}
+body.styleDark .current:hover
+{
+    background: #0D1B35;
+    color:white;
+}
+
+body.styleDark input,textarea,select
+{
+    background:white;
+    color: black;
+}
+
+/*bt*/
+body.styleDark button
+{
+    background: #939393;
+    border: 1px solid #282828;
+    color: white;
+}
+
+body.styleDark .bold
+{
+    font-weight: 300;
+}
+
+body.styleDark #idStatus
+{
+    color: #fffabd;
+}
+
+body.styleDark #idOpenWallet
+{
+    border: 1px solid darkgrey;
+}
