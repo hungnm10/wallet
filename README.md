@@ -188,5 +188,5 @@ I do not recommend installing the test network on the same computer for the foll
 * Discord: https://discord.gg/CvwrbeG
 * [DEX-guide](https://docs.google.com/document/d/1qvVRfLq3qcYYF6dcsAAAqoGyBFF4njXUYZXZfTPWd2w/edit?usp=sharing)
 * [Документация на русском](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
-* (Torrent DATA/DB folder) (https://github.com/terafoundation/wallet/blob/master/Torrent/Tera-folder-DB.torrent)
+* [Torrent DATA/DB folder](https://github.com/terafoundation/wallet/blob/master/Torrent/Tera-folder-DB.torrent)
 
