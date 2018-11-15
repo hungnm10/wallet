@@ -249,6 +249,7 @@ Version = 3 - поддержка переводов на счета со сма�
 * [Руководство по созданию ордеров на Tera DEX](https://docs.google.com/document/d/1rWGOrx9gabsu866zqJ2so6Mp0WUGh9t0BIWjz4kAIBw/edit?usp=sharing)
 * [Ответы на вопросы про проект Тера](https://docs.google.com/document/d/1SpVuuWMYjwzk8K0oqhw5rSPFJhsV2jHManIbtRReQy8/edit?usp=sharing)
 * [Будущее техническое WP](https://docs.google.com/document/d/1B6_qlAp2xs4aHkqOwyvRMCDJTjgeNiOJiGpIeT0VAzY/edit?usp=sharing)
+* (Торрент папки DATA/DB) (https://github.com/terafoundation/wallet/blob/master/Torrent/Tera-folder-DB.torrent)
 
 
 
