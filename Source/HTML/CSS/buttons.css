@@ -62,6 +62,10 @@ button
 {
     cursor: pointer;
 }
+.bt:hover,button:hover
+{
+    filter: hue-rotate(-15deg);
+}
 
 
 

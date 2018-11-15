@@ -548,7 +548,7 @@ module.exports = class CDB extends require("../code")
         {
             DApps[key].ClearDataBase()
         }
-        for(var Num = 0; Num <= SERVER.BlockNumDB; Num++)
+        for(var Num = 0; Num <= this.BlockNumDB; Num++)
         {
             if(Num > BLOCK_PROCESSING_LENGTH2)
             {

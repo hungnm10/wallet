@@ -410,7 +410,6 @@ module.exports = class CBlock extends require("./db/block-db")
             var Delta = new Date() - task.LastTimeRestartGetNextNode;
             if(Delta > 3000)
             {
-                ToLog("RestartGetNextNode : " + task.RestartGetNextNode)
                 task.RestartGetNextNode++
                 task.LastTimeRestartGetNextNode = new Date() - 0
                 task.MapSend = {}
@@ -598,7 +597,7 @@ module.exports = class CBlock extends require("./db/block-db")
                 }
                 PrevBlock = Block
             }
-            Block.Info = "Loaded from: " + GetNodeStrPort(Info.Node)
+            AddInfoBlock(Block, "Loaded from: " + GetNodeStrPort(Info.Node))
             Block.TrCount = 0
             Block.TrDataPos = 0
             Block.TrDataLen = 0
@@ -641,7 +640,7 @@ module.exports = class CBlock extends require("./db/block-db")
                     }
                     Context.FindCheckPoint = true
                 }
-                if(Block.BlockNum < SERVER.BlockNumDB)
+                if(Block.BlockNum < this.BlockNumDB)
                 {
                     break;
                 }
@@ -874,7 +873,7 @@ module.exports = class CBlock extends require("./db/block-db")
             Block.MaxPOW = BlockMem.MaxPOW
             Block.MaxSum = BlockMem.MaxSum
             Block.Info = BlockMem.Info
-            Block.Info += "\n--copy mem--"
+            AddInfoBlock(Block, "\n--copy mem--")
         }
         else
         {
@@ -882,17 +881,17 @@ module.exports = class CBlock extends require("./db/block-db")
             if(BlockMem)
             {
                 Block.Info = BlockMem.Info
-                Block.Info += "\n--clear max--"
+                AddInfoBlock(Block, "\n--clear max--")
             }
             else
             {
-                Block.Info += "\n--create mem--"
+                AddInfoBlock(Block, "\n--create mem--")
             }
         }
         Block.Prepared = true
         Block.MinTrPow = undefined
         if(chain)
-            AddInfoBlock(Block, "LOAD:" + this.GetStrFromHashShort(Block.SumHash) + "  id:" + chain.id)
+            chain.AddInfo("LOAD:" + this.GetStrFromHashShort(Block.SumHash) + "  id:" + chain.id)
         this.AddToStatBlockConfirmation(Block)
     }
     ClearMaxInBlock(Block)
@@ -1575,7 +1574,7 @@ function GetRootChain()
                 if(Count > MAX_COUNT_CHAIN_LOAD)
                 {
                     TO_ERROR_LOG("BLOCK", 10, "Error COUNT GetRootChain")
-                    SERVER.FREE_ALL_MEM_CHAINS()
+                    this.FREE_ALL_MEM_CHAINS()
                     break;
                 }
             }
@@ -1639,22 +1638,31 @@ function GetFindDB()
 
 function AddInfo(Block,Str,BlockNumStart)
 {
-    if(Block.Info.length < 2000)
-    {
-        var timesend = "" + SERVER.CurrentBlockNum - BlockNumStart;
-        var now = GetCurrentTime();
-        timesend += ".[" + now.getSeconds().toStringZ(2) + "." + now.getMilliseconds().toStringZ(3) + "]";
-        Str = timesend + ": " + Str;
-        Block.Info += "\n" + Str;
-    }
+    if(!global.STAT_MODE)
+        return ;
+    if(!Block.Info)
+        Block.Info = Str;
+    else
+        if(Block.Info.length < 2000)
+        {
+            var timesend = "" + SERVER.CurrentBlockNum - BlockNumStart;
+            var now = GetCurrentTime();
+            timesend += ".[" + now.getSeconds().toStringZ(2) + "." + now.getMilliseconds().toStringZ(3) + "]";
+            Str = timesend + ": " + Str;
+            Block.Info += "\n" + Str;
+        }
 };
 global.AddInfoChain = function (Str)
 {
+    if(!global.STAT_MODE)
+        return ;
     if(this.BlockNumStart > GetCurrentBlockNumByTime() - HISTORY_BLOCK_COUNT)
         AddInfo(this, Str, this.BlockNumStart);
 };
 global.AddInfoBlock = function (Block,Str)
 {
+    if(!global.STAT_MODE)
+        return ;
     if(Block && Block.BlockNum && Block.BlockNum > GetCurrentBlockNumByTime() - HISTORY_BLOCK_COUNT)
         AddInfo(Block, Str, Block.BlockNum);
 };

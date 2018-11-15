@@ -41,6 +41,8 @@ module.exports = class CCommon
     }
     AddStatOnTimer()
     {
+        if(!global.STAT_MODE)
+            return ;
         var bHasCP = 0;
         if(CHECK_POINT.BlockNum)
         {
@@ -52,7 +54,7 @@ module.exports = class CCommon
         if(MinVer === 0)
             MinVer = global.UPDATE_CODE_VERSION_NUM
         var BufMap = {}, BufMap2 = {};
-        var arr = SERVER.GetActualNodes();
+        var arr = this.GetActualNodes();
         var Count = 0, CountHot = 0, CountHotOK = 0, CountActualOK = 0, SumDeltaHot = 0, SumDeltaActual = 0, CountCP = 0, CountLH = 0,
         CountHash = 0, CountVer = 0, CountStop = 0;
         var SumAvgDeltaTime = 0;
@@ -76,7 +78,7 @@ module.exports = class CCommon
             SumAvgDeltaTime += Node.DeltaGlobTime
             if(Node.VersionNum >= MinVer)
                 CountVer++
-            if(INFO && INFO.BlockNumDB && INFO.BlockNumDB <= SERVER.BlockNumDB)
+            if(INFO && INFO.BlockNumDB && INFO.BlockNumDB <= this.BlockNumDB)
             {
                 var HashDB = ReadHashFromBufDB(BufMap2, INFO.BlockNumDB);
                 if(HashDB && CompareArr(HashDB, INFO.HashDB) === 0)
@@ -102,13 +104,13 @@ module.exports = class CCommon
         }
         var CountAll = 0;
         var CurTime = GetCurrentTime() - 0;
-        for(var i = 0; i < SERVER.NodesArr.length; i++)
+        for(var i = 0; i < this.NodesArr.length; i++)
         {
-            var Item = SERVER.NodesArr[i];
-            if(Item.LastTime && (CurTime - Item.LastTime) < 300 * 1000)
+            var Item = this.NodesArr[i];
+            if(Item.LastTime && (CurTime - Item.LastTime) < 3600 * 1000)
                 CountAll++
             else
-                if(Item.LastTimeGetNode && (CurTime - Item.LastTimeGetNode) < 600 * 1000)
+                if(Item.LastTimeGetNode && (CurTime - Item.LastTimeGetNode) < 3600 * 1000)
                     CountAll++
         }
         ADD_TO_STAT("MAX:ALL_NODES", CountAll)

@@ -556,6 +556,8 @@ function FindNodeByAddr(Addr,bConnect)
 
 function AddNodeInfo(Node,Str,bSet)
 {
+    if(!global.STAT_MODE)
+        return ;
     if(!Node)
         return ;
     if(!Node.Info)

@@ -423,7 +423,7 @@ module.exports = class CConsensus extends require("./block-loader")
             var StrKey = this.GetStrFromHashShort(LoadHash);
             var StrHashWas = this.GetStrFromHashShort(Block.Hash);
             this.StartLoadBlockHeader(LoadHash, LoadBlockNum, "START OTHER:" + StrKey + " WAS:" + StrHashWas, false)
-            Block.Info += "\nREQ OTHER: " + StrKey
+            AddInfoBlock(Block, "\nREQ OTHER: " + StrKey)
         }
         Block.CheckMaxPow = true
     }
@@ -544,7 +544,7 @@ module.exports = class CConsensus extends require("./block-loader")
             var LoadHash = POW.SumHash;
             var StrKey = this.GetStrFromHashShort(LoadHash);
             this.StartLoadBlockHeader(LoadHash, LoadBlockNum, "START POW:" + POW.SumPow + ">" + SumPow + " SH:" + StrKey, true)
-            Block.Info += "\nREQ SUMHASH: " + StrKey
+            AddInfoBlock(Block, "\nREQ SUMHASH: " + StrKey)
             Block.CheckMaxSum = true
         }
     }
@@ -813,7 +813,7 @@ module.exports = class CConsensus extends require("./block-loader")
         else
             this.CreatePOWNew(Block, (1 << MIN_POWER_POW_BL))
         if(!WasHash || CompareArr(WasHash, Block.Hash) !== 0)
-            Block.Info += "\nHASH:" + this.GetStrFromHashShort(WasHash) + "->" + this.GetStrFromHashShort(Block.Hash)
+            AddInfoBlock(Block, "\nHASH:" + this.GetStrFromHashShort(WasHash) + "->" + this.GetStrFromHashShort(Block.Hash))
         Block.Prepared = true
         if(!bSimplePow)
         {
@@ -867,7 +867,7 @@ module.exports = class CConsensus extends require("./block-loader")
             if(Block.MaxPOW && Block.MaxPOW.Hash && CompareArr(Block.MaxPOW.Hash, Block.Hash) !== 0)
             {
                 this.ClearMaxInBlock(Block)
-                Block.Info += "\n--clear max2--"
+                AddInfoBlock(Block, "\n--clear max2--")
             }
             Block.TreeHash = Tree.Root
             Block.arrContent = arrContent
@@ -939,7 +939,7 @@ module.exports = class CConsensus extends require("./block-loader")
         this.MapMining = {}
         for(var Num = this.BlockNumDB - global.DECENTRALIZATION_LENGTH_FACTOR; Num <= this.BlockNumDB; Num++)
         {
-            var Block = SERVER.ReadBlockHeaderFromMapDB(Num);
+            var Block = this.ReadBlockHeaderFromMapDB(Num);
             if(Block)
             {
                 this.AddToMapMining(Block)
@@ -1197,8 +1197,8 @@ module.exports = class CConsensus extends require("./block-loader")
             BlockMining.PowHash = ValueNew.PowHash
             BlockMining.Power = GetPowPower(BlockMining.PowHash)
             ADD_TO_STAT("MAX:POWER", BlockMining.Power)
-            SERVER.AddToMaxPOW(BlockMining, {SeqHash:BlockMining.SeqHash, AddrHash:BlockMining.AddrHash, PrevHash:BlockMining.PrevHash,
-                TreeHash:BlockMining.TreeHash, })
+            this.AddToMaxPOW(BlockMining, {SeqHash:BlockMining.SeqHash, AddrHash:BlockMining.AddrHash, PrevHash:BlockMining.PrevHash, TreeHash:BlockMining.TreeHash,
+            })
         }
     }
 };

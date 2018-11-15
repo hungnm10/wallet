@@ -1045,7 +1045,7 @@ module.exports = class CTransport extends require("./connect")
                 ToLogClient("Run TCP server on " + SELF.ip + ":" + SELF.port)
             SELF.CanSend++
             var Hash = shaarr(SELF.addrStr);
-            SELF.ServerSign = secp256k1.sign(Buffer.from(Hash), SERVER.KeyPair.getPrivateKey('')).signature
+            SELF.ServerSign = secp256k1.sign(Buffer.from(Hash), SELF.KeyPair.getPrivateKey('')).signature
         })
     }
     FindInternetIP()

@@ -217,3 +217,12 @@ body.styleDark #idOpenWallet
 {
     border: 1px solid darkgrey;
 }
+
+body.styleDark .bt:hover
+{
+    background: #6c6c6c;
+}
+body.styleDark button:hover
+{
+    background: #a8a8a8;
+}

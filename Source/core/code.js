@@ -218,14 +218,14 @@ global.RestartNode = function RestartNode(bForce)
         ToLog("********************************** FORCE RESTART!!!");
         return ;
     }
-    var it = SERVER.ActualNodes.iterator(), Node;
+    var it = this.ActualNodes.iterator(), Node;
     while((Node = it.next()) !== null)
     {
         if(Node.Socket)
             CloseSocket(Node.Socket, "Restart");
     }
-    SERVER.StopServer();
-    SERVER.StopNode();
+    this.StopServer();
+    this.StopNode();
     RunStopPOWProcess("STOP");
     StopHostingServer();
     ToLog("****************************************** RESTART!!!");

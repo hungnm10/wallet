@@ -157,7 +157,7 @@ I do not recommend installing the test network on the same computer for the foll
 * Name: TERA
 * Consensus: PoW
 * Algorithm:  Terahash (sha3 + Optimize RAM hashing)
-* Max emission: 1 Bln
+* Total suplay: 1 Bln
 * Reward for block: 1-20 coins, depends on miner power (one billionth of the remainder of undistributed amount of coins and multiplied by the hundredth part of the square of the logarithm of the miner power)
 * Block size 120 KB
 * Premine: 5%
@@ -186,6 +186,6 @@ I do not recommend installing the test network on the same computer for the foll
 * Twitter: https://twitter.com/terafoundation
 * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 * Discord: https://discord.gg/CvwrbeG
+* [DEX-guide](https://docs.google.com/document/d/1qvVRfLq3qcYYF6dcsAAAqoGyBFF4njXUYZXZfTPWd2w/edit?usp=sharing)
 * [Документация на русском](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
-* [Документация по смарт-контрактам на русском](https://docs.google.com/document/d/1SkD4yc_POaGRMJRC6yGkDfdJUuKbcyq3JpG0cBXeYGM/edit?usp=sharing)
 
