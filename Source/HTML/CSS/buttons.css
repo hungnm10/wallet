@@ -58,13 +58,10 @@
     background: transparent;
     font-weight: 400;
 }
-button
-{
-    cursor: pointer;
-}
 .bt:hover,button:hover
 {
-    filter: hue-rotate(-15deg);
+    filter: brightness(120%);
+    cursor: pointer;
 }
 
 

@@ -116,7 +116,7 @@
                             Data.Err=!SetData.result;
                             for(var key in SetData)
                                 Data[key]=SetData[key];
-                            Data.ACCOUNT_OPEN_NUM=ACCOUNT_OPEN_NUM;
+                            Data.OPEN_PATH=OPEN_PATH;
                             SendMessage(Data);
                         }
                     });
@@ -175,13 +175,13 @@
             window.attachEvent("onmessage", listener);
         }
 
-        var SMART={},BASE_ACCOUNT={},ACCOUNT_OPEN_NUM=0;
+        var SMART={},BASE_ACCOUNT={},OPEN_PATH="";
         window.onload=function()
         {
             var i=document.URL.indexOf("#");
             if(i>0)
             {
-                ACCOUNT_OPEN_NUM=ParseNum(document.URL.substr(i+1));
+                OPEN_PATH=document.URL.substr(i+1);
             }
 
             GetData("DappInfo",{Smart:glSmart}, function (SetData)
@@ -223,8 +223,6 @@
         {
             var iframe = document.createElement('iframe');
             iframe.name = 'dapp';
-//            iframe.style.width = '100vw';
-//            iframe.style.height = '94%';
             iframe.sandbox="allow-scripts";
             SetData.Body='\
                     <meta charset="UTF-8">\
@@ -372,8 +370,8 @@
 </html>
 <script>
     var glDebugPath="";
-   //     glDebugPath="./dapp-smart/forum.html";
-    //    glDebugPath="./dapp-smart/DEX.html";
+//        glDebugPath="./dapp-smart/forum.html";
+     //   glDebugPath="./dapp-smart/DEX.html";
     //glDebugPath="./dapp-smart/test-load.html";
     //    glDebugPath="./dapp-smart/gambling-1.html";
     //   glDebugPath="./dapp-smart/BTC-coin.html";

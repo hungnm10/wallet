@@ -246,8 +246,8 @@ document.addEventListener("DOMContentLoaded", function ()
             OpenRefFile(this.href);
         });
 }), window.addEventListener ? window.addEventListener("message", listener) : window.attachEvent("onmessage", listener);
-var SMART = {}, BASE_ACCOUNT = {}, INFO = {}, USER_ACCOUNT = [], USER_ACCOUNT_MAP = {}, ACCOUNT_OPEN_NUM = 0, WasStartInit = 0,
-WasStartInit2 = 0, eventInit = new Event("Init"), eventInfo = new Event("UpdateInfo");
+var SMART = {}, BASE_ACCOUNT = {}, INFO = {}, USER_ACCOUNT = [], USER_ACCOUNT_MAP = {}, OPEN_PATH = "", ACCOUNT_OPEN_NUM = 0,
+WasStartInit = 0, WasStartInit2 = 0, eventInfo = new Event("UpdateInfo");
 
 function UpdateDappInfo()
 {
@@ -257,13 +257,21 @@ function UpdateDappInfo()
             SetError("Error Info");
         else
         {
-            SMART = (INFO = e).Smart, BASE_ACCOUNT = e.Account, ACCOUNT_OPEN_NUM = e.ACCOUNT_OPEN_NUM, SetBlockChainConstant(e), USER_ACCOUNT = e.WalletList,
-            USER_ACCOUNT_MAP = {};
+            SMART = (INFO = e).Smart, BASE_ACCOUNT = e.Account, OPEN_PATH = e.OPEN_PATH, ACCOUNT_OPEN_NUM = ParseNum(OPEN_PATH), SetBlockChainConstant(e),
+            USER_ACCOUNT = e.WalletList, USER_ACCOUNT_MAP = {};
             for(var a = 0; a < USER_ACCOUNT.length; a++)
                 USER_ACCOUNT_MAP[USER_ACCOUNT[a].Num] = USER_ACCOUNT[a];
-            window.OnInit && !WasStartInit ? (WasStartInit = 1, window.OnInit(1)) : window.OnUpdateInfo && window.OnUpdateInfo(), WasStartInit2 || (WasStartInit2 = 1,
-            window.dispatchEvent(eventInit)), window.dispatchEvent(eventInfo);
+            if(window.OnInit && !WasStartInit ? (WasStartInit = 1, window.OnInit(1)) : window.OnUpdateInfo && window.OnUpdateInfo(), !WasStartInit2)
+            {
+                WasStartInit2 = 1;
+                var n = new Event("Init");
+                window.dispatchEvent(n);
+            }
+            window.dispatchEvent(eventInfo);
         }
     });
 };
-UpdateDappInfo(), setInterval(UpdateDappInfo, 1e3);
+window.addEventListener("load", function ()
+{
+    UpdateDappInfo(), setInterval(UpdateDappInfo, 1e3);
+});

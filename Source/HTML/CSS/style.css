@@ -1,6 +1,4 @@
-﻿
-
-/*STYLE STYLE STYLE*/
+﻿/*STYLE STYLE STYLE*/
 /*STYLE STYLE STYLE*/
 /*STYLE STYLE STYLE*/
 /*STYLE STYLE STYLE*/
@@ -34,18 +32,8 @@ body.styleBrown .bttab
     background: #86754A;
     color:white;
 }
-body.styleBrown .bttab:hover
-{
-    background: #F5E5BB;
-    color: #503F13;
-}
 
 body.styleBrown .current
-{
-    background: #503F13;
-    color:white;
-}
-body.styleBrown .current:hover
 {
     background: #503F13;
     color:white;
@@ -78,18 +66,8 @@ body.styleGreen .bttab
     background: #4F7340;
     color:white;
 }
-body.styleGreen .bttab:hover
-{
-    background: #CBF4BA;
-    color: #204410;
-}
 
 body.styleGreen .current
-{
-    background: #204410;
-    color:white;
-}
-body.styleGreen .current:hover
 {
     background: #204410;
     color:white;
@@ -123,18 +101,8 @@ body.styleBlue .bttab
     background: #354259;
     color:white;
 }
-body.styleBlue .bttab:hover
-{
-    background: #BED0F2;
-    color: #0D1B35;
-}
 
 body.styleBlue .current
-{
-    background: #0D1B35;
-    color:white;
-}
-body.styleBlue .current:hover
 {
     background: #0D1B35;
     color:white;
@@ -172,20 +140,10 @@ body.styleDark .bttab
     background: #202225;
     color:white;
 }
-body.styleDark .bttab:hover
-{
-    background: #6f767c;
-    color: #ffe377;
-}
 
 body.styleDark .current
 {
     background: #565b61;
-    color:white;
-}
-body.styleDark .current:hover
-{
-    background: #0D1B35;
     color:white;
 }
 
@@ -216,13 +174,4 @@ body.styleDark #idStatus
 body.styleDark #idOpenWallet
 {
     border: 1px solid darkgrey;
-}
-
-body.styleDark .bt:hover
-{
-    background: #6c6c6c;
-}
-body.styleDark button:hover
-{
-    background: #a8a8a8;
 }
