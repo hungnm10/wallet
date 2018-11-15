@@ -3,6 +3,7 @@
 [<Документация на русском>](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
 
 Attention:
+* For a quick initial download of the wallet, there is a [link](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent) to download the database via the P2P Protocol. Download the file via torrent and unzip it. Next, put the DB folder in the data directory of the wallet (with full replacement).
 * After the installation shown below, enter the address your server in the browser. Example: 12.34.56.78:8080
 * For mining You must have a static (public) IP address and an open port.
 * We recommend not storing private keys on remote servers.
@@ -188,5 +189,6 @@ I do not recommend installing the test network on the same computer for the foll
 * Discord: https://discord.gg/CvwrbeG
 * [DEX-guide](https://docs.google.com/document/d/1qvVRfLq3qcYYF6dcsAAAqoGyBFF4njXUYZXZfTPWd2w/edit?usp=sharing)
 * [Документация на русском](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
-* [Torrent DATA/DB folder](https://github.com/terafoundation/wallet/blob/master/Torrent/Tera-folder-DB.torrent)
+* [Torrent DATA/DB folder](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
+
 
