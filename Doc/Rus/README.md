@@ -248,8 +248,9 @@ Version = 3 - поддержка переводов на счета со сма�
 * Discord [RUS]: https://discord.gg/dzSGKyR
 * [Документация по смарт-контрактам на русском](https://docs.google.com/document/d/1SkD4yc_POaGRMJRC6yGkDfdJUuKbcyq3JpG0cBXeYGM/edit?usp=sharing)
 * [Руководство по созданию ордеров на Tera DEX](https://docs.google.com/document/d/1rWGOrx9gabsu866zqJ2so6Mp0WUGh9t0BIWjz4kAIBw/edit?usp=sharing)
+* [Токен BTC для торговли на Tera DEX](https://docs.google.com/document/d/1ERPdSizarqYzwb5AA4R8mfUVFnSc-Amm7xCg3q4zUhA/edit?usp=sharing)
 * [Ответы на вопросы про проект Тера](https://docs.google.com/document/d/1SpVuuWMYjwzk8K0oqhw5rSPFJhsV2jHManIbtRReQy8/edit?usp=sharing)
-* [Будущее техническое WP](https://docs.google.com/document/d/1B6_qlAp2xs4aHkqOwyvRMCDJTjgeNiOJiGpIeT0VAzY/edit?usp=sharing)
+* [Техническое WP - черновик](https://docs.google.com/document/d/1B6_qlAp2xs4aHkqOwyvRMCDJTjgeNiOJiGpIeT0VAzY/edit?usp=sharing)
 * [Торрент папки DATA/DB](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
 
 
