@@ -254,4 +254,11 @@ Version = 3 - поддержка переводов на счета со сма�
 * [Торрент папки DATA/DB](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
 
 
+Топики на btt:
+[Давайте создадим идеальную криптовалюту](https://bitcointalk.org/index.php?topic=2574634.msg26224253#msg26224253)
+[Алгоритм дистрибуции монет блокчейна](https://bitcointalk.org/index.php?topic=3645579.msg36671591#msg36671591)
+[Мгновенные платежи](https://bitcointalk.org/index.php?topic=3873263.msg37478379#msg37478379)
+[Блокчейн-торговля (опираясь на теорию игр)](https://bitcointalk.org/index.php?topic=4711054.msg42534962#msg42534962)
+[Алгоритм с защитой от GPU-майнинга - TeraHash](https://bitcointalk.org/index.php?topic=5023773.msg45334091#msg45334091)
+[Смарт-контракты на javascript](https://bitcointalk.org/index.php?topic=5067286.msg47792347#msg47792347)
 
