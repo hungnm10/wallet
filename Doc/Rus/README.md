@@ -156,7 +156,7 @@ sudo pm2 start run-test.js
 * Криптография: sha3, secp256k1
 * Защита от ДДОС: PoW (расчет хеша)
 * Платформа: Node.JS
-
+* Язык смарт-контрактов: Javascript
 
 
 

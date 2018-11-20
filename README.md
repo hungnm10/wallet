@@ -193,3 +193,4 @@ I do not recommend installing the test network on the same computer for the foll
 * [Torrent DATA/DB folder](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
 
 
+
