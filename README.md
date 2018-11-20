@@ -1,6 +1,6 @@
 ﻿# TERA Smart money
 
-* [TERA_wallet_handbook_DRAFT](https://drive.google.com/file/d/1ej-8jkjKd3p78vdGXWkzzVJq5PTgyxEw/view?usp=sharing)
+* [Wallet handbook - PDF](https://drive.google.com/file/d/1ej-8jkjKd3p78vdGXWkzzVJq5PTgyxEw/view?usp=sharing)
 * [<Документация на русском>](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
 
 
