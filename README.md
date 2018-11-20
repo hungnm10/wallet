@@ -1,6 +1,8 @@
 ﻿# TERA Smart money
 
-[<Документация на русском>](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
+* [TERA_wallet_handbook_DRAFT](https://drive.google.com/file/d/1ej-8jkjKd3p78vdGXWkzzVJq5PTgyxEw/view?usp=sharing)
+* [<Документация на русском>](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
+
 
 Attention:
 * For a quick initial download of the wallet, there is a [link](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent) to download the database via the P2P Protocol. Download the file via torrent and unzip it. Next, put the DB folder in the data directory of the wallet (with full replacement).
