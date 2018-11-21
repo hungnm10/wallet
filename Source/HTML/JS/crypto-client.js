@@ -12,9 +12,9 @@ var MAX_SUPER_VALUE_POW = 2 * (1 << 30);
 
 function GetHashWithValues(r,e,n,t)
 {
-    var E;
-    return (E = t ? r : r.slice())[0] = 255 & e, E[1] = e >>> 8 & 255, E[2] = e >>> 16 & 255, E[3] = e >>> 24 & 255, E[4] = 255 & n,
-    E[5] = n >>> 8 & 255, E[6] = n >>> 16 & 255, E[7] = n >>> 24 & 255, shaarr(E);
+    var o;
+    return (o = t ? r : r.slice())[0] = 255 & e, o[1] = e >>> 8 & 255, o[2] = e >>> 16 & 255, o[3] = e >>> 24 & 255, o[4] = 255 & n,
+    o[5] = n >>> 8 & 255, o[6] = n >>> 16 & 255, o[7] = n >>> 24 & 255, shaarr(o);
 };
 
 function GetPowPower(r)
@@ -36,15 +36,15 @@ function GetPowValue(r)
 
 function CreateNoncePOWExtern(r,e,n,t)
 {
-    for(var E = [], o = 0; o < r.length; o++)
-        E[o] = r[o];
+    for(var o = [], a = 0; a < r.length; a++)
+        o[a] = r[a];
     t || (t = 0);
-    for(var _ = 0, T = MAX_SUPER_VALUE_POW, a = t; a <= t + n; a++)
+    for(var E = 0, _ = MAX_SUPER_VALUE_POW, T = t; T <= t + n; T++)
     {
-        var i = GetPowValue(GetHashWithValues(E, a, e, !0));
-        i < T && (_ = a, T = i);
+        var u = GetPowValue(GetHashWithValues(o, T, e, !0));
+        u < _ && (E = T, _ = u);
     }
-    return _;
+    return E;
 };
 
 function CreateHashBody(r,e,n)
@@ -76,6 +76,23 @@ function CreateHashBodyPOWInnerMinPower(r,e)
             return t;
         ++t % 1e3 == 0 && (n = GetBlockNumTr(r));
     }
+};
+
+function CalcHashFromArray(r,e)
+{
+    void 0 === e && r.sort(CompareArr);
+    for(var n = [], t = 0; t < r.length; t++)
+        for(var o = r[t], a = 0; a < o.length; a++)
+            n.push(o[a]);
+    return 0 === n.length ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : 32 === n.length ? n : shaarr(n);
+};
+
+function GetArrFromValue(r)
+{
+    var e = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    e[0] = 255 & r, e[1] = r >>> 8 & 255, e[2] = r >>> 16 & 255, e[3] = r >>> 24 & 255;
+    var n = Math.floor(r / 4294967296);
+    return e[4] = 255 & n, e[5] = n >>> 8 & 255, e;
 };
 window.TYPE_TRANSACTION_CREATE = 100, window.MIN_POWER_POW_TR = 0, window.SetBlockChainConstant = function (r)
 {

@@ -18,113 +18,8 @@ if(global.LOCAL_RUN || global.TEST_NETWORK)
 }
 require('./library.js');
 require('./crypto-library.js');
-
-function GetHashFromSeqAddr(SeqHash,AddrHash,BlockNum,PrevHash)
-{
-    if(BlockNum < BLOCKNUM_ALGO2)
-    {
-        var Hash = shaarrblock2(SeqHash, AddrHash, BlockNum);
-        return {Hash:Hash, PowHash:Hash, Hash1:Hash, Hash2:Hash};
-    }
-    var MinerID = ReadUintFromArr(AddrHash, 0);
-    var Nonce0 = ReadUintFromArr(AddrHash, 6);
-    var Nonce1 = ReadUintFromArr(AddrHash, 12);
-    var Nonce2 = ReadUintFromArr(AddrHash, 18);
-    var DeltaNum1 = ReadUint16FromArr(AddrHash, 24);
-    var DeltaNum2 = ReadUint16FromArr(AddrHash, 26);
-    var PrevHashNum;
-    if(PrevHash)
-    {
-        PrevHashNum = ReadUint32FromArr(PrevHash, 28);
-    }
-    else
-    {
-        PrevHashNum = ReadUint32FromArr(AddrHash, 28);
-    }
-    return GetHash(SeqHash, PrevHashNum, BlockNum, MinerID, Nonce0, Nonce1, Nonce2, DeltaNum1, DeltaNum2);
-};
-
-function GetHash(BlockHash,PrevHashNum,BlockNum,Miner,Nonce0,Nonce1,Nonce2,DeltaNum1,DeltaNum2)
-{
-    if(DeltaNum1 > DELTA_LONG_MINING)
-        DeltaNum1 = 0;
-    if(DeltaNum2 > DELTA_LONG_MINING)
-        DeltaNum2 = 0;
-    var HashBase = GetHashFromNum2(BlockNum, PrevHashNum);
-    var HashCurrent = GetHashFromArrNum2(BlockHash, Miner, Nonce0);
-    var HashNonce1 = GetHashFromNum3(BlockNum - DeltaNum1, Miner, Nonce1);
-    var HashNonce2 = GetHashFromNum3(BlockNum - DeltaNum2, Miner, Nonce2);
-    var Hash1 = XORArr(HashBase, HashNonce1);
-    var Hash2 = XORArr(HashCurrent, HashNonce2);
-    var Ret = {Hash:Hash2, Hash1:Hash1, Hash2:Hash2};
-    if(CompareArr(Hash1, Hash2) > 0)
-    {
-        Ret.PowHash = Hash1;
-    }
-    else
-    {
-        Ret.PowHash = Hash2;
-    }
-    if(BlockNum >= global.BLOCKNUM_HASH_NEW)
-    {
-        Ret.Hash = shaarr2(Hash1, Hash2);
-    }
-    return Ret;
-};
-
-function XORArr(Arr1,Arr2)
-{
-    var Ret = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    for(var i = 0; i < 32; i++)
-    {
-        Ret[i] = Arr1[i] ^ Arr2[i];
-    }
-    return Ret;
-};
-
-function GetHashFromNum2(Value1,Value2)
-{
-    var MeshArr = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    WriteUintToArrOnPos(MeshArr, Value1, 0);
-    WriteUintToArrOnPos(MeshArr, Value2, 6);
-    return sha3(MeshArr);
-};
-
-function GetHashFromArrNum2(Arr,Value1,Value2)
-{
-    var MeshArr = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0];
-    WriteArrToArrOnPos(MeshArr, Arr, 0, 32);
-    WriteUintToArrOnPos(MeshArr, Value1, 32);
-    WriteUintToArrOnPos(MeshArr, Value2, 38);
-    return sha3(MeshArr);
-};
-
-function GetHashFromNum3(Value1,Value2,Value3)
-{
-    var MeshArr = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    WriteUintToArrOnPos(MeshArr, Value1, 0);
-    WriteUintToArrOnPos(MeshArr, Value2, 6);
-    WriteUintToArrOnPos(MeshArr, Value3, 12);
-    return sha3(MeshArr);
-};
-global.GetHashFromSeqAddr = GetHashFromSeqAddr;
-global.CalcHashBlockFromSeqAddr = CalcHashBlockFromSeqAddr;
 global.CreateHashMinimal = CreateHashMinimal;
-global.StartNumNewAlgo = StartNumNewAlgo;
 global.CreatePOWVersionX = CreatePOWVersion3;
-
-function StartNumNewAlgo()
-{
-    return BLOCKNUM_ALGO2;
-};
-
-function CalcHashBlockFromSeqAddr(Block,PrevHash)
-{
-    var Value = GetHashFromSeqAddr(Block.SeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
-    Block.Hash = Value.Hash;
-    Block.PowHash = Value.PowHash;
-};
 
 function CreateHashMinimal(Block,MinerID)
 {
@@ -274,10 +169,7 @@ function CreatePOWVersion3(Block)
         {
             Block.PowHash = MaxLider.Hash2;
         }
-        if(BlockNum >= global.BLOCKNUM_HASH_NEW)
-        {
-            Block.Hash = shaarr2(MaxLider.Hash1, MaxLider.Hash2);
-        }
+        Block.Hash = shaarr2(MaxLider.Hash1, MaxLider.Hash2);
         var Power = GetPowPower(Block.PowHash);
         Block.HashCount = (1 << Power) >>> 0;
     }

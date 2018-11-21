@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.POWPROCESS = 1, require("./library"), require("./crypto-library"), require("./terahash");
+global.POWPROCESS = 1, require("./library"), require("./crypto-library"), require("./terahashmining");
 var PROCESS = process;
 process.send && !global.DEBUGPROCESS ? (global.ToLog = function (e)
 {

@@ -171,10 +171,16 @@ function ReadUintFromArr(e,t)
     return r = 256 * (r = 256 * r + e[t + 1]) + e[t];
 };
 
-function ReadUintNext_DEL(e)
+function ReadUint32FromArr(e,t)
 {
-    var t = e.len, r = 2 * (e[t + 5] << 23) + (e[t + 4] << 16) + (e[t + 3] << 8) + e[t + 2];
-    return r = 256 * (r = 256 * r + e[t + 1]) + e[t], e.len += 6, r;
+    return void 0 === t && (t = e.len, e.len += 4), 2 * (e[t + 3] << 23) + (e[t + 3] << 16) + (e[t + 1] << 8) + e[t];
+};
+
+function ReadArr(e,t)
+{
+    for(var r = [], n = e.len, a = 0; a < t; a++)
+        r[a] = e[n + a];
+    return e.len += t, r;
 };
 
 function ReadStr(e)
@@ -182,13 +188,6 @@ function ReadStr(e)
     var t = e[e.len] + 256 * e[e.len + 1];
     e.len += 2;
     var r = Utf8ArrayToStr(e.slice(e.len, e.len + t));
-    return e.len += t, r;
-};
-
-function ReadArr(e,t)
-{
-    for(var r = [], n = e.len, a = 0; a < t; a++)
-        r[a] = e[n + a];
     return e.len += t, r;
 };
 
@@ -294,13 +293,29 @@ window.nw ? (window.Open = function (e,t,r,n)
         window.open(e);
 }, window.GetData = function (e,t,r)
 {
-    "/" !== e.substr(0, 1) && (e = "/" + e);
+    "/" !== e.substr(0, 1) && "http:" !== e.substr(0, 5) && (e = "/" + e);
     var n = null, a = new XMLHttpRequest;
     if(null === t)
         throw "ERROR GET-TYPE";
-    n = JSON.stringify(t), a.open("POST", e, !0), a.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"), a.onreadystatechange = function ()
+    n = JSON.stringify(t), a.open("POST", e, !0);
+    var o = (new Error).stack;
+    a.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"), a.onreadystatechange = function ()
     {
-        4 == a.readyState && (200 == a.status ? r && r(JSON.parse(a.responseText), a.responseText) : r && r(void 0));
+        if(4 == a.readyState)
+            if(200 == a.status)
+            {
+                if(r)
+                    try
+                    {
+                        r(JSON.parse(a.responseText), a.responseText);
+                    }
+                    catch(e)
+                    {
+                        console.log("Error result:"), console.log(a.responseText), console.log(o);
+                    }
+            }
+            else
+                r && r(void 0);
     }, a.send(n);
 });
 var entityMap = {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;", "/":"&#x2F;", "\n":"<BR>", " ":"&nbsp;"};
@@ -341,19 +356,21 @@ function ViewCurrent(e,t,r)
 {
     if(e.BlockName)
     {
+        var n = $(e.BlockName);
         if(t)
         {
-            var n = IsVisibleBlock(e.BlockName);
-            n || MoveUp($(e.BlockName)), SetVisibleBlock(e.BlockName, !n);
+            var a = IsVisibleBlock(e.BlockName);
+            a || MoveUp(n), SetVisibleBlock(e.BlockName, !a);
         }
         else
             SetVisibleBlock(e.BlockName, !0);
-        if(!IsVisibleBlock(e.BlockName))
+        var o = IsVisibleBlock(e.BlockName);
+        if(r && r.className && (r.className = r.className.replace("btpress", ""), o && (r.className += " btpress")), !o)
             return ;
     }
-    var a = $(e.NumName), o = "", i = "";
-    e.FilterName && (o = $(e.FilterName).value), e.FilterName2 && (i = $(e.FilterName2).value), e.Param3 || (e.Param3 = ""), ViewGrid(e.APIName,
-        {StartNum:ParseNum(a.value), CountNum:GetCountViewRows(e), Param3:e.Param3, Filter:o, Filter2:i}, e.TabName, 1, e.TotalSum),
+    var i = $(e.NumName), u = "", l = "";
+    e.FilterName && (u = $(e.FilterName).value), e.FilterName2 && (l = $(e.FilterName2).value), e.Param3 || (e.Param3 = ""), ViewGrid(e.APIName,
+        {StartNum:ParseNum(i.value), CountNum:GetCountViewRows(e), Param3:e.Param3, Filter:u, Filter2:l}, e.TabName, 1, e.TotalSum),
     SaveValues(), r && SetImg(r, e.BlockName);
 };
 
@@ -375,9 +392,9 @@ function ViewBegin(e)
     document.getElementById(e.NumName).value = 0, ViewCurrent(e);
 };
 
-function ViewEnd(e,t)
+function ViewEnd(e,t,r)
 {
-    document.getElementById(e.NumName).value = t - t % GetCountViewRows(e), ViewCurrent(e);
+    document.getElementById(e.NumName).value = t - t % GetCountViewRows(e), r || ViewCurrent(e);
 };
 
 function GetCountViewRows(e)
@@ -416,21 +433,21 @@ function SetGridData(e,t,r,n,a)
         if(o.MaxNum = m.Num, !(S = i[g]))
         {
             o.RowCount++, S = a ? o.insertRow(1) : o.insertRow( - 1), i[g] = S;
-            for(var f = 0; f < c; f++)
+            for(var p = 0; p < c; p++)
             {
-                if("" != (d = l[f]).innerText)
-                    d.F = CreateEval(d.id, "Item"), "(" === d.id.substr(0, 1) && (d.H = 1), (p = S.insertCell(f)).className = d.className;
+                if("" != (d = l[p]).innerText)
+                    d.F = CreateEval(d.id, "Item"), "(" === d.id.substr(0, 1) && (d.H = 1), (f = S.insertCell(p)).className = d.className;
             }
         }
         S.Work = glWorkNum, CUR_ROW = S;
-        for(f = 0; f < c; f++)
+        for(p = 0; p < c; p++)
         {
-            var p, d, v;
-            if(p = S.cells[f])
-                if((d = l[f]).H)
-                    (v = "" + d.F(m)).trim(), p.innerHTML !== v && (p.innerHTML = v);
+            var f, d, v;
+            if(f = S.cells[p])
+                if((d = l[p]).H)
+                    (v = "" + d.F(m)).trim(), f.innerHTML !== v && (f.innerHTML = v);
                 else
-                    (v = "" + d.F(m)).trim(), p.innerText !== v && (p.innerText = v);
+                    (v = "" + d.F(m)).trim(), f.innerText !== v && (f.innerText = v);
         }
         r && 0 === m.Currency && ADD(u, m.Value);
     }
@@ -452,7 +469,7 @@ function ClearTable(e)
 
 function RetOpenBlock(e,t)
 {
-    return e && t ? '<INPUT type="button" onclick="ViewTransaction(' + e + ')" class="" value="' + e + '">' : e;
+    return e && t ? '<button onclick="ViewTransaction(' + e + ')" class="openblock">' + e + "</button>" : e;
 };
 
 function RetBool(e)

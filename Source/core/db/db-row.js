@@ -166,7 +166,7 @@ module.exports = class CDBState extends require("./db")
                     EndNum = CurNum - 1
                     var Delta = CurNum - StartNum;
                     if(Delta === 0)
-                        return ;
+                        return "NoHistory";
                     Delta = Math.trunc((1 + Delta) / 2)
                     CurNum = CurNum - Delta
                 }
@@ -176,7 +176,7 @@ module.exports = class CDBState extends require("./db")
                         StartNum = CurNum + 1
                         var Delta = EndNum - CurNum;
                         if(Delta === 0)
-                            return ;
+                            return "NoPresent";
                         Delta = Math.trunc((1 + Delta) / 2)
                         CurNum = CurNum + Delta
                     }

@@ -40,11 +40,10 @@ function DoCommand(response,Type,Path,params,remoteAddress)
     {
         if(Type !== "POST")
         {
-            ToError("Error POST with path:" + Path);
             response.end();
             return ;
         }
-        response.writeHead(200, {'Content-Type':'application/json'});
+        response.writeHead(200, {'Content-Type':'text/plain'});
         var Ret = F(params[1]);
         try
         {
@@ -827,12 +826,13 @@ function GetCopyNode(Node,BlockCounts)
     var GetTiming = 0;
     if(BlockCounts !== 0)
         GetTiming = Math.trunc(Node.GetTiming / BlockCounts) / 1000;
-    var Item = {VersionNum:Node.VersionNum, DirectMAccount:Node.DirectMAccount, id:Node.id, ip:Node.ip, port:Node.port, TransferCount:Node.TransferCount,
-        GetTiming:GetTiming, ErrCountAll:Node.ErrCountAll, LevelCount:Node.LevelCount, LevelEnum:Node.LevelEnum, TimeTransfer:GetStrOnlyTimeUTC(new Date(Node.LastTimeTransfer)),
-        BlockProcessCount:Node.BlockProcessCount, DeltaTime:Node.DeltaTime, DeltaGlobTime:Node.DeltaGlobTime, PingNumber:Node.PingNumber,
-        NextConnectDelta:Node.NextConnectDelta, NextGetNodesDelta:Node.NextGetNodesDelta, NextHotDelta:Node.NextHotDelta, Name:Node.Name,
-        addrStr:Node.addrStr, CanHot:Node.CanHot, Active:Node.Active, Hot:Node.Hot, Info:Node.PrevInfo + Node.Info, InConnectArr:Node.WasAddToConnect,
-        Level:Node.Level, BLockMaxPOW:Node.BLockMaxPOW, Block:Node.СтатДанныеБлока, };
+    var Item = {VersionNum:Node.VersionNum, DirectMAccount:Node.DirectMAccount, id:Node.id, ip:Node.ip, portweb:Node.portweb, port:Node.port,
+        TransferCount:Node.TransferCount, GetTiming:GetTiming, ErrCountAll:Node.ErrCountAll, LevelCount:Node.LevelCount, LevelEnum:Node.LevelEnum,
+        TimeTransfer:GetStrOnlyTimeUTC(new Date(Node.LastTimeTransfer)), BlockProcessCount:Node.BlockProcessCount, DeltaTime:Node.DeltaTime,
+        DeltaGlobTime:Node.DeltaGlobTime, PingNumber:Node.PingNumber, NextConnectDelta:Node.NextConnectDelta, NextGetNodesDelta:Node.NextGetNodesDelta,
+        NextHotDelta:Node.NextHotDelta, Name:Node.Name, addrStr:Node.addrStr, CanHot:Node.CanHot, Active:Node.Active, Hot:Node.Hot,
+        Info:Node.PrevInfo + Node.Info, InConnectArr:Node.WasAddToConnect, Level:Node.Level, BLockMaxPOW:Node.BLockMaxPOW, Block:Node.СтатДанныеБлока,
+    };
     return Item;
 };
 HTTPCaller.GetBlockchainStat = function (Param)
@@ -1129,10 +1129,10 @@ function SendFileHTML(response,name,StrCookie)
             var StrContentType = ContenTypeMap[type];
             if(!StrContentType || StrContentType === "text/html")
             {
+                var Headers = {'Content-Type':'text/html', "X-Frame-Options":"sameorigin"};
                 if(StrCookie)
-                    response.writeHead(200, {'Set-Cookie':StrCookie, 'Content-Type':'text/html', "X-Frame-Options":"sameorigin"});
-                else
-                    response.writeHead(200, {'Content-Type':'text/html', "X-Frame-Options":"sameorigin"});
+                    Headers['Set-Cookie'] = StrCookie;
+                response.writeHead(200, Headers);
             }
             else
             {
@@ -1207,12 +1207,12 @@ if(global.HTTP_PORT_NUMBER)
             return ;
         if(!request.socket || !request.socket.remoteAddress)
             return ;
-        var remoteAddress = request.socket.remoteAddress;
-        if(remoteAddress === "::1")
+        var remoteAddress = request.socket.remoteAddress.replace(/^.*:/, '');
+        if(remoteAddress === "1")
             remoteAddress = "127.0.0.1";
         if(!global.HTTP_PORT_PASSWORD && remoteAddress.indexOf("127.0.0.1") < 0)
             return ;
-        if(global.HTTP_IP_CONNECT && remoteAddress.indexOf("127.0.0.1") < 0 && remoteAddress.indexOf(global.HTTP_IP_CONNECT) < 0)
+        if(global.HTTP_IP_CONNECT && remoteAddress.indexOf("127.0.0.1") < 0 && global.HTTP_IP_CONNECT.indexOf(remoteAddress) < 0)
             return ;
         let RESPONSE = response0;
         var response = {end:function (data)
@@ -1304,7 +1304,8 @@ if(global.HTTP_PORT_NUMBER)
             let postData = "";
             request.addListener("data", function (postDataChunk)
             {
-                postData += postDataChunk;
+                if(postData.length < 70000 && postDataChunk.length < 70000)
+                    postData += postDataChunk;
             });
             request.addListener("end", function ()
             {

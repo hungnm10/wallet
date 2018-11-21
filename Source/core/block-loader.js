@@ -63,10 +63,6 @@ module.exports = class CBlock extends require("./db/block-db")
     {
         global.glStopNode = true
     }
-    GetHashGenesis(Num)
-    {
-        return [Num + 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Num + 1];
-    }
     GenesisBlockHeaderDB(Num)
     {
         if(Num < 0)
@@ -110,12 +106,6 @@ module.exports = class CBlock extends require("./db/block-db")
             this.WriteBlockDB(Block)
         }
         return PrevArr;
-    }
-    GetSeqHash(BlockNum, PrevHash, TreeHash)
-    {
-        var arr = [GetArrFromValue(BlockNum), PrevHash, TreeHash];
-        var SeqHash = CalcHashFromArray(arr, true);
-        return SeqHash;
     }
     GetPrevHash(Block)
     {
@@ -491,130 +481,8 @@ module.exports = class CBlock extends require("./db/block-db")
                     StartNum = 0
             }
         }
-        if(StartNum !== undefined)
-        {
-            var PrevBlock;
-            if(StartNum > 0)
-                PrevBlock = this.ReadBlockHeaderDB(StartNum - 1)
-            for(var num = StartNum; num <= BlockNum; num++)
-            {
-                var Block = this.ReadBlockHeaderDB(num);
-                if(!Block || !Block.Prepared || !Block.Hash)
-                    break;
-                if(PrevBlock)
-                {
-                    if(!PrevBlock.SumHash)
-                        break;
-                    var SumHash = shaarr2(PrevBlock.SumHash, Block.Hash);
-                    Block.SumHash = SumHash
-                }
-                arr.push(Block)
-                PrevBlock = Block
-            }
-        }
-        var CountSend = arr.length - BLOCK_PROCESSING_LENGTH2;
-        var BufWrite;
-        if(CountSend < 0 || StartNum === undefined)
-        {
-            BufWrite = BufLib.GetNewBuffer(10)
-        }
-        else
-        {
-            var StartNum;
-            if(arr.length)
-                StartNum = arr[0].BlockNum
-            else
-                StartNum = 0
-            var BufSize = 6 + 4 + BLOCK_PROCESSING_LENGTH2 * 32 + 32 + 6 + CountSend * 64;
-            BufWrite = BufLib.GetNewBuffer(BufSize)
-            BufWrite.Write(StartNum, "uint")
-            BufWrite.Write(CountSend, "uint32")
-            for(var i = 0; i < arr.length; i++)
-            {
-                var Block = arr[i];
-                if(i < BLOCK_PROCESSING_LENGTH2)
-                {
-                    BufWrite.Write(Block.Hash, "hash")
-                }
-                else
-                {
-                    if(i === BLOCK_PROCESSING_LENGTH2)
-                    {
-                        BufWrite.Write(Block.SumHash, "hash")
-                        BufWrite.Write(Block.SumPow, "uint")
-                    }
-                    BufWrite.Write(Block.TreeHash, "hash")
-                    BufWrite.Write(Block.AddrHash, "hash")
-                }
-            }
-        }
+        var BufWrite = this.BlockChainToBuf(StartNum, BlockNum);
         this.Send(Info.Node, {"Method":"RETBLOCKHEADER", "Context":Info.Context, "Data":BufWrite}, 1)
-    }
-    GetBlockArrFromBuffer(BufRead, Info)
-    {
-        if(BufRead.length < 10)
-            return [];
-        var StartNum = BufRead.Read("uint");
-        var CountLoad = BufRead.Read("uint32");
-        var BufSize = 6 + 4 + BLOCK_PROCESSING_LENGTH2 * 32 + 32 + 6 + CountLoad * 64;
-        if(CountLoad <= 0 || BufSize !== BufRead.length)
-        {
-            return [];
-        }
-        var PrevBlock;
-        var BlockArr = [];
-        for(var i = 0; i < CountLoad + BLOCK_PROCESSING_LENGTH2; i++)
-        {
-            var Block = {};
-            Block.BlockNum = StartNum + i
-            if(i < BLOCK_PROCESSING_LENGTH2)
-            {
-                Block.Hash = BufRead.Read("hash")
-            }
-            else
-            {
-                if(i === BLOCK_PROCESSING_LENGTH2)
-                {
-                    Block.SumHash = BufRead.Read("hash")
-                    Block.SumPow = BufRead.Read("uint")
-                }
-                Block.TreeHash = BufRead.Read("hash")
-                Block.AddrHash = BufRead.Read("hash")
-                var arr = [];
-                var start = i - BLOCK_PROCESSING_LENGTH2;
-                for(var n = 0; n < BLOCK_PROCESSING_LENGTH; n++)
-                {
-                    var Prev = BlockArr[start + n];
-                    arr.push(Prev.Hash)
-                }
-                Block.PrevHash = CalcHashFromArray(arr, true)
-                Block.SeqHash = this.GetSeqHash(Block.BlockNum, Block.PrevHash, Block.TreeHash)
-                CalcHashBlockFromSeqAddr(Block, Block.PrevHash)
-                Block.Power = GetPowPower(Block.PowHash)
-                if(PrevBlock)
-                {
-                    Block.SumHash = shaarr2(PrevBlock.SumHash, Block.Hash)
-                }
-                PrevBlock = Block
-            }
-            AddInfoBlock(Block, "Loaded from: " + GetNodeStrPort(Info.Node))
-            Block.TrCount = 0
-            Block.TrDataPos = 0
-            Block.TrDataLen = 0
-            BlockArr.push(Block)
-        }
-        for(var i = BlockArr.length - 1; i >= 0; i--)
-        {
-            var Block = BlockArr[i];
-            if(!Block.SumHash)
-            {
-                BlockArr = BlockArr.slice(i + 1)
-                break;
-            }
-        }
-        if(BlockArr.length > 0 && BlockArr[0].BlockNum === BLOCK_PROCESSING_LENGTH2)
-            BlockArr.unshift(this.ReadBlockHeaderDB(BLOCK_PROCESSING_LENGTH2 - 1))
-        return BlockArr;
     }
     RETBLOCKHEADER_FOWARD(Info, CurTime)
     {
@@ -623,7 +491,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var Context = this.LoadHistoryContext;
         Context.time = undefined
         var BufRead = BufLib.GetReadBuffer(Info.Data);
-        var arr = this.GetBlockArrFromBuffer(BufRead, Info);
+        var arr = GetBlockArrFromBuffer(BufRead, Info);
         var arr2 = [];
         var bFindDB = 0;
         if(arr.length > 1)
@@ -697,7 +565,7 @@ module.exports = class CBlock extends require("./db/block-db")
         {
             var BufRead = BufLib.GetReadBuffer(Info.Data);
             chain.time = undefined
-            var arr = this.GetBlockArrFromBuffer(BufRead, Info);
+            var arr = GetBlockArrFromBuffer(BufRead, Info);
             if(arr.length <= 1)
             {
                 var keysend = "" + Info.Node.addrStr + ":" + chain.BlockNum;

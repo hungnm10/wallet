@@ -11,6 +11,7 @@
 var fs = require('fs');
 const os = require('os');
 require("./constant.js");
+require('../HTML/JS/terahashlib.js');
 if(global.USE_PARAM_JS)
 {
     var PathParams = GetCodePath("../extern-run.js");
@@ -43,178 +44,6 @@ String.prototype.right = function (count)
         return this.substr(this.length - count, count);
     else
         return this.substr(0, this.length);
-};
-
-function ReadUintFromArr(arr,len)
-{
-    if(len === undefined)
-    {
-        len = arr.len;
-        arr.len += 6;
-    }
-    var value = (arr[len + 5] << 23) * 2 + (arr[len + 4] << 16) + (arr[len + 3] << 8) + arr[len + 2];
-    value = value * 256 + arr[len + 1];
-    value = value * 256 + arr[len];
-    return value;
-};
-
-function ReadUint32FromArr(arr,len)
-{
-    if(len === undefined)
-    {
-        len = arr.len;
-        arr.len += 4;
-    }
-    var value = (arr[len + 3] << 23) * 2 + (arr[len + 2] << 16) + (arr[len + 1] << 8) + arr[len];
-    return value;
-};
-
-function ReadUint16FromArr(arr,len)
-{
-    if(len === undefined)
-    {
-        len = arr.len;
-        arr.len += 2;
-    }
-    var value = (arr[len + 1] << 8) + arr[len];
-    return value;
-};
-
-function WriteUintToArr(arr,Num)
-{
-    var len = arr.length;
-    arr[len] = Num & 0xFF;
-    arr[len + 1] = (Num >>> 8) & 0xFF;
-    arr[len + 2] = (Num >>> 16) & 0xFF;
-    arr[len + 3] = (Num >>> 24) & 0xFF;
-    var NumH = Math.floor(Num / 4294967296);
-    arr[len + 4] = NumH & 0xFF;
-    arr[len + 5] = (NumH >>> 8) & 0xFF;
-};
-
-function WriteUintToArrOnPos(arr,Num,Pos)
-{
-    arr[Pos] = Num & 0xFF;
-    arr[Pos + 1] = (Num >>> 8) & 0xFF;
-    arr[Pos + 2] = (Num >>> 16) & 0xFF;
-    arr[Pos + 3] = (Num >>> 24) & 0xFF;
-    var NumH = Math.floor(Num / 4294967296);
-    arr[Pos + 4] = NumH & 0xFF;
-    arr[Pos + 5] = (NumH >>> 8) & 0xFF;
-};
-
-function WriteUint32ToArr(arr,Num)
-{
-    var len = arr.length;
-    arr[len] = Num & 0xFF;
-    arr[len + 1] = (Num >>> 8) & 0xFF;
-    arr[len + 2] = (Num >>> 16) & 0xFF;
-    arr[len + 3] = (Num >>> 24) & 0xFF;
-};
-
-function WriteUint32ToArrOnPos(arr,Num,Pos)
-{
-    arr[Pos] = Num & 0xFF;
-    arr[Pos + 1] = (Num >>> 8) & 0xFF;
-    arr[Pos + 2] = (Num >>> 16) & 0xFF;
-    arr[Pos + 3] = (Num >>> 24) & 0xFF;
-};
-
-function WriteUint16ToArrOnPos(arr,Num,Pos)
-{
-    arr[Pos] = Num & 0xFF;
-    arr[Pos + 1] = (Num >>> 8) & 0xFF;
-};
-
-function WriteArrToArr(arr,arr2,ConstLength)
-{
-    var len = arr.length;
-    for(var i = 0; i < ConstLength; i++)
-    {
-        arr[len + i] = arr2[i];
-    }
-};
-
-function WriteArrToArrOnPos(arr,arr2,Pos,ConstLength)
-{
-    for(var i = 0; i < ConstLength; i++)
-    {
-        arr[Pos + i] = arr2[i];
-    }
-};
-
-function WriteArrToArrHOnPos(arr,arr2,Pos,ConstLength)
-{
-    for(var i = 0; i < ConstLength; i++)
-    {
-        arr[Pos + i] |= (arr2[i] << 8);
-    }
-};
-
-function ConvertBufferToStr(Data)
-{
-    for(var key in Data)
-    {
-        var item = Data[key];
-        if(item instanceof Buffer)
-        {
-            Data[key] = GetHexFromArr(item);
-        }
-        else
-            if(typeof item === "object")
-                ConvertBufferToStr(item);
-    }
-};
-
-function CopyObjValue(obj,num)
-{
-    if(num && num > 5)
-        return obj;
-    var ret = {};
-    for(var key in obj)
-    {
-        var val = obj[key];
-        if((typeof val === "object") && !(val instanceof Buffer) && !(val instanceof ArrayBuffer) && !(val instanceof Array))
-            val = CopyObjValue(val, num + 1);
-        ret[key] = val;
-    }
-    return ret;
-};
-
-function CopyArr(arr1)
-{
-    var arr2 = [];
-    if(arr1)
-        for(var i = 0; i < arr1.length; i++)
-            arr2[i] = arr1[i];
-    return arr2;
-};
-global.ReadUint32FromArr = ReadUint32FromArr;
-global.ReadUintFromArr = ReadUintFromArr;
-global.ReadUint16FromArr = ReadUint16FromArr;
-global.WriteUintToArr = WriteUintToArr;
-global.WriteUint32ToArr = WriteUint32ToArr;
-global.WriteUint32ToArrOnPos = WriteUint32ToArrOnPos;
-global.WriteUint16ToArrOnPos = WriteUint16ToArrOnPos;
-global.WriteUintToArrOnPos = WriteUintToArrOnPos;
-global.WriteArrToArr = WriteArrToArr;
-global.WriteArrToArrOnPos = WriteArrToArrOnPos;
-global.WriteArrToArrHOnPos = WriteArrToArrHOnPos;
-global.ConvertBufferToStr = ConvertBufferToStr;
-global.CopyObjValue = CopyObjValue;
-global.CopyArr = CopyArr;
-global.ParseNum = ParseNum;
-
-function ParseNum(a)
-{
-    var Num = parseInt(a);
-    if(!Num)
-        Num = 0;
-    if(isNaN(Num))
-        Num = 0;
-    if(Num < 0)
-        Num = 0;
-    return Num;
 };
 global.DelDir = function (Path)
 {
@@ -341,15 +170,6 @@ global.CompareItemBufFD = function (a,b)
         return a.FD - b.FD;
     else
         return a.Position - b.Position;
-};
-global.CompareArr = function (a,b)
-{
-    for(var i = 0; i < a.length; i++)
-    {
-        if(a[i] !== b[i])
-            return a[i] - b[i];
-    }
-    return 0;
 };
 global.CompareArr33 = function (a,b)
 {

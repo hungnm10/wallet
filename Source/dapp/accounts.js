@@ -342,15 +342,16 @@ class AccountApp extends require("./dapp")
             var DBAct;
             DBAct = this.DBAct
             var Num = this.FindBlockInAct(DBAct, BlockNum);
-            if(Num === undefined)
+            if(Num === "NoHistory")
             {
                 DBAct = this.DBActPrev
-                var Num = this.FindBlockInAct(DBAct, BlockNum);
-                if(Num === undefined)
-                {
-                    return  - 1;
-                }
+                Num = this.FindBlockInAct(DBAct, BlockNum)
             }
+            if(Num === "NoHistory")
+                return 0;
+            else
+                if(Num === "NoPresent")
+                    return  - 1;
             while(true)
             {
                 var Item = DBAct.Read(Num);

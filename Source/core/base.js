@@ -11,7 +11,7 @@
 "use strict";
 require("./library.js");
 require("./crypto-library");
-require("./terahash");
+require("./terahashmining");
 const crypto = require('crypto');
 const RBTree = require('bintrees').RBTree;
 const os = require('os');
@@ -20,6 +20,7 @@ const MAX_TIME_NETWORK_TRANSPORT = 1 * 1000;
 var GlSumUser;
 var GlSumSys;
 var GlSumIdle;
+global.CountAllNode = 0;
 module.exports = class CCommon
 {
     constructor(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
@@ -41,6 +42,18 @@ module.exports = class CCommon
     }
     AddStatOnTimer()
     {
+        var CountAll = 0;
+        var CurTime = GetCurrentTime() - 0;
+        for(var i = 0; i < this.NodesArr.length; i++)
+        {
+            var Item = this.NodesArr[i];
+            if(Item.LastTime && (CurTime - Item.LastTime) < 3600 * 1000)
+                CountAll++
+            else
+                if(Item.LastTimeGetNode && (CurTime - Item.LastTimeGetNode) < 3600 * 1000)
+                    CountAll++
+        }
+        global.CountAllNode = CountAll
         if(!global.STAT_MODE)
             return ;
         var bHasCP = 0;
@@ -101,17 +114,6 @@ module.exports = class CCommon
                 CountHotOK += Chck
                 SumDeltaHot += DeltaTime
             }
-        }
-        var CountAll = 0;
-        var CurTime = GetCurrentTime() - 0;
-        for(var i = 0; i < this.NodesArr.length; i++)
-        {
-            var Item = this.NodesArr[i];
-            if(Item.LastTime && (CurTime - Item.LastTime) < 3600 * 1000)
-                CountAll++
-            else
-                if(Item.LastTimeGetNode && (CurTime - Item.LastTimeGetNode) < 3600 * 1000)
-                    CountAll++
         }
         ADD_TO_STAT("MAX:ALL_NODES", CountAll)
         ADD_TO_STAT("MAX:CONNECTED_NODES", Count)

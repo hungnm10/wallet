@@ -142,17 +142,6 @@ module.exports = class CSmartContract extends require("./block-exchange")
             DApps[key].OnDeleteBlock(Block)
         }
     }
-    CheckCreateTransactionHASH(Tr)
-    {
-        if(!Tr.hashPow)
-        {
-            Tr.num = ReadUintFromArr(Tr.body, Tr.body.length - 12)
-            Tr.hashPow = shaarr(Tr.body)
-            Tr.HASH = Tr.hashPow
-            Tr.power = GetPowPower(Tr.hashPow)
-            Tr.TimePow = Tr.num + Tr.power - Math.log2(Tr.body.length / 128)
-        }
-    }
     IsValidTransaction(Tr, BlockNum)
     {
         if(!Tr.body || Tr.body.length < MIN_TRANSACTION_SIZE || Tr.body.length > MAX_TRANSACTION_SIZE)

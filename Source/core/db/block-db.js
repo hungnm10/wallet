@@ -56,10 +56,15 @@ module.exports = class CDB extends require("../code")
                     this.GetBlock(i, true, false)
             }
     }
-    FindStartBlockNum()
+    GetMaxNumBlockDB()
     {
         var FI = BlockDB.OpenDBFile(FILE_NAME_HEADER);
         var BlockNum = (FI.size / BLOCK_HEADER_SIZE) - 1;
+        return BlockNum;
+    }
+    FindStartBlockNum()
+    {
+        var BlockNum = this.GetMaxNumBlockDB();
         if(global.NO_CHECK_BLOCKNUM_ONSTART)
         {
             this.BlockNumDB = this.CheckBlocksOnStartFoward(BlockNum - 2, 0)
@@ -868,5 +873,91 @@ module.exports = class CDB extends require("../code")
                 break;
             }
         return arr;
+    }
+    GetHashGenesis(Num)
+    {
+        return [Num + 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Num + 1];
+    }
+    GetSeqHash(BlockNum, PrevHash, TreeHash)
+    {
+        var arr = [GetArrFromValue(BlockNum), PrevHash, TreeHash];
+        var SeqHash = CalcHashFromArray(arr, true);
+        return SeqHash;
+    }
+    CheckCreateTransactionHASH(Tr)
+    {
+        if(!Tr.hashPow)
+        {
+            Tr.num = ReadUintFromArr(Tr.body, Tr.body.length - 12)
+            Tr.hashPow = shaarr(Tr.body)
+            Tr.HASH = Tr.hashPow
+            Tr.power = GetPowPower(Tr.hashPow)
+            Tr.TimePow = Tr.num + Tr.power - Math.log2(Tr.body.length / 128)
+        }
+    }
+    BlockChainToBuf(StartNum, EndBlockNum)
+    {
+        if(StartNum === undefined)
+            return BufLib.GetNewBuffer(10);
+        var PrevBlock;
+        if(StartNum > 0)
+            PrevBlock = this.ReadBlockHeaderDB(StartNum - 1)
+        var arr = [];
+        for(var num = StartNum; num <= EndBlockNum; num++)
+        {
+            var Block = this.ReadBlockHeaderDB(num);
+            if(!Block || !Block.Prepared || !Block.Hash)
+                break;
+            if(PrevBlock)
+            {
+                if(!PrevBlock.SumHash)
+                    break;
+                var SumHash = shaarr2(PrevBlock.SumHash, Block.Hash);
+                Block.SumHash = SumHash
+            }
+            arr.push(Block)
+            PrevBlock = Block
+        }
+        return this.ArrHeaderToBuf(arr);
+    }
+    ArrHeaderToBuf(arr)
+    {
+        var CountSend = arr.length - BLOCK_PROCESSING_LENGTH2;
+        var BufWrite;
+        if(CountSend <= 0)
+        {
+            BufWrite = BufLib.GetNewBuffer(10)
+        }
+        else
+        {
+            var StartNum;
+            if(arr.length)
+                StartNum = arr[0].BlockNum
+            else
+                StartNum = 0
+            var BufSize = 6 + 4 + BLOCK_PROCESSING_LENGTH2 * 32 + 32 + 6 + CountSend * 64;
+            BufWrite = BufLib.GetNewBuffer(BufSize)
+            BufWrite.Write(StartNum, "uint")
+            BufWrite.Write(CountSend, "uint32")
+            for(var i = 0; i < arr.length; i++)
+            {
+                var Block = arr[i];
+                if(i < BLOCK_PROCESSING_LENGTH2)
+                {
+                    BufWrite.Write(Block.Hash, "hash")
+                }
+                else
+                {
+                    if(i === BLOCK_PROCESSING_LENGTH2)
+                    {
+                        BufWrite.Write(Block.SumHash, "hash")
+                        BufWrite.Write(Block.SumPow, "uint")
+                    }
+                    BufWrite.Write(Block.TreeHash, "hash")
+                    BufWrite.Write(Block.AddrHash, "hash")
+                }
+            }
+        }
+        return BufWrite;
     }
 };

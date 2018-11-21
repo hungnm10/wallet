@@ -93,6 +93,8 @@ class SmartApp extends require("./dapp")
     }
     Start()
     {
+        if(this.DBSmart.GetMaxNum() + 1 >= 7)
+            return ;
         this.DBSmart.Write({Num:0, ShortName:"TERA", Name:"TERA", Description:"TERA", BlockNum:0, TokenGenerate:1, Account:0, Category1:0})
         for(var i = 1; i < 8; i++)
             this.DBSmart.Write({Num:i, ShortName:"", Name:"", Description:"", BlockNum:0, TokenGenerate:1, Account:i, Category1:0})
@@ -372,16 +374,27 @@ class SmartApp extends require("./dapp")
             var Smart = this.ReadSmart(Account.Value.Smart);
             if(Smart.Account === TR.Account)
                 return "Can't change base account";
-        }
-        try
-        {
-            if(Account.Value.Smart)
+            try
+            {
                 RunSmartMethod(Block, Account.Value.Smart, Account, BlockNum, TrNum, ContextFrom, "OnDeleteSmart")
+            }
+            catch(e)
+            {
+                return e;
+            }
         }
-        catch(e)
-        {
-            return e;
-        }
+        if(0)
+            if(TR.Smart)
+            {
+                try
+                {
+                    RunSmartMethod(Block, Account.Value.Smart, Account, BlockNum, TrNum, ContextFrom, "OnSetSmart")
+                }
+                catch(e)
+                {
+                    return e;
+                }
+            }
         Account.Value.Smart = TR.Smart
         Account.Value.Data = []
         DApps.Accounts.WriteStateTR(Account, TrNum)

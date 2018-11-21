@@ -62,16 +62,40 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
     HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
     idHostingAliveInterval = setInterval(function ()
     {
-        if(!HostingWorker.connected)
+        if(HostingWorker && HostingWorker.connected)
+        {
+            HostingWorker.send({cmd:"Stat", Name:"MAX:ALL_NODES", Value:global.CountAllNode});
+            var arr = SERVER.GetStatBlockchain("POWER_BLOCKCHAIN", 600);
+            if(arr.length)
+            {
+                var SumPow = 0;
+                for(var i = 0; i < arr.length; i++)
+                    SumPow += arr[i];
+                var AvgPow = SumPow / arr.length;
+                var HashRate = Math.pow(2, AvgPow) / 1024 / 1024 / 1024;
+                HostingWorker.send({cmd:"Stat", Name:"MAX:HASH_RATE_G", Value:HashRate});
+            }
+            var Count = COUNT_BLOCK_PROOF + 16 - 1;
+            if(SERVER.BlockNumDB > Count)
+            {
+                var BufWrite = SERVER.BlockChainToBuf(SERVER.BlockNumDB - Count, SERVER.BlockNumDB);
+                HostingWorker.send({cmd:"NodeBlockChain", Value:BufWrite});
+            }
+        }
+        else
         {
             ToLog("NOT HOSTING CONNECTED. RESTART!");
             HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
         }
-        else
+    }, 900);
+    setInterval(function ()
+    {
+        if(HostingWorker && HostingWorker.connected)
         {
-            HostingWorker.send({cmd:"Alive"});
+            var arr = SERVER.GetDirectNodesArray(true, true).slice(1, 500);
+            HostingWorker.send({cmd:"NodeList", Value:arr});
         }
-    }, 2000);
+    }, 5000);
 }
 global.StopHostingServer = function ()
 {
@@ -79,7 +103,10 @@ global.StopHostingServer = function ()
         clearInterval(idHostingAliveInterval);
     idHostingAliveInterval = 0;
     if(HostingWorker && HostingWorker.connected)
+    {
         HostingWorker.send({cmd:"Exit"});
+        HostingWorker = undefined;
+    }
 };
 require("./html-server");
 RunServer();

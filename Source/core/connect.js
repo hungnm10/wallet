@@ -212,8 +212,8 @@ module.exports = class CConnect extends require("./transfer-msg")
             LevelCount:LevelCount, Time:(GetCurrentTime() - 0), BlockNumDB:this.BlockNumDB, LoadHistoryMode:this.LoadHistoryMode, CanStart:global.CAN_START,
             CheckPoint:CHECK_POINT, Reserv3:[], Key:this.KeyToNode, Name:this.NameToNode, TrafficFree:this.SendTrafficFree, AccountBlockNum:BlockNumHash,
             AccountsHash:AccountsHash, MemoryUsage:Math.trunc(process.memoryUsage().heapTotal / 1024 / 1024), CheckDeltaTime:CHECK_DELTA_TIME,
-            CodeVersion:CODE_VERSION, IsAddrList:global.ADDRLIST_MODE, CheckPointHashDB:CheckPointHashDB, Reserv4:0, HashDB:HashDB, StopGetBlock:StopGetBlock,
-            СтатБлок:СтатДанные, DirectMAccount:DirectMAccount, Reserve:[], };
+            CodeVersion:CODE_VERSION, IsAddrList:global.ADDRLIST_MODE, CheckPointHashDB:CheckPointHashDB, PortWeb:HTTP_HOSTING_PORT, HashDB:HashDB,
+            StopGetBlock:StopGetBlock, СтатБлок:СтатДанные, DirectMAccount:DirectMAccount, Reserve:[], };
         return Ret;
     }
     static
@@ -242,7 +242,7 @@ module.exports = class CConnect extends require("./transfer-msg")
             CodeVersion:{BlockNum:uint,addrArr:arr32,LevelUpdate:byte,BlockPeriod:uint,VersionNum:uint,Hash:hash,Sign:arr64},\
             IsAddrList:byte,\
             CheckPointHashDB:hash,\
-            Reserv4:uint16,\
+            PortWeb:uint16,\
             HashDB:hash,\
             StopGetBlock:uint,\
             СтатНомер:uint,\
@@ -283,6 +283,7 @@ module.exports = class CConnect extends require("./transfer-msg")
         Node.LastTime = GetCurrentTime() - 0
         Node.NextConnectDelta = 1000
         Node.StopGetBlock = Data.StopGetBlock
+        Node.portweb = Data.PortWeb
         if(bCheckPoint)
         {
             this.CheckCheckPoint(Data, Info.Node)
@@ -542,7 +543,7 @@ module.exports = class CConnect extends require("./transfer-msg")
                             addrStr:str64,\
                             ip:str30,\
                             port:uint16,\
-                            Reserve:uint16,\
+                            portweb:uint16,\
                             LastTime:uint,\
                             DeltaTime:uint,\
                             StatData:arr70\
@@ -582,10 +583,11 @@ module.exports = class CConnect extends require("./transfer-msg")
             return false;
         return true;
     }
-    GetDirectNodesArray(bAll)
+    GetDirectNodesArray(bAll, bWebPort)
     {
         var ret = [];
-        var Value = {addrStr:this.addrStr, ip:this.ip, port:this.port, LastTime:0, DeltaTime:0, Hot:true, BlockProcessCount:0};
+        var Value = {addrStr:this.addrStr, ip:this.ip, port:this.port, LastTime:0, DeltaTime:0, Hot:true, BlockProcessCount:0, portweb:HTTP_HOSTING_PORT,
+        };
         ret.push(Value)
         var len = this.NodesArr.length;
         var UseRandom = 0;
@@ -612,6 +614,8 @@ module.exports = class CConnect extends require("./transfer-msg")
             {
                 Item = this.NodesArr[i]
             }
+            if(bWebPort && !Item.portweb)
+                continue;
             if(!this.IsCanConnect(Item))
                 continue;
             if(Item.GrayConnect)
@@ -621,7 +625,7 @@ module.exports = class CConnect extends require("./transfer-msg")
             if(!GrayConnect() && Item.LastTime - 0 < CurTime - 3600 * 1000)
                 continue;
             var Value = {addrStr:Item.addrStr, ip:Item.ip, port:Item.port, FirstTime:Item.FirstTime, FirstTimeStr:Item.FirstTimeStr, LastTime:Item.LastTime - 0,
-                DeltaTime:Item.DeltaTime, Hot:Item.Hot, BlockProcessCount:Item.BlockProcessCount, Name:Item.Name, };
+                DeltaTime:Item.DeltaTime, Hot:Item.Hot, BlockProcessCount:Item.BlockProcessCount, Name:Item.Name, portweb:Item.portweb, };
             ret.push(Value)
         }
         return ret;
@@ -665,6 +669,8 @@ module.exports = class CConnect extends require("./transfer-msg")
         }
         if(Item.Name)
             Node.Name = Item.Name
+        if(Item.portweb)
+            Node.portweb = Item.portweb
         return Node;
     }
     NodesArrSort()

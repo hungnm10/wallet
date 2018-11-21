@@ -674,21 +674,6 @@ function UpdateMerklTree0(Tree,NumLevel)
             }
         }
 };
-
-function arr2(Value1,Value2)
-{
-    var Buf = [];
-    for(var n = 0; n < Value1.length; n++)
-        Buf.push(Value1[n]);
-    for(var n = 0; n < Value2.length; n++)
-        Buf.push(Value2[n]);
-    return Buf;
-};
-
-function shaarr2(Value1,Value2)
-{
-    return shaarr(arr2(Value1, Value2));
-};
 var RC = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2147483649, 0, 2147516545, 2147483648, 32777,
 2147483648, 138, 0, 136, 0, 2147516425, 0, 2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771, 2147483648,
 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648, 2147516545, 2147483648, 32896, 2147483648, 2147483649,
@@ -1068,8 +1053,6 @@ global.CalcHashFromArray = CalcHashFromArray;
 global.CalcMerklFromArray = CalcMerklFromArray;
 global.UpdateMerklTree = UpdateMerklTree;
 global.IsZeroArr = IsZeroArr;
-global.shaarr2 = shaarr2;
-global.arr2 = arr2;
 global.GetHashWithNonce = GetHashWithNonce;
 global.GetPowPower = GetPowPower;
 global.GetArrFromValue = GetArrFromValue;

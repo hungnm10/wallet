@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 701;
+global.UPDATE_CODE_VERSION_NUM = 704;
 global.MIN_CODE_VERSION_NUM = 694;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
@@ -21,7 +21,6 @@ global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY"
 global.DEBUG_WALLET = 0;
 global.AUTO_COORECT_TIME = 1;
 global.DELTA_CURRENT_TIME = 0;
-global.BLOCKNUM_HASH_NEW = 10195000;
 global.NODES_NAME = "";
 global.COMMON_KEY = "";
 global.SERVER_PRIVATE_KEY_HEX = undefined;
@@ -56,6 +55,7 @@ global.MIN_POWER_POW_HANDSHAKE = 12;
 global.USE_HINT = 0;
 global.ALL_ACCOUNTS_ROWS = 0;
 global.CHECK_SEND = 1;
+global.COUNT_BLOCK_PROOF = 300;
 global.MIN_POWER_POW_MSG = 2;
 global.MEM_POOL_MSG_COUNT = 1000;
 global.MAX_LEVEL_SPECIALIZATION = 24;
@@ -123,7 +123,6 @@ else
         console.log("CURRENT NUM: " + (Math.trunc(Num / 1000) * 1000));
         global.SMART_BLOCKNUM_START = 0;
         global.START_NETWORK_DATE = 1541613403000 + 230000 * 1000;
-        global.BLOCKNUM_HASH_NEW = 1000;
         global.START_MINING = 1000;
         global.REF_PERIOD_MINING = 1000;
         global.MIN_POWER_POW_TR = 8;

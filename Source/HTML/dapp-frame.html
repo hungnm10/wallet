@@ -24,7 +24,13 @@
             var win = window.frames.dapp;
             if(!win)
             {
-                console.log("Error window.frames.dapp")
+                console.log("Error window.frames.dapp");
+
+                //try latter
+                setTimeout(function ()
+                {
+                    win.postMessage(Data, "*");
+                },200);
                 return;
             }
             //console.log("To dapp: "+JSON.stringify(Data))
@@ -377,6 +383,6 @@
     //   glDebugPath="./dapp-smart/BTC-coin.html";
     //  glDebugPath="./dapp-smart/freeze.html";
     //  glDebugPath="./dapp-smart/promise.html";
-    //{"HTMLBlock":11511445,"HTMLTr":0}
+    //{"HTMLBlock":11932440,"HTMLTr":1}
 </script>
 
