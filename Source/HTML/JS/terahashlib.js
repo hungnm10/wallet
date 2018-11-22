@@ -25,8 +25,8 @@ function GetHashFromSeqAddr(r,o,a,e)
 function GetHash(r,o,a,e,t,n,i,A,s)
 {
     DELTA_LONG_MINING < A && (A = 0), DELTA_LONG_MINING < s && (s = 0);
-    var l = GetHashFromNum2(a, o), u = GetHashFromArrNum2(r, e, t), f = GetHashFromNum3(a - A, e, n), h = GetHashFromNum3(a - s,
-    e, i), m = XORArr(l, f), H = XORArr(u, h), c = {Hash:H, Hash1:m, Hash2:H};
+    var l = GetHashFromNum2(a, o), u = GetHashFromArrNum2(r, e, t), h = GetHashFromNum3(a - A, e, n), f = GetHashFromNum3(a - s,
+    e, i), m = XORArr(l, h), H = XORArr(u, f), c = {Hash:H, Hash1:m, Hash2:H};
     return 0 < CompareArr(m, H) ? c.PowHash = m : c.PowHash = H, BLOCKNUM_HASH_NEW <= a && (c.Hash = shaarr2(m, H)), c;
 };
 
@@ -239,10 +239,11 @@ function GetBlockArrFromBuffer(r)
     return t;
 };
 "object" == typeof global && (global.GetHashFromSeqAddr = GetHashFromSeqAddr, global.CalcHashBlockFromSeqAddr = CalcHashBlockFromSeqAddr,
-global.GetHash = GetHash, (global.LOCAL_RUN || global.TEST_NETWORK) && (BLOCKNUM_ALGO2 = 0, BLOCKNUM_HASH_NEW = 1e3)), "object" == typeof global && (global.ReadUint32FromArr = ReadUint32FromArr,
-global.ReadUintFromArr = ReadUintFromArr, global.ReadUint16FromArr = ReadUint16FromArr, global.WriteUintToArr = WriteUintToArr,
-global.WriteUint32ToArr = WriteUint32ToArr, global.WriteUint32ToArrOnPos = WriteUint32ToArrOnPos, global.WriteUint16ToArrOnPos = WriteUint16ToArrOnPos,
-global.WriteUintToArrOnPos = WriteUintToArrOnPos, global.WriteArrToArr = WriteArrToArr, global.WriteArrToArrOnPos = WriteArrToArrOnPos,
-global.WriteArrToArrHOnPos = WriteArrToArrHOnPos, global.ConvertBufferToStr = ConvertBufferToStr, global.CopyObjValue = CopyObjValue,
-global.CopyArr = CopyArr, global.ParseNum = ParseNum, global.CompareArr = CompareArr, global.shaarr2 = shaarr2, global.arr2 = arr2,
-global.GetBlockArrFromBuffer = GetBlockArrFromBuffer);
+global.GetHashFromNum2 = GetHashFromNum2, global.GetHashFromNum3 = GetHashFromNum3, global.GetHashFromArrNum2 = GetHashFromArrNum2,
+global.XORArr = XORArr, global.GetHash = GetHash, (global.LOCAL_RUN || global.TEST_NETWORK) && (BLOCKNUM_ALGO2 = 0, BLOCKNUM_HASH_NEW = 1e3)),
+"object" == typeof global && (global.ReadUint32FromArr = ReadUint32FromArr, global.ReadUintFromArr = ReadUintFromArr, global.ReadUint16FromArr = ReadUint16FromArr,
+global.WriteUintToArr = WriteUintToArr, global.WriteUint32ToArr = WriteUint32ToArr, global.WriteUint32ToArrOnPos = WriteUint32ToArrOnPos,
+global.WriteUint16ToArrOnPos = WriteUint16ToArrOnPos, global.WriteUintToArrOnPos = WriteUintToArrOnPos, global.WriteArrToArr = WriteArrToArr,
+global.WriteArrToArrOnPos = WriteArrToArrOnPos, global.WriteArrToArrHOnPos = WriteArrToArrHOnPos, global.ConvertBufferToStr = ConvertBufferToStr,
+global.CopyObjValue = CopyObjValue, global.CopyArr = CopyArr, global.ParseNum = ParseNum, global.CompareArr = CompareArr, global.shaarr2 = shaarr2,
+global.arr2 = arr2, global.GetBlockArrFromBuffer = GetBlockArrFromBuffer);

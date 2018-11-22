@@ -18,6 +18,7 @@ if(global.LOCAL_RUN || global.TEST_NETWORK)
 }
 require('./library.js');
 require('./crypto-library.js');
+require('../HTML/JS/terahashlib.js');
 global.CreateHashMinimal = CreateHashMinimal;
 global.CreatePOWVersionX = CreatePOWVersion3;
 
