@@ -60,3 +60,22 @@ An example of the result:
 ```
 {"arr":[{"Version":0,"TokenGenerate":0,"ISIN":"","Zip":0,"BlockNum":10034043,"TrNum":0,"IconBlockNum":10033892,"IconTrNum":0,"ShortName":"","Name":"List-Lib","Account":187007,"AccountLength":1,"Category1":40,"Category2":0,"Category3":0,"Owner":186573,"Reserve":{"type":"Buffer","data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"StateFormat":"","Description":"List-lib v1.0","Num":"8","CodeLength":3705,"HTMLLength":0}],"result":1}
 ```
+
+
+
+#### Getting a list of accounts by public key
+http://194.1.237.94:80/GetAccountListByKey?Key=027AE0DCE92D8BE1F893525B226695DDF0FE6AD756349A76777FF51F3B59067D70
+
+Result:
+```
+{"result":1,"arr":[{"Currency":0,"PubKey":{"type":"Buffer","data":[2,122,224,220,233,45,139,225,248,147,82,91,34,102,149,221,240,254,106,215,86,52,154,118,119,127,245,31,59,89,6,125,112]},"Name":"Founder account","Value":{"SumCOIN":40000005,"SumCENT":0,"OperationID":7,"Smart":0,"Data":{"type":"Buffer","data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}},"BlockNumCreate":0,"Adviser":0,"Reserve":{"type":"Buffer","data":[0,0,0,0,0,0,0,0,0]},"Num":8,"WN":""}]}
+```
+
+#### Sending a transaction
+http://194.1.237.94:80/SendTransactionHex?Hex=6F030000000000002D00000000000100000000008400000000000100000000000000000004007465737425000000000000007AA29739FD458DF8AB1139881DAA4584CCDA3D4995B6849FB1F55F3B2EA40704116647823E97A60C70213EFA8D83CBFBEE6D753FCA6771B4792985B57186F3BCFBCEC0000000930600000000
+
+Result:
+```
+{"result":1,"text":"OK"}
+```
+
