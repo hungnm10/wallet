@@ -203,7 +203,7 @@ function shaarr2(r,o)
 
 function GetBlockArrFromBuffer(r)
 {
-    if(r.length < 10)
+    if(!r || r.length < 10)
         return [];
     r.len = 0;
     var o, a = ReadUintFromArr(r), e = ReadUint32FromArr(r);

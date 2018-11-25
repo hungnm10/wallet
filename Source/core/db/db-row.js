@@ -232,8 +232,12 @@ module.exports = class CDBState extends require("./db")
     {
         if(this.BufMapCount > 1000)
         {
-            this.BufMap = {}
-            this.BufMapCount = 0
+            this.ClearBufMap()
         }
+    }
+    ClearBufMap()
+    {
+        this.BufMap = {}
+        this.BufMapCount = 0
     }
 };

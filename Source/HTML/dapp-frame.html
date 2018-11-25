@@ -192,7 +192,7 @@
 
             GetData("DappInfo",{Smart:glSmart}, function (SetData)
             {
-                if(SetData.Err)
+                if(!SetData || SetData.Err)
                     return;
 
                 CONFIG_DATA=SetData;
@@ -278,7 +278,7 @@
                 }
             });
         }
-        setInterval(LoopEvent,100);
+        setInterval(LoopEvent,1000);
         setInterval(LoopInfo,1000);
 
 
@@ -355,6 +355,7 @@
             top: 20px;
             width: 100%;
             height: 97vh;
+            border: 0;
         }
         #idStatus
         {

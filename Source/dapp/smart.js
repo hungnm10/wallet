@@ -369,6 +369,12 @@ class SmartApp extends require("./dapp")
         var Account = DApps.Accounts.ReadStateTR(TR.Account);
         if(!Account)
             return "Error read account Num: " + TR.Account;
+        if(BlockNum >= 13000000)
+        {
+            if(Account.Value.Smart === TR.Smart)
+                return "The value has not changed";
+            Account.Value.OperationID++
+        }
         if(Account.Value.Smart)
         {
             var Smart = this.ReadSmart(Account.Value.Smart);
@@ -383,21 +389,20 @@ class SmartApp extends require("./dapp")
                 return e;
             }
         }
-        if(0)
-            if(TR.Smart)
-            {
-                try
-                {
-                    RunSmartMethod(Block, Account.Value.Smart, Account, BlockNum, TrNum, ContextFrom, "OnSetSmart")
-                }
-                catch(e)
-                {
-                    return e;
-                }
-            }
         Account.Value.Smart = TR.Smart
         Account.Value.Data = []
         DApps.Accounts.WriteStateTR(Account, TrNum)
+        if(Account.Value.Smart)
+        {
+            try
+            {
+                RunSmartMethod(Block, Account.Value.Smart, Account, BlockNum, TrNum, ContextFrom, "OnSetSmart")
+            }
+            catch(e)
+            {
+                return e;
+            }
+        }
         return true;
     }
     GetRows(start, count, Filter, Category, GetAllData, bTokenGenerate)
@@ -501,10 +506,10 @@ function GetSmartEvalContext(Smart)
 {
     var EvalContext = DApps.Smart.DBSmart.GetMap("EVAL" + Smart.Num);
     if(0)
-        if(Smart.Num === 13)
+        if(Smart.Num === 26)
         {
             const fs = require("fs");
-            var Path = "./dapp-smart/DEX.js";
+            var Path = "./dapp-smart/test-test.js";
             Smart.Code = fs.readFileSync(Path, {encoding:"utf8"});
             EvalContext = undefined;
         }

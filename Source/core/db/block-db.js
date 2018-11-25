@@ -22,7 +22,7 @@ module.exports = class CDB extends require("../code")
         super(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
         this.StartOneProcess()
         this.BlockNumDB = 0
-        this.MapHeader = {}
+        this.ClearBufMap()
     }
     StartOneProcess()
     {
@@ -361,7 +361,7 @@ module.exports = class CDB extends require("../code")
     WriteBufHeaderDB(BufWrite, BlockNum)
     {
         BlockNum = Math.trunc(BlockNum)
-        this.MapHeader = {}
+        this.ClearBufMap()
         var Position = BlockNum * BLOCK_HEADER_SIZE;
         var FI = BlockDB.OpenDBFile(FILE_NAME_HEADER, 1);
         var written = fs.writeSync(FI.fd, BufWrite, 0, BufWrite.length, Position);
@@ -508,7 +508,7 @@ module.exports = class CDB extends require("../code")
         var size2 = 0;
         if(FItem2.size !== size2)
         {
-            this.MapHeader = {}
+            this.ClearBufMap()
             FItem2.size = size2
             fs.ftruncateSync(FItem2.fd, FItem2.size)
         }
@@ -543,9 +543,13 @@ module.exports = class CDB extends require("../code")
             DApps[key].ClearDataBase()
         }
         this.BlockNumDB = 0
-        this.MapHeader = {}
+        this.ClearBufMap()
         this.ClearStat()
         this.CreateGenesisBlocks()
+    }
+    ClearBufMap()
+    {
+        this.MapHeader = {}
     }
     RewriteAllTransactions()
     {

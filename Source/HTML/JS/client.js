@@ -13,7 +13,7 @@ function $(e)
 {
     return document.getElementById(e);
 };
-var ServerHTTP;
+var ServerHTTP, MainServer;
 
 function SUM_TO_STRING(e,t,r)
 {
@@ -293,7 +293,7 @@ window.nw ? (window.Open = function (e,t,r,n)
         window.open(e);
 }, window.GetData = function (e,t,r)
 {
-    "/" !== e.substr(0, 1) && "http:" !== e.substr(0, 5) && (e = "/" + e);
+    "http:" !== e.substr(0, 5) && ("/" !== e.substr(0, 1) && (e = "/" + e), MainServer && (e = "http://" + MainServer.ip + ":" + MainServer.port + e));
     var n = null, a = new XMLHttpRequest;
     if(null === t)
         throw "ERROR GET-TYPE";
@@ -305,17 +305,21 @@ window.nw ? (window.Open = function (e,t,r,n)
             if(200 == a.status)
             {
                 if(r)
+                {
+                    var e;
                     try
                     {
-                        r(JSON.parse(a.responseText), a.responseText);
+                        e = JSON.parse(a.responseText);
                     }
                     catch(e)
                     {
-                        console.log("Error result:"), console.log(a.responseText), console.log(o);
+                        console.log("Error parsing: " + e), console.log(a.responseText), console.log(o);
                     }
+                    r(e, a.responseText);
+                }
             }
             else
-                r && r(void 0);
+                r && r(void 0, void 0);
     }, a.send(n);
 });
 var entityMap = {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;", "/":"&#x2F;", "\n":"<BR>", " ":"&nbsp;"};
@@ -430,31 +434,31 @@ function SetGridData(e,t,r,n,a)
     for(var u = {SumCOIN:0, SumCENT:0}, l = o.rows[0].cells, c = l.length, s = 0; e && s < e.length; s++)
     {
         var m = e[s], g = m.Num;
-        if(o.MaxNum = m.Num, !(S = i[g]))
+        if(o.MaxNum = m.Num, !(y = i[g]))
         {
-            o.RowCount++, S = a ? o.insertRow(1) : o.insertRow( - 1), i[g] = S;
-            for(var p = 0; p < c; p++)
+            o.RowCount++, y = a ? o.insertRow(1) : o.insertRow( - 1), i[g] = y;
+            for(var f = 0; f < c; f++)
             {
-                if("" != (d = l[p]).innerText)
-                    d.F = CreateEval(d.id, "Item"), "(" === d.id.substr(0, 1) && (d.H = 1), (f = S.insertCell(p)).className = d.className;
+                if("" != (v = l[f]).innerText)
+                    v.F = CreateEval(v.id, "Item"), "(" === v.id.substr(0, 1) && (v.H = 1), (p = y.insertCell(f)).className = v.className;
             }
         }
-        S.Work = glWorkNum, CUR_ROW = S;
-        for(p = 0; p < c; p++)
+        y.Work = glWorkNum, CUR_ROW = y;
+        for(f = 0; f < c; f++)
         {
-            var f, d, v;
-            if(f = S.cells[p])
-                if((d = l[p]).H)
-                    (v = "" + d.F(m)).trim(), f.innerHTML !== v && (f.innerHTML = v);
+            var p, v, d;
+            if(p = y.cells[f])
+                if((v = l[f]).H)
+                    (d = "" + v.F(m)).trim(), p.innerHTML !== d && (p.innerHTML = d);
                 else
-                    (v = "" + d.F(m)).trim(), f.innerText !== v && (f.innerText = v);
+                    (d = "" + v.F(m)).trim(), p.innerText !== d && (p.innerText = d);
         }
         r && 0 === m.Currency && ADD(u, m.Value);
     }
-    for(var y in i)
+    for(var S in i)
     {
-        var S;
-        (S = i[y]).Work !== glWorkNum && (o.deleteRow(S.rowIndex), delete i[y]);
+        var y;
+        (y = i[S]).Work !== glWorkNum && (o.deleteRow(y.rowIndex), delete i[S]);
     }
     r && (document.getElementById(r).innerText = "Total: " + SUM_TO_STRING(u, 0));
     DoStableScroll();
@@ -604,7 +608,7 @@ function CurrencyNameItem(e)
 function CurrencyName(e)
 {
     var r = MapCurrency[e];
-    return r || (GetData("GetDappsAll", {StartNum:e, CountNum:1}, function (e)
+    return r || (GetData("GetDappList", {StartNum:e, CountNum:1}, function (e)
     {
         if(e && e.result)
         {
@@ -708,7 +712,7 @@ function SendTransaction(i,u,l,c)
         var a = t;
         e && (a = CreateHashBodyPOWInnerMinPower(i, l));
         var o = GetHexFromArr(i);
-        GetData("SendTransactionHex", o, function (e)
+        GetData("SendTransactionHex", {Hex:o}, function (e)
         {
             if(e)
             {
@@ -754,15 +758,23 @@ function SendCallMethod(e,t,r,n,a)
 
 function SendTrArrayWithSign(r,e,n)
 {
-    var t = GetHexFromArr(r);
-    GetData("GetSignFromHEX", {Hex:t, Account:e}, function (e)
+    if(MainServer)
     {
-        if(e && e.result)
+        var t = GetArrFromHex(GetSignFromArr(r));
+        WriteArr(r, t, 64), r.length += 12, SendTransaction(r, n);
+    }
+    else
+    {
+        var a = GetHexFromArr(r);
+        GetData("GetSignFromHEX", {Hex:a, Account:e}, function (e)
         {
-            var t = GetArrFromHex(e.Sign);
-            WriteArr(r, t, 64), r.length += 12, SendTransaction(r, n);
-        }
-    });
+            if(e && e.result)
+            {
+                var t = GetArrFromHex(e.Sign);
+                WriteArr(r, t, 64), r.length += 12, SendTransaction(r, n);
+            }
+        });
+    }
 };
 
 function GetTrCreateAcc(e,t,r,n,a)
@@ -775,6 +787,67 @@ function GetBodyCreateAcc(e)
     var t = [];
     return WriteByte(t, e.Type), WriteUint(t, e.Currency), WriteArr(t, GetArrFromHex(e.PubKey), 33), WriteStr(t, e.Name, 40), WriteUint(t,
     e.Adviser), WriteUint32(t, e.Smart), t.length += 3, t.length += 12, t;
+};
+
+function GetArrFromTR(e)
+{
+    var t = [];
+    WriteByte(t, e.Type), WriteByte(t, e.Version), WriteUint(t, 0), WriteUint(t, e.FromID), WriteUint32(t, e.To.length);
+    for(var r = 0; r < e.To.length; r++)
+    {
+        var n = e.To[r];
+        3 <= e.Version && WriteTr(t, n.PubKey), WriteUint(t, n.ID), WriteUint(t, n.SumCOIN), WriteUint32(t, n.SumCENT), MapAccounts[n.ID] && (MapAccounts[n.ID].MustUpdate = MaxBlockNum + 10);
+    }
+    return WriteStr(t, e.Description), WriteUint(t, e.OperationID), 3 <= e.Version && (e.Body ? WriteTr(t, e.Body) : (WriteByte(t,
+    0), WriteByte(t, 0))), t;
+};
+
+function GetSignTransaction(a,o)
+{
+    if(MainServer)
+        if(3 === a.Version)
+            for(var i = [], u = 0, e = 0; e < a.To.length; e++)
+            {
+                var t = a.To[e];
+                GetData("GetAccountList", {StartNum:t.ID}, function (e)
+                {
+                    if(e && 1 === e.result && e.arr.length)
+                    {
+                        u++;
+                        for(var t = e.arr[0].PubKey.data, r = 0; r < 33; r++)
+                            i[i.length] = t[r];
+                        if(u === a.To.length)
+                        {
+                            var n = GetArrFromTR(a);
+                            for(r = 0; r < n.length; r++)
+                                i[i.length] = n[r];
+                            a.Sign = GetArrFromHex(GetSignFromArr(i)), o(a);
+                        }
+                    }
+                });
+            }
+        else
+            a.Sign = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            o(a);
+    else
+        GetData("GetSignTransaction", a, function (e)
+        {
+            e && 1 === e.result && (a.Sign = GetArrFromHex(e.Sign), o(a));
+        });
+};
+
+function GetSignFromArr(e)
+{
+    var t = $("idPrivKey").value.trim();
+    if(!IsHexStr(t) || 64 !== t.length)
+        return "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+    var r = GetArrFromHex(t), n = shaarr(e);
+    return GetHexFromArr(SignLib.sign(Buffer.from(n), Buffer.from(r), null, null).signature);
+};
+
+function IsHexStr(e)
+{
+    return GetHexFromArr(GetArrFromHex(e)) === e.toUpperCase();
 };
 
 function RetJSON(e)

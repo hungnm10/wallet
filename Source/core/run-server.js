@@ -60,6 +60,7 @@ var HostingWorker;
 if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 {
     HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
+    HostingWorker.on('message', OnMessageHosting);
     idHostingAliveInterval = setInterval(function ()
     {
         if(HostingWorker && HostingWorker.connected)
@@ -86,6 +87,7 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
         {
             ToLog("NOT HOSTING CONNECTED. RESTART!");
             HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
+            HostingWorker.on('message', OnMessageHosting);
         }
     }, 900);
     setInterval(function ()
@@ -97,6 +99,15 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
         }
     }, 5000);
 }
+
+function OnMessageHosting(msg)
+{
+    if(msg.cmd === "SendTransactionHex")
+    {
+        var body = GetArrFromHex(msg.Value);
+        SERVER.AddTransaction({body:body});
+    }
+};
 global.StopHostingServer = function ()
 {
     if(idHostingAliveInterval)

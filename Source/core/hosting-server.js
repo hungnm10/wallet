@@ -116,8 +116,6 @@ var HostingServer = http.createServer(function (request,response0)
     var DataURL = url.parse(request.url);
     var Params = querystring.parse(DataURL.query);
     var Path = querystring.unescape(DataURL.pathname);
-    var ArrPath = Path.split('/', 6);
-    Path = ArrPath[ArrPath.length - 1];
     var Type = request.method;
     if(Type === "POST")
     {
@@ -162,6 +160,8 @@ WalletFileMap["client.js"] = 1;
 WalletFileMap["diagram.js"] = 1;
 WalletFileMap["sha3.js"] = 1;
 WalletFileMap["terahashlib.js"] = 1;
+WalletFileMap["wallet-web.js"] = 1;
+WalletFileMap["wallet-lib.js"] = 1;
 WalletFileMap["crypto-client.js"] = 1;
 WalletFileMap["buttons.css"] = 1;
 WalletFileMap["style.css"] = 1;
@@ -169,10 +169,13 @@ WalletFileMap["wallet.css"] = 1;
 WalletFileMap["blockviewer.html"] = 1;
 global.HostingCaller = {};
 
-function DoCommandNew(response,Type,Path,Params,remoteAddress)
+function DoCommandNew(response,Type,Path,Params)
 {
-    var method = Path;
-    var F = HostingCaller[method];
+    if(Path.substring(0, 1) === "/")
+        Path = Path.substring(1);
+    var ArrPath = Path.split('/', 3);
+    var Method = ArrPath[0];
+    var F = HostingCaller[Method];
     if(F)
     {
         response.writeHead(200, {'Content-Type':'text/plain', 'Access-Control-Allow-Origin':"*"});
@@ -190,24 +193,33 @@ function DoCommandNew(response,Type,Path,Params,remoteAddress)
         }
         return ;
     }
-    method = method.toLowerCase();
-    switch(method)
+    Method = Method.toLowerCase();
+    switch(Method)
     {
         case "":
             SendFileHTML(response, "./SITE/index.html", undefined, true);
             break;
+        case "file":
+            SendBlockFile(response, ArrPath[1], ArrPath[2]);
+            break;
+        case "dapp":
+            DappTemplateFile(response, ArrPath[1]);
+            break;
+        case "smart":
+            DappSmartCodeFile(response, ArrPath[1]);
+            break;
         default:
             {
-                var path = Path;
-                if(typeof path !== "string")
-                    path = "ErrorPath";
+                var Name = ArrPath[ArrPath.length - 1];
+                if(typeof Name !== "string")
+                    Name = "ErrorPath";
                 else
-                    if(path.indexOf("..") >= 0 || path.indexOf("\\") >= 0 || path.indexOf("/") >= 0)
-                        path = "ErrorFilePath";
-                if(path.indexOf(".") < 0)
-                    path += ".html";
+                    if(Name.indexOf("..") >= 0 || Name.indexOf("\\") >= 0 || Name.indexOf("/") >= 0)
+                        Name = "ErrorFilePath";
+                if(Name.indexOf(".") < 0)
+                    Name += ".html";
                 var PrefixPath;
-                if(WalletFileMap[path])
+                if(WalletFileMap[Name])
                     PrefixPath = "./HTML";
                 else
                     PrefixPath = "./SITE";
@@ -215,44 +227,70 @@ function DoCommandNew(response,Type,Path,Params,remoteAddress)
                 switch(type)
                 {
                     case ".js":
-                        path = PrefixPath + "/JS/" + path;
+                        Name = PrefixPath + "/JS/" + Name;
                         break;
                     case "css":
-                        path = PrefixPath + "/CSS/" + path;
+                        Name = PrefixPath + "/CSS/" + Name;
                         break;
                     case "wav":
                     case "mp3":
-                        path = PrefixPath + "/SOUND/" + path;
+                        Name = PrefixPath + "/SOUND/" + Name;
                         break;
                     case "png":
                     case "gif":
                     case "jpg":
                     case "ico":
-                        path = PrefixPath + "/PIC/" + path;
+                        Name = PrefixPath + "/PIC/" + Name;
                         break;
                     default:
-                        path = PrefixPath + "/" + path;
+                        Name = PrefixPath + "/" + Name;
                         break;
                 }
-                SendFileHTML(response, path, Path);
+                SendFileHTML(response, Name, Path);
                 break;
             }
     }
+};
+
+function SendBlockFile(response,BlockNum,TrNum)
+{
+    BlockNum = parseInt(BlockNum);
+    TrNum = parseInt(TrNum);
+    if(BlockNum && TrNum <= MAX_TRANSACTION_COUNT)
+    {
+        var Block = SERVER.ReadBlockDB(BlockNum);
+        if(Block && Block.arrContent)
+        {
+            var Body = Block.arrContent[TrNum];
+            if(Body && Body[0] === global.TYPE_TRANSACTION_FILE)
+            {
+                var TR = DApps.File.GetObjectTransaction(Body);
+                response.writeHead(200, {'Content-Type':TR.ContentType});
+                response.end(TR.Data);
+            }
+        }
+    }
+    response.writeHead(404, {'Content-Type':'text/html'});
+    response.end();
 };
 var MaxCountViewRows = 20;
 HostingCaller.GetAccountList = function (Params)
 {
     if(Params.CountNum > MaxCountViewRows)
         Params.CountNum = MaxCountViewRows;
+    if(!Params.CountNum)
+        Params.CountNum = 1;
     var arr = DApps.Accounts.GetRowsAccounts(ParseNum(Params.StartNum), ParseNum(Params.CountNum));
-    return {arr:arr, result:1};
+    return {result:1, arr:arr};
 };
 HostingCaller.GetBlockList = function (Params)
 {
     if(Params.CountNum > MaxCountViewRows)
         Params.CountNum = MaxCountViewRows;
+    if(!Params.CountNum)
+        Params.CountNum = 1;
     var arr = SERVER.GetRows(ParseNum(Params.StartNum), ParseNum(Params.CountNum));
-    return {arr:arr, result:1};
+    return {result:1, arr:arr};
 };
 HostingCaller.GetTransactionList = function (Params)
 {
@@ -262,22 +300,28 @@ HostingCaller.GetTransactionAll = function (Params)
 {
     if(Params.CountNum > MaxCountViewRows)
         Params.CountNum = MaxCountViewRows;
+    if(!Params.CountNum)
+        Params.CountNum = 1;
     if(Params.Param3)
         Params.BlockNum = Params.Param3;
     var arr = SERVER.GetTrRows(ParseNum(Params.BlockNum), ParseNum(Params.StartNum), ParseNum(Params.CountNum));
-    return {arr:arr, result:1};
+    return {result:1, arr:arr};
 };
 HostingCaller.GetDappList = function (Params)
 {
     if(Params.CountNum > MaxCountViewRows)
         Params.CountNum = MaxCountViewRows;
+    if(!Params.CountNum)
+        Params.CountNum = 1;
     var arr = DApps.Smart.GetRows(ParseNum(Params.StartNum), ParseNum(Params.CountNum));
-    return {arr:arr, result:1};
+    return {result:1, arr:arr};
 };
 HostingCaller.GetCurrentInfo = function (Params)
 {
     var Ret = {result:1, VersionNum:global.UPDATE_CODE_VERSION_NUM, MaxNumBlockDB:SERVER.GetMaxNumBlockDB(), CurBlockNum:GetCurrentBlockNumByTime(),
-        MaxAccID:DApps.Accounts.GetMaxAccount(), MaxDappsID:DApps.Smart.GetMaxNum(), FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, };
+        MaxAccID:DApps.Accounts.GetMaxAccount(), MaxDappsID:DApps.Smart.GetMaxNum(), NETWORK:global.NETWORK, CurTime:(new Date()) - 0,
+        DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, MIN_POWER_POW_TR:MIN_POWER_POW_TR, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME,
+    };
     if(Params && Params.Diagram == true)
     {
         var arrNames = ["MAX:ALL_NODES", "MAX:HASH_RATE_G"];
@@ -320,12 +364,73 @@ HostingCaller.GetNodeList = function (Params)
         var Value = {ip:Item.ip, port:Item.portweb, };
         arr.push(Value);
     }
-    return {arr:arr, result:1};
+    return {result:1, arr:arr};
+};
+var AccountKeyMap = {};
+var LastMaxNum = 0;
+HostingCaller.GetAccountListByKey = function (Params)
+{
+    var Accounts = DApps.Accounts;
+    for(var num = LastMaxNum; true; num++)
+    {
+        if(Accounts.IsHole(num))
+            continue;
+        var Data = Accounts.ReadState(num);
+        if(!Data)
+            break;
+        var StrKey = GetHexFromArr(Data.PubKey);
+        Data.Next = AccountKeyMap[StrKey];
+        AccountKeyMap[StrKey] = Data;
+    }
+    LastMaxNum = num;
+    var arr = [];
+    var Item = AccountKeyMap[Params.Key];
+    while(Item)
+    {
+        var Data = Accounts.ReadState(Item.Num);
+        if(!Data)
+            continue;
+        if(!Data.PubKeyStr)
+            Data.PubKeyStr = GetHexFromArr(Data.PubKey);
+        if(Data.Currency)
+            Data.CurrencyObj = DApps.Smart.ReadSimple(Data.Currency);
+        if(Data.Value.Smart)
+        {
+            Data.SmartObj = DApps.Smart.ReadSimple(Data.Value.Smart);
+            try
+            {
+                Data.SmartState = BufLib.GetObjectFromBuffer(Data.Value.Data, Data.SmartObj.StateFormat, {});
+                if(typeof Data.SmartState === "object")
+                    Data.SmartState.Num = Item.Num;
+            }
+            catch(e)
+            {
+                Data.SmartState = {};
+            }
+        }
+        arr.unshift(Data);
+        Item = Item.Next;
+        if(arr.length >= 30)
+            break;
+    }
+    return {result:1, arr:arr};
+};
+HostingCaller.SendTransactionHex = function (Params)
+{
+    process.send({cmd:"SendTransactionHex", Value:Params.Hex});
+    return {result:1, text:"OK"};
 };
 setInterval(function ()
 {
+    var Accounts = DApps.Accounts;
+    if(SERVER)
+        SERVER.ClearBufMap();
+    Accounts.DBState.ClearBufMap();
+    DApps.Smart.DBSmart.ClearBufMap();
     global.BlockDB.CloseDBFile("block-header");
     global.BlockDB.CloseDBFile("block-body");
-    DApps.Accounts.DBState.CloseDBFile("accounts-state");
+    Accounts.DBState.CloseDBFile("accounts-state");
     DApps.Smart.DBSmart.CloseDBFile("smart");
+    Accounts.DBActPrev.CloseDBFile(Accounts.DBActPrev.FileName);
+    Accounts.DBAct.CloseDBFile(Accounts.DBAct.FileName);
 }, 500);

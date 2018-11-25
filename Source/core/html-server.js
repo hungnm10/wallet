@@ -114,6 +114,7 @@ function DoCommand(response,Type,Path,params,remoteAddress)
             }
     }
 };
+global.DappTemplateFile = DappTemplateFile;
 
 function DappTemplateFile(response,StrNum)
 {
@@ -134,6 +135,7 @@ function DappTemplateFile(response,StrNum)
     response.writeHead(404, {'Content-Type':'text/html'});
     response.end();
 };
+global.DappSmartCodeFile = DappSmartCodeFile;
 
 function DappSmartCodeFile(response,StrNum)
 {
@@ -346,32 +348,40 @@ HTTPCaller.GetAccount = function (id)
     var arr = DApps.Accounts.GetRowsAccounts(id, 1);
     return {Item:arr[0], result:1};
 };
-HTTPCaller.GetAccountsAll = function (Params)
+HTTPCaller.GetAccountList = function (Params)
 {
+    if(!Params.CountNum)
+        Params.CountNum = 1;
     var arr = DApps.Accounts.GetRowsAccounts(Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
-HTTPCaller.GetDappsAll = function (Params)
+HTTPCaller.GetDappList = function (Params)
 {
+    if(!Params.CountNum)
+        Params.CountNum = 1;
     var arr = DApps.Smart.GetRows(Params.StartNum, Params.CountNum, Params.Filter, Params.Filter2);
     return {arr:arr, result:1};
 };
-HTTPCaller.GetBlockAll = function (Params)
+HTTPCaller.GetBlockList = function (Params)
 {
+    if(!Params.CountNum)
+        Params.CountNum = 1;
     var arr = SERVER.GetRows(Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
 HTTPCaller.GetTransactionAll = function (Params)
 {
+    if(!Params.CountNum)
+        Params.CountNum = 1;
     var arr = SERVER.GetTrRows(Params.Param3, Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
-HTTPCaller.GetActsAll = function (Params)
+HTTPCaller.GetActList = function (Params)
 {
-    var arr = DApps.Accounts.GetActsAll(Params.StartNum, Params.CountNum, Params.Filter);
+    var arr = DApps.Accounts.GetActList(Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
-HTTPCaller.GetHashAll = function (Params)
+HTTPCaller.GetHashList = function (Params)
 {
     var arr = DApps.Accounts.DBAccountsHash.GetRows(Params.StartNum, Params.CountNum, Params.Filter);
     for(var i = 0; i < arr.length; i++)
@@ -425,7 +435,7 @@ HTTPCaller.GetWalletInfo = function ()
 };
 HTTPCaller.GetWalletAccounts = function ()
 {
-    var Ret = {result:1, ArrAcc:DApps.Accounts.GetWalletAccountsByMap(WALLET.AccountMap), };
+    var Ret = {result:1, arr:DApps.Accounts.GetWalletAccountsByMap(WALLET.AccountMap), };
     Ret.PrivateKey = WALLET.KeyPair.PrivKeyStr;
     Ret.PublicKey = WALLET.KeyPair.PubKeyStr;
     return Ret;
@@ -475,9 +485,9 @@ AddTrMap[1] = "OK";
 AddTrMap[2] = "Update OK";
 AddTrMap[3] = "Was send";
 AddTrMap[4] = "Added to time pool";
-HTTPCaller.SendTransactionHex = function (ValueHex)
+HTTPCaller.SendTransactionHex = function (Params)
 {
-    var body = GetArrFromHex(ValueHex);
+    var body = GetArrFromHex(Params.Hex);
     var Result = {result:1};
     var Res = WALLET.AddTransaction({body:body});
     Result.sessionid = sessionid;

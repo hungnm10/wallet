@@ -313,7 +313,7 @@ table.keys
 }
 
 /*Редактирование new acc Name*/
-#grid_edit_newacc .bt, #grid_mining_set .bt, #idTablePassword .bt
+#grid_edit_newacc .bt, #grid_mining_set .bt, #idTablePassword1 .bt, #idTablePassword2 .bt
 {
     width: 80px;
     height: 30px;
@@ -459,3 +459,53 @@ table.keys
 
 
 
+
+#idBlockOnSend
+{
+    z-index:100;
+    position:absolute;
+    height:150px;
+    width:380px;
+    top:20%;
+    left:0;
+    transform: translateX(50vw) translateX(-190px);
+
+    font-size: larger;
+    padding: 10px;
+    background: #2b372d;
+    color: white;
+    text-align: left;
+    border: 1px solid gray;
+    box-shadow: 0 0 0 2px darkgrey;
+    border-radius: 8px;
+}
+
+.radius
+{
+    border-radius: 4px;
+    max-height: 34px;
+    height: 34px;
+}
+button.radius
+{
+    color:white;
+    background-color: #337ab7;
+    border-color: #2e6da4;
+    width: 100px;
+    margin: 20px;
+}
+
+
+
+.bt_open_dapp
+{
+    min-width: 160px;
+    max-width: 160px;
+    height: 40px;
+    vertical-align:middle;
+}
+
+.setsmart
+{
+    color:saddlebrown;
+}

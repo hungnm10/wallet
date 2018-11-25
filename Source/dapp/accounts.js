@@ -136,6 +136,8 @@ class AccountApp extends require("./dapp")
         this.DBState = new MerkleDBRow("accounts-state", this.ACCOUNT_ROW_SIZE, this.FORMAT_ACCOUNT_ROW)
         this.DBAct = new DBRow("accounts-act", 6 + 6 + (6 + 4 + 6 + 6 + 84) + 1 + 11, "{ID:uint, BlockNum:uint,PrevValue:{SumCOIN:uint,SumCENT:uint32, Reserve0:uint, OperationID:uint,Smart:uint32,Data:arr80}, Mode:byte, TrNum:uint16, Reserve: arr9}")
         this.DBActPrev = new DBRow("accounts-act-prev", this.DBAct.DataSize, this.DBAct.Format)
+        if(global.READ_ONLY_DB)
+            return ;
         this.DBAccountsHash = new DBRow("accounts-hash", 6 + 32 + 12, "{BlockNum:uint,Hash:hash, Reserve: arr12}")
         this.Start()
         setInterval(this.ControlActSize.bind(this), 60 * 1000)
@@ -174,7 +176,15 @@ class AccountApp extends require("./dapp")
             {
                 fs.unlinkSync(this.DBActPrev.FileNameFull)
             }
-            fs.renameSync(this.DBAct.FileNameFull, this.DBActPrev.FileNameFull)
+            try
+            {
+                fs.renameSync(this.DBAct.FileNameFull, this.DBActPrev.FileNameFull)
+            }
+            catch(e)
+            {
+                ToLog("Can-t rename act-file!")
+                return ;
+            }
             ToLog("MAX_NUM PREV:" + this.DBActPrev.GetMaxNum())
             ToLog("MAX_NUM CURR:" + this.DBAct.GetMaxNum())
         }
@@ -913,7 +923,7 @@ class AccountApp extends require("./dapp")
     {
         return this.DBActPrev.GetMaxNum() + this.DBAct.GetMaxNum();
     }
-    GetActsAll(start, count)
+    GetActList(start, count)
     {
         var arr = [];
         var num;

@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 705;
+global.UPDATE_CODE_VERSION_NUM = 706;
 global.MIN_CODE_VERSION_NUM = 694;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
@@ -94,7 +94,7 @@ global.USE_CHECK_SAVE_DB = 0;
 global.USE_KEY_DB = 0;
 global.USE_CHECK_KEY_DB = 0;
 global.START_NETWORK_DATE = 1530446400000;
-var NETWORK = "TERA-MAIN";
+global.NETWORK = "TERA-MAIN";
 global.DEF_MAJOR_VERSION = "0001";
 global.SMART_BLOCKNUM_START = 10000000;
 global.PRICE_DAO = function (BlockNum)
