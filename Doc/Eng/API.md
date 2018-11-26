@@ -15,7 +15,7 @@ Result:
 
 An example of the result:
 ```
-{"result":1,"VersionNum":704,"MaxNumBlockDB":12371158,"CurBlockNum":12371166,"MaxAccID":187783,"MaxDappsID":20,"FIRST_TIME_BLOCK":1530446400000}
+{"result":1,"VersionNum":706,"MaxNumBlockDB":12371158,"CurBlockNum":12371166,"MaxAccID":187783,"MaxDappsID":20,"FIRST_TIME_BLOCK":1530446400000}
 ```
 
 #### Get a list of nodes that have a public API

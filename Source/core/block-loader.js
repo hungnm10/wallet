@@ -1442,7 +1442,7 @@ function GetRootChain()
                 if(Count > MAX_COUNT_CHAIN_LOAD)
                 {
                     TO_ERROR_LOG("BLOCK", 10, "Error COUNT GetRootChain")
-                    this.FREE_ALL_MEM_CHAINS()
+                    SERVER.FREE_ALL_MEM_CHAINS()
                     break;
                 }
             }

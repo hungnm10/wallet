@@ -192,7 +192,7 @@ I do not recommend installing the test network on the same computer for the foll
 * [DEX-guide](https://docs.google.com/document/d/1qvVRfLq3qcYYF6dcsAAAqoGyBFF4njXUYZXZfTPWd2w/edit?usp=sharing)
 * [BTC for DEX](https://docs.google.com/document/d/19vRY6tkbTP8tubZxM01llwnMyz4P6IzY0zvnargrU6k/edit?usp=sharing)
 * [Эта же страница на русском](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
-* [Torrent DATA/DB folder](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
+* [Torrent of blockchain - DATA/DB folder](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
 * [API](https://github.com/terafoundation/wallet/blob/master/Doc/Eng/API.md)
 
 

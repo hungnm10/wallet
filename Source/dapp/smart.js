@@ -268,8 +268,17 @@ class SmartApp extends require("./dapp")
         {
             return "Error sign transaction";
         }
-        AccountFrom.Value.OperationID = TR.OperationID
-        DApps.Accounts.WriteStateTR(AccountFrom, TrNum)
+        if(BlockNum >= 13000000)
+        {
+            AccountFrom.Value.OperationID = TR.OperationID + 1
+            DApps.Accounts.WriteStateTR(AccountFrom, TrNum)
+        }
+        else
+            if(AccountFrom.Value.OperationID !== TR.OperationID)
+            {
+                AccountFrom.Value.OperationID = TR.OperationID
+                DApps.Accounts.WriteStateTR(AccountFrom, TrNum)
+            }
         return ContextFrom;
     }
     TRRunSmart(Block, Body, BlockNum, TrNum, ContextFrom)
@@ -288,54 +297,6 @@ class SmartApp extends require("./dapp")
             if(typeof ResultCheck === "string")
                 return ResultCheck;
             ContextFrom = ResultCheck
-        }
-        try
-        {
-            var Params = JSON.parse(TR.Params);
-            RunSmartMethod(Block, Account.Value.Smart, Account, BlockNum, TrNum, ContextFrom, TR.MethodName, Params, 1)
-        }
-        catch(e)
-        {
-            return e;
-        }
-        return true;
-    }
-    TRRunSmart0(Block, Body, BlockNum, TrNum, ContextFrom)
-    {
-        if(Body.length < 100)
-            return "Error length transaction (min size)";
-        if(BlockNum < SMART_BLOCKNUM_START)
-            return "Error block num";
-        var TR = BufLib.GetObjectFromBuffer(Body, FORMAT_SMART_RUN, WorkStructRun);
-        var Account = DApps.Accounts.ReadStateTR(TR.Account);
-        if(!Account)
-            return "RunSmart: Error account Num: " + TR.Account;
-        if(!ContextFrom && TR.FromNum)
-        {
-            ContextFrom = {FromID:TR.FromNum}
-            var AccountFrom = DApps.Accounts.ReadStateTR(TR.FromNum);
-            if(!AccountFrom)
-                return "Error account FromNum: " + TR.FromNum;
-            if(TR.OperationID < AccountFrom.Value.OperationID)
-                return "Error OperationID (expected: " + AccountFrom.Value.OperationID + " for ID: " + TR.FromNum + ")";
-            if(TR.OperationID > AccountFrom.Value.OperationID + 100)
-                return "Error too much OperationID (expected max: " + (AccountFrom.Value.OperationID + 100) + " for ID: " + TR.FromNum + ")";
-            var hash = shabuf(Body.slice(0, Body.length - 64 - 12));
-            var Result = 0;
-            if(AccountFrom.PubKey[0] === 2 || AccountFrom.PubKey[0] === 3)
-                try
-                {
-                    Result = secp256k1.verify(hash, TR.Sign, AccountFrom.PubKey)
-                }
-                catch(e)
-                {
-                }
-            if(!Result)
-            {
-                return "Error sign transaction";
-            }
-            AccountFrom.Value.OperationID = TR.OperationID
-            DApps.Accounts.WriteStateTR(AccountFrom, TrNum)
         }
         try
         {
@@ -373,7 +334,6 @@ class SmartApp extends require("./dapp")
         {
             if(Account.Value.Smart === TR.Smart)
                 return "The value has not changed";
-            Account.Value.OperationID++
         }
         if(Account.Value.Smart)
         {

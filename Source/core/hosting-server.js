@@ -65,7 +65,7 @@ process.on('uncaughtException', function (err)
 });
 process.on('error', function (err)
 {
-    ToError(err.stack);
+    ToError("HOSTING:\n" + err.stack);
     ToLog(err.stack);
 });
 if(!global.HTTP_HOSTING_PORT)
@@ -129,14 +129,17 @@ var HostingServer = http.createServer(function (request,response0)
         request.addListener("end", function ()
         {
             var Data;
-            try
+            if(postData && postData.length && postData.substring(0, 1) === "{")
             {
-                Data = JSON.parse(postData);
-            }
-            catch(e)
-            {
-                Response.writeHead(405, {'Content-Type':'text/html'});
-                Response.end("Error data parsing");
+                try
+                {
+                    Data = JSON.parse(postData);
+                }
+                catch(e)
+                {
+                    Response.writeHead(405, {'Content-Type':'text/html'});
+                    Response.end("Error data parsing");
+                }
             }
             DoCommandNew(response, Type, Path, Data);
         });
@@ -276,6 +279,8 @@ function SendBlockFile(response,BlockNum,TrNum)
 var MaxCountViewRows = 20;
 HostingCaller.GetAccountList = function (Params)
 {
+    if(!Params)
+        return {result:0};
     if(Params.CountNum > MaxCountViewRows)
         Params.CountNum = MaxCountViewRows;
     if(!Params.CountNum)
@@ -285,6 +290,8 @@ HostingCaller.GetAccountList = function (Params)
 };
 HostingCaller.GetBlockList = function (Params)
 {
+    if(!Params)
+        return {result:0};
     if(Params.CountNum > MaxCountViewRows)
         Params.CountNum = MaxCountViewRows;
     if(!Params.CountNum)
@@ -298,6 +305,8 @@ HostingCaller.GetTransactionList = function (Params)
 };
 HostingCaller.GetTransactionAll = function (Params)
 {
+    if(!Params)
+        return {result:0};
     if(Params.CountNum > MaxCountViewRows)
         Params.CountNum = MaxCountViewRows;
     if(!Params.CountNum)
@@ -309,6 +318,8 @@ HostingCaller.GetTransactionAll = function (Params)
 };
 HostingCaller.GetDappList = function (Params)
 {
+    if(!Params)
+        return {result:0};
     if(Params.CountNum > MaxCountViewRows)
         Params.CountNum = MaxCountViewRows;
     if(!Params.CountNum)
@@ -321,7 +332,7 @@ HostingCaller.GetCurrentInfo = function (Params)
     var Ret = {result:1, VersionNum:global.UPDATE_CODE_VERSION_NUM, MaxNumBlockDB:SERVER.GetMaxNumBlockDB(), CurBlockNum:GetCurrentBlockNumByTime(),
         MaxAccID:DApps.Accounts.GetMaxAccount(), MaxDappsID:DApps.Smart.GetMaxNum(), NETWORK:global.NETWORK, CurTime:(new Date()) - 0,
         DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, MIN_POWER_POW_TR:MIN_POWER_POW_TR, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME,
-    };
+        MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE, };
     if(Params && Params.Diagram == true)
     {
         var arrNames = ["MAX:ALL_NODES", "MAX:HASH_RATE_G"];
@@ -370,6 +381,8 @@ var AccountKeyMap = {};
 var LastMaxNum = 0;
 HostingCaller.GetAccountListByKey = function (Params)
 {
+    if(!Params)
+        return {result:0};
     var Accounts = DApps.Accounts;
     for(var num = LastMaxNum; true; num++)
     {
@@ -417,6 +430,8 @@ HostingCaller.GetAccountListByKey = function (Params)
 };
 HostingCaller.SendTransactionHex = function (Params)
 {
+    if(!Params || !Params.Hex)
+        return {result:0};
     process.send({cmd:"SendTransactionHex", Value:Params.Hex});
     return {result:1, text:"OK"};
 };

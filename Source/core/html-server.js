@@ -276,9 +276,9 @@ HTTPCaller.DappInfo = function (Params)
     var WLData = HTTPCaller.DappWalletList(Params);
     var Ret = {result:1, Smart:Smart, Account:Account, BlockNumDB:SERVER.BlockNumDB, CurBlockNum:GetCurrentBlockNumByTime(), MaxAccID:DApps.Accounts.GetMaxAccount(),
         MaxDappsID:DApps.Smart.GetMaxNum(), CurTime:(new Date()) - 0, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, MIN_POWER_POW_TR:MIN_POWER_POW_TR,
-        FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME, WalletList:WLData.arr, WalletIsOpen:(WALLET.WalletOpen !== false),
-        WalletCanSign:(WALLET.WalletOpen !== false && WALLET.KeyPair.WasInit), PubKey:WALLET.KeyPair.PubKeyStr, ArrLog:ArrLogClient,
-        PRICE_DAO:PRICE_DAO(SERVER.BlockNumDB), };
+        FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME, MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE,
+        WalletList:WLData.arr, WalletIsOpen:(WALLET.WalletOpen !== false), WalletCanSign:(WALLET.WalletOpen !== false && WALLET.KeyPair.WasInit),
+        PubKey:WALLET.KeyPair.PubKeyStr, ArrLog:ArrLogClient, PRICE_DAO:PRICE_DAO(SERVER.BlockNumDB), };
     return Ret;
 };
 HTTPCaller.DappWalletList = function (Params)
@@ -421,10 +421,10 @@ HTTPCaller.GetWalletInfo = function ()
     var Ret = {result:1, WalletOpen:WALLET.WalletOpen, WalletIsOpen:(WALLET.WalletOpen !== false), WalletCanSign:(WALLET.WalletOpen !== false && WALLET.KeyPair.WasInit),
         CODE_VERSION:CODE_VERSION, VersionNum:global.UPDATE_CODE_VERSION_NUM, RelayMode:SERVER.RelayMode, BlockNumDB:SERVER.BlockNumDB,
         CurBlockNum:GetCurrentBlockNumByTime(), CurTime:(new Date()) - 0, IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr), AccountMap:WALLET.AccountMap,
-        ArrLog:ArrLogClient, MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE, MaxAccID:DApps.Accounts.GetMaxAccount(), MaxActNum:DApps.Accounts.GetActsMaxNum(),
-        MaxDappsID:DApps.Smart.GetMaxNum(), NeedRestart:global.NeedRestart, ip:SERVER.ip, port:SERVER.port, NET_WORK_MODE:global.NET_WORK_MODE,
-        INTERNET_IP_FROM_STUN:global.INTERNET_IP_FROM_STUN, HistoryMaxNum:MaxHistory, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK,
-        CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME, DATA_PATH:(DATA_PATH.substr(1, 1) === ":" ? DATA_PATH : GetNormalPathString(process.cwd() + "/" + DATA_PATH)),
+        ArrLog:ArrLogClient, MaxAccID:DApps.Accounts.GetMaxAccount(), MaxActNum:DApps.Accounts.GetActsMaxNum(), MaxDappsID:DApps.Smart.GetMaxNum(),
+        NeedRestart:global.NeedRestart, ip:SERVER.ip, port:SERVER.port, NET_WORK_MODE:global.NET_WORK_MODE, INTERNET_IP_FROM_STUN:global.INTERNET_IP_FROM_STUN,
+        HistoryMaxNum:MaxHistory, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME,
+        MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE, DATA_PATH:(DATA_PATH.substr(1, 1) === ":" ? DATA_PATH : GetNormalPathString(process.cwd() + "/" + DATA_PATH)),
         NodeAddrStr:SERVER.addrStr, STAT_MODE:global.STAT_MODE, HTTPPort:global.HTTP_PORT_NUMBER, HTTPPassword:HTTP_PORT_PASSWORD,
         CONSTANTS:Constants, CheckPointBlockNum:CHECK_POINT.BlockNum, MiningAccount:global.GENERATE_BLOCK_ACCOUNT, CountMiningCPU:GetCountMiningCPU(),
         CountRunCPU:global.ArrMiningWrk.length, MiningPaused:global.MiningPaused, HashRate:HashRateOneSec, MIN_POWER_POW_TR:MIN_POWER_POW_TR,

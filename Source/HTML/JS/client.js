@@ -847,7 +847,7 @@ function GetSignFromArr(e)
 
 function IsHexStr(e)
 {
-    return GetHexFromArr(GetArrFromHex(e)) === e.toUpperCase();
+    return !!e && GetHexFromArr(GetArrFromHex(e)) === e.toUpperCase();
 };
 
 function RetJSON(e)

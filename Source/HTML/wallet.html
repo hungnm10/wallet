@@ -45,7 +45,7 @@
     var ServerCurBlockNum=0;
     var ServerTime=0;
     var MiningAccount=0;
-    var min_power_pow_acc_create=0;
+    //var min_power_pow_acc_create=0;
     var WalletStatus;
     var BLOCK_PROCESSING_LENGTH=8;
     var PubKeyStr;
@@ -190,7 +190,7 @@
 
     function ViewNewAccount()
     {
-        var name="edit_create_acc";
+        var name="idAccountEdit";
         if(IsVisibleBlock(name))
         {
             SetVisibleBlock(name,false);
@@ -198,7 +198,7 @@
         else
         {
             SetVisibleBlock(name,true);
-            document.getElementById("idAccDescription").focus();
+            document.getElementById("idAccountName").focus();
 
             var Select=document.getElementById("idAccount");
             SetViewWN();
@@ -211,7 +211,7 @@
     }
     function CancelCreateAccount()
     {
-        var name="edit_create_acc";
+        var name="idAccountEdit";
         SetVisibleBlock(name,false)
     }
 
@@ -226,7 +226,7 @@
 
         WasCreateAccountInfo=PubKeyStr;
 
-        var Description=document.getElementById("idAccDescription").value;
+        var Description=document.getElementById("idAccountName").value;
         var Adviser=ParseNum(document.getElementById("idAdviser").value);
         var Smart=ParseNum(document.getElementById("idSmart").value);
         var Currency=ParseNum(document.getElementById("idCurrency").value);
@@ -494,7 +494,7 @@
 //            SetStatus("Client num="+MaxBlockNum+"  server num="+Data.CurBlockNum)
 
 
-        min_power_pow_acc_create=Data.MIN_POWER_POW_ACC_CREATE+3;
+        //min_power_pow_acc_create=Data.MIN_POWER_POW_ACC_CREATE+3;
         PubKeyStr=Data.PublicKey;
         PrivKeyStr=Data.PrivateKey;
 
@@ -770,7 +770,7 @@
             if(CurTabName==="TabAccounts" && IsVisibleBlock("edit_keys"))
                 SavePrivateKey();
             else
-            if(CurTabName==="TabAccounts" && IsVisibleBlock("edit_create_acc"))
+            if(CurTabName==="TabAccounts" && IsVisibleBlock("idAccountEdit"))
                 CreateAccount(0);
             else
             if(CurTabName==="TabAccounts" && IsVisibleBlock("edit_mining_set"))
@@ -1130,7 +1130,7 @@
 
 <body>
 <DIV align='center'>
-<DIV align='left' style="width: 800px;height2: 920px; border2: 1px solid #727473;">
+<DIV align='left' style="width: 800px;border2: 1px solid #727473;">
 
     <table id="TabHeader">
         <tr>
@@ -1207,7 +1207,7 @@
 
             <INPUT type="button" onclick="MoveUp($('edit_keys'));NewPrivateKey();" class="btdoit bt" value="New wallet..." id="idDown2">
             <INPUT type="button" onclick="MoveUp($('edit_keys'));EditPrivateKey();SetImg(this,'edit_keys');" class="btdoit bt" value="Edit wallet" id="idDown">
-            <INPUT type="button" onclick="MoveUp($('edit_create_acc'));ViewNewAccount();SetImg(this,'edit_create_acc');" class="btdoit bt" value="New account" id="idDown">
+            <INPUT type="button" onclick="MoveUp($('idAccountEdit'));ViewNewAccount();SetImg(this,'idAccountEdit');" class="btdoit bt" value="New account" id="idDown">
             <INPUT type="button" onclick="MoveUp($('edit_mining_set'));MiningSets();SetImg(this,'edit_mining_set');" class="btdoit bt" value="Set mining" id="idDown">
             <INPUT type="button" onclick="ViewSetPassword();itemBtPassword=this; SetImg(itemBtPassword,'idBlockPasswordSet');" class="bt btdoit" value="Set password" id="idDown">
 
@@ -1256,12 +1256,12 @@
             </table>
         </DIV>
 
-        <DIV id="edit_create_acc" style="display: none">
+        <DIV id="idAccountEdit" style="display: none">
             <table class="form_input keys" id="grid_edit_newacc">
                 <tr>
                     <td><DIV>Public name:</DIV></td>
                     <td>
-                        <INPUT type="string" maxlength="40" autocomplete="off" id="idAccDescription" onkeyup="CheckLengthAccDesription('idAccDescription',40)" value="">
+                        <INPUT type="string" maxlength="40" autocomplete="off" id="idAccountName" onkeyup="CheckLengthAccDesription('idAccountName',40)" value="">
                     </td>
                 </tr>
                 <tr>

@@ -251,7 +251,7 @@ Version = 3 - поддержка переводов на счета со сма�
 * [Токен BTC для торговли на Tera DEX](https://docs.google.com/document/d/1ERPdSizarqYzwb5AA4R8mfUVFnSc-Amm7xCg3q4zUhA/edit?usp=sharing)
 * [Ответы на вопросы про проект Тера](https://docs.google.com/document/d/1SpVuuWMYjwzk8K0oqhw5rSPFJhsV2jHManIbtRReQy8/edit?usp=sharing)
 * [Техническое WP - черновик](https://docs.google.com/document/d/1B6_qlAp2xs4aHkqOwyvRMCDJTjgeNiOJiGpIeT0VAzY/edit?usp=sharing)
-* [Торрент папки DATA/DB](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
+* [Торрент блокчейна (каталог DATA/DB)](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
 * [API](https://github.com/terafoundation/wallet/blob/master/Doc/Rus/API.md)
 
 

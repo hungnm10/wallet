@@ -15,8 +15,8 @@ function StartWebWallet()
 };
 var COUNT_BLOCK_PROOF = 300, MIN_SUM_POWER = 35 * COUNT_BLOCK_PROOF, MainServer = void 0, MaxConnectedCount = 10, MaxTimeConnecting = 3e3,
 StartTimeConnecting = 0, ConnectedCount = 0, NETWORK = "TERA-MAIN", ServerMap = {"127.0.0.1":{ip:"127.0.0.1", port:80, Name:"LOCAL"},
-    "terafoundation.org":{ip:"terafoundation.org", port:80, Name:"LOCAL"}, "91.235.136.81":{ip:"91.235.136.81", port:80, Name:"GENESIS1"},
-    "149.154.70.158":{ip:"149.154.70.158", port:80, Name:"GENESIS2"}};
+    "terafoundation.org":{ip:"terafoundation.org", port:80, Name:"TERA"}, "91.235.136.81":{ip:"91.235.136.81", port:80, Name:"SUPPORT1"},
+    "149.154.70.158":{ip:"149.154.70.158", port:80, Name:"SUPPORT2"}};
 
 function OnInitWebWallet()
 {
@@ -131,8 +131,8 @@ function FindLider()
         {
             var i;
             if((i = e[o]).SumPower === r)
-                return SetStatus("Find " + i.ip + " with pow=" + i.SumPower + " " + a + "  ping=" + i.DeltaTime), MainServer = i, SaveServerMap(),
-                void OnFindServer();
+                return SetStatus("Find " + i.ip + ":" + i.port + " with pow=" + i.SumPower + " " + a + "  ping=" + i.DeltaTime), MainServer = i,
+                SaveServerMap(), void OnFindServer();
         }
     }
 };

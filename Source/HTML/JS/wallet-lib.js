@@ -368,8 +368,8 @@ function SendTrCreateAcc(e,t,n,a,r,i,o)
         AddToInvoiceList(d);
     }
     else
-        SendTransaction(u, c, min_power_pow_acc_create);
-    document.getElementById("idAccDescription").value = "", CancelCreateAccount();
+        SendTransaction(u, c, MIN_POWER_POW_ACC_CREATE);
+    document.getElementById("idAccountName").value = "", CancelCreateAccount();
 };
 
 function ChangeSmart(e,t)
