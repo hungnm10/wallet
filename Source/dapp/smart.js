@@ -244,7 +244,7 @@ class SmartApp extends require("./dapp")
         this.DBSmart.Write(Smart)
         return true;
     }
-    CheckSignFrom(Body, TR, TrNum)
+    CheckSignFrom(Body, TR, BlockNum, TrNum)
     {
         var ContextFrom = {FromID:TR.FromNum};
         var AccountFrom = DApps.Accounts.ReadStateTR(TR.FromNum);
@@ -293,7 +293,7 @@ class SmartApp extends require("./dapp")
             return "RunSmart: Error account Num: " + TR.Account;
         if(!ContextFrom && TR.FromNum)
         {
-            var ResultCheck = this.CheckSignFrom(Body, TR, TrNum);
+            var ResultCheck = this.CheckSignFrom(Body, TR, BlockNum, TrNum);
             if(typeof ResultCheck === "string")
                 return ResultCheck;
             ContextFrom = ResultCheck
@@ -318,7 +318,7 @@ class SmartApp extends require("./dapp")
         var TR = BufLib.GetObjectFromBuffer(Body, FORMAT_SMART_CHANGE, WorkStructChange);
         if(!ContextFrom && TR.FromNum)
         {
-            var ResultCheck = this.CheckSignFrom(Body, TR, TrNum);
+            var ResultCheck = this.CheckSignFrom(Body, TR, BlockNum, TrNum);
             if(typeof ResultCheck === "string")
                 return ResultCheck;
             ContextFrom = ResultCheck
