@@ -202,7 +202,7 @@ module.exports = class CMessages extends require("./transaction-validator")
         if(GrayConnect())
             Count = Math.trunc(MAX_GRAY_CONNECTIONS_TO_SERVER / 2)
         else
-            Count = Math.max(this.ActualNodes.size, 16)
+            Count = Math.min(this.ActualNodes.size, 16)
         if(Count < 2)
             Count = 2
         var ArrNodes = this.GetActualNodes();
