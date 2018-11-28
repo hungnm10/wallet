@@ -49,26 +49,6 @@ module.exports = class CConsensus extends require("./block-loader")
             setInterval(this.DoTransfer.bind(this), CONSENSUS_CHECK_TIME)
         }
     }
-    StartBlockChain2()
-    {
-        this.OnStartSecond()
-        var CurTime = GetCurrentTime() - CONSENSUS_PERIOD_TIME / 2;
-        var NextTime = CurTime + CONSENSUS_PERIOD_TIME;
-        NextTime = Math.trunc(NextTime / CONSENSUS_PERIOD_TIME) * CONSENSUS_PERIOD_TIME
-        var DeltaForStart = NextTime - CurTime;
-        if(DeltaForStart < (CONSENSUS_PERIOD_TIME - 5))
-        {
-            var self = this;
-            if(self.idBlockChainTimer)
-                clearInterval(self.idBlockChainTimer)
-            self.idBlockChainTimer = 0
-            setTimeout(function ()
-            {
-                self.idBlockChainTimer = setInterval(self.StartBlockChain.bind(self), CONSENSUS_PERIOD_TIME - 5)
-                self.OnStartSecond()
-            }, DeltaForStart)
-        }
-    }
     StartBlockChain()
     {
         this.OnStartSecond()
@@ -423,7 +403,7 @@ module.exports = class CConsensus extends require("./block-loader")
             var StrKey = this.GetStrFromHashShort(LoadHash);
             var StrHashWas = this.GetStrFromHashShort(Block.Hash);
             this.StartLoadBlockHeader(LoadHash, LoadBlockNum, "START OTHER:" + StrKey + " WAS:" + StrHashWas, false)
-            AddInfoBlock(Block, "\nREQ OTHER: " + StrKey)
+            AddInfoBlock(Block, "REQ OTHER: " + StrKey)
         }
         Block.CheckMaxPow = true
     }
@@ -501,9 +481,9 @@ module.exports = class CConsensus extends require("./block-loader")
     GetMaxPOWList()
     {
         var arr = [];
-        var start = this.CurrentBlockNum + TIME_START_POW - 2;
-        var finish = this.CurrentBlockNum + TIME_START_POW - 0;
-        for(var b = start; b < finish; b++)
+        var start = this.CurrentBlockNum - BLOCK_PROCESSING_LENGTH - 1;
+        var finish = this.CurrentBlockNum + TIME_START_POW_EXCHANGE;
+        for(var b = start; b <= finish; b++)
         {
             var Block = this.GetBlock(b);
             if(Block && Block.Prepared && Block.MaxPOW)
@@ -526,7 +506,7 @@ module.exports = class CConsensus extends require("./block-loader")
         for(var i = 0; i < Arr.length; i++)
         {
             var item = Arr[i];
-            if(item && item.BlockNum >= this.CurrentBlockNum - BLOCK_PROCESSING_LENGTH && item.BlockNum < this.CurrentBlockNum)
+            if(item && item.BlockNum >= this.CurrentBlockNum - BLOCK_PROCESSING_LENGTH - 1 && item.BlockNum < this.CurrentBlockNum)
             {
                 var Block = this.GetBlock(item.BlockNum);
                 this.AddToMaxPOW(Block, item, Node)
@@ -544,7 +524,7 @@ module.exports = class CConsensus extends require("./block-loader")
             var LoadHash = POW.SumHash;
             var StrKey = this.GetStrFromHashShort(LoadHash);
             this.StartLoadBlockHeader(LoadHash, LoadBlockNum, "START POW:" + POW.SumPow + ">" + SumPow + " SH:" + StrKey, true)
-            AddInfoBlock(Block, "\nREQ SUMHASH: " + StrKey)
+            AddInfoBlock(Block, "REQ SUMHASH: " + StrKey)
             Block.CheckMaxSum = true
         }
     }
@@ -813,7 +793,7 @@ module.exports = class CConsensus extends require("./block-loader")
         else
             this.CreatePOWNew(Block, (1 << MIN_POWER_POW_BL))
         if(!WasHash || CompareArr(WasHash, Block.Hash) !== 0)
-            AddInfoBlock(Block, "\nHASH:" + this.GetStrFromHashShort(WasHash) + "->" + this.GetStrFromHashShort(Block.Hash))
+            AddInfoBlock(Block, "HASH:" + this.GetStrFromHashShort(WasHash) + "->" + this.GetStrFromHashShort(Block.Hash))
         Block.Prepared = true
         if(!bSimplePow)
         {
@@ -867,7 +847,7 @@ module.exports = class CConsensus extends require("./block-loader")
             if(Block.MaxPOW && Block.MaxPOW.Hash && CompareArr(Block.MaxPOW.Hash, Block.Hash) !== 0)
             {
                 this.ClearMaxInBlock(Block)
-                AddInfoBlock(Block, "\n--clear max2--")
+                AddInfoBlock(Block, "--clear max2--")
             }
             Block.TreeHash = Tree.Root
             Block.arrContent = arrContent
@@ -1043,6 +1023,7 @@ module.exports = class CConsensus extends require("./block-loader")
             if(!Block.EndExchange)
             {
                 AddInfoBlock(Block, "!EndExchange")
+                Block.HasErr = 1
                 this.CreateTreeHash(Block)
                 this.PreparePOWHash(Block, true)
                 this.AddToMaxPOW(Block)
@@ -1072,14 +1053,7 @@ module.exports = class CConsensus extends require("./block-loader")
                 var PrevHash = this.GetPrevHash(Block);
                 if(!PrevHash)
                 {
-                    if(Block.MaxPOW && Block.MaxPOW.Hash)
-                    {
-                        LoadBlockNum = Block.BlockNum
-                        LoadHash = Block.MaxPOW.Hash
-                        var StrKey = this.GetStrFromHashShort(LoadHash);
-                        if(this.StartLoadBlockHeader(LoadHash, LoadBlockNum, "START1 :" + StrKey, false))
-                            AddInfoBlock(Block, "REQUE: " + StrKey)
-                    }
+                    Block.HasErr = 1
                     continue;
                 }
                 var SeqHash = this.GetSeqHash(Block.BlockNum, PrevHash, Block.TreeHash);
@@ -1107,6 +1081,7 @@ module.exports = class CConsensus extends require("./block-loader")
                 }
                 else
                 {
+                    Block.HasErr = 1
                     AddInfoBlock(Block, "NO MaxPOW")
                 }
                 if(Block.MaxPOW && Block.MaxPOW.SeqHash && !Block.CheckMaxPow && !Block.CheckMaxSum && CompareArr(Block.SeqHash, Block.MaxPOW.SeqHash) !== 0)
@@ -1207,4 +1182,18 @@ global.GetCurrentBlockNumByTime = function GetCurrentBlockNumByTime()
     var CurTimeNum = GetCurrentTime() - FIRST_TIME_BLOCK;
     var StartBlockNum = Math.trunc((CurTimeNum + CONSENSUS_PERIOD_TIME) / CONSENSUS_PERIOD_TIME);
     return StartBlockNum;
+};
+var PrevTimeIdle = 0;
+OnTimeIdle();
+
+function OnTimeIdle()
+{
+    var CurTime = new Date() - 0;
+    var Delta = CurTime - PrevTimeIdle;
+    if(Delta <= 51)
+    {
+        ADD_TO_STAT("TIME_IDLE", 5);
+    }
+    setTimeout(OnTimeIdle, 49);
+    PrevTimeIdle = CurTime;
 };

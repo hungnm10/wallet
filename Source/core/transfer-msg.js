@@ -197,11 +197,12 @@ module.exports = class CMessages extends require("./transaction-validator")
     }
     SendTransaction(Tr)
     {
-        if(!GrayConnect())
-            return ;
-        this.TreePoolTr.clear()
         var CurTime = GetCurrentTime(0) - 0;
-        var Count = Math.trunc(MAX_GRAY_CONNECTIONS_TO_SERVER / 2);
+        var Count;
+        if(GrayConnect())
+            Count = Math.trunc(MAX_GRAY_CONNECTIONS_TO_SERVER / 2)
+        else
+            Count = Math.max(this.ActualNodes.size, 16)
         if(Count < 2)
             Count = 2
         var ArrNodes = this.GetActualNodes();

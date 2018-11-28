@@ -741,7 +741,7 @@ module.exports = class CBlock extends require("./db/block-db")
             Block.MaxPOW = BlockMem.MaxPOW
             Block.MaxSum = BlockMem.MaxSum
             Block.Info = BlockMem.Info
-            AddInfoBlock(Block, "\n--copy mem--")
+            AddInfoBlock(Block, "--copy mem--")
         }
         else
         {
@@ -749,11 +749,11 @@ module.exports = class CBlock extends require("./db/block-db")
             if(BlockMem)
             {
                 Block.Info = BlockMem.Info
-                AddInfoBlock(Block, "\n--clear max--")
+                AddInfoBlock(Block, "--clear max--")
             }
             else
             {
-                AddInfoBlock(Block, "\n--create mem--")
+                AddInfoBlock(Block, "--create mem--")
             }
         }
         Block.Prepared = true
@@ -916,12 +916,14 @@ module.exports = class CBlock extends require("./db/block-db")
             ToLog("WRITE DATA Count:" + arr.length + "  " + arr[0].BlockNum + "-" + arr[arr.length - 1].BlockNum)
         this.MapMining = undefined
         var CurrentBlockNum = GetCurrentBlockNumByTime();
-        var Block;
+        var Block, FirstBlock;
         for(var i = 0; i < arr.length; i++)
         {
             if(arr[i].BlockNum > this.BlockNumDB + 1)
                 break;
             Block = arr[i]
+            if(!FirstBlock)
+                FirstBlock = Block
             Block.BlockDown = undefined
             var Res = 0;
             if(Block.TreeEq)
@@ -960,8 +962,9 @@ module.exports = class CBlock extends require("./db/block-db")
                 Block.arrContent = undefined
             }
         }
-        if(Block)
+        if(Block && FirstBlock)
         {
+            var CurNumStart = FirstBlock.BlockNum + 8;
             var CurNum = Block.BlockNum + 1;
             while(true)
             {
@@ -969,8 +972,15 @@ module.exports = class CBlock extends require("./db/block-db")
                 if(BlockMem)
                 {
                     BlockMem.bSave = false
-                    this.ReloadTrTable(BlockMem)
-                    BlockMem.Info += "\n--reload old table--"
+                    if(CurNum >= CurNumStart)
+                    {
+                        this.ReloadTrTable(BlockMem)
+                        AddInfoBlock(BlockMem, "--reload old table--")
+                    }
+                    else
+                    {
+                        AddInfoBlock(BlockMem, "--skip reload old--")
+                    }
                 }
                 if(!BlockMem)
                     break;
