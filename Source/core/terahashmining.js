@@ -81,7 +81,7 @@ function InitVer3(Block)
     }
 };
 
-function CreatePOWVersion3(Block)
+function CreatePOWVersion3(Block,bFast)
 {
     if(!bWasInitVer3)
         InitVer3(Block);

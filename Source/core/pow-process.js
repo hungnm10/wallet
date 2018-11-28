@@ -32,8 +32,8 @@ function CalcPOWHash()
             return clearInterval(idInterval), void (idInterval = void 0);
         try
         {
-            CreatePOWVersionX(Block) && process.send({cmd:"POW", SeqHash:Block.SeqHash, Hash:Block.Hash, PowHash:Block.PowHash, AddrHash:Block.AddrHash,
-                Num:Block.Num});
+            CreatePOWVersionX(Block) && process.send({cmd:"POW", BlockNum:Block.BlockNum, SeqHash:Block.SeqHash, Hash:Block.Hash, PowHash:Block.PowHash,
+                AddrHash:Block.AddrHash, Num:Block.Num});
         }
         catch(e)
         {
@@ -43,13 +43,28 @@ function CalcPOWHash()
 };
 PROCESS.on("message", function (e)
 {
-    if(LastAlive = new Date - 0, "SetBlock" === e.cmd)
+    if(LastAlive = new Date - 0, "FastCalcBlock" === e.cmd)
     {
-        var o = 1e6 * (1 + e.Num);
-        Block.HashCount && process.send({cmd:"HASHRATE", CountNonce:Block.HashCount, Hash:Block.Hash}), Block.HashCount = 0, (Block = e).Time = new Date - 0,
-        Block.LastNonce = o, Block.Period = CONSENSUS_PERIOD_TIME * Block.Percent / 100, 0 < Block.Period && 0 < Block.RunPeriod && (CalcPOWHash(),
-        void 0 !== idInterval && clearInterval(idInterval), idInterval = setInterval(CalcPOWHash, Block.RunPeriod));
+        var o = e;
+        o.RunCount = 0, o.RunCount0 = 100;
+        try
+        {
+            CreatePOWVersionX(o, 1) && process.send({cmd:"POW", BlockNum:o.BlockNum, SeqHash:o.SeqHash, Hash:o.Hash, PowHash:o.PowHash,
+                AddrHash:o.AddrHash, Num:o.Num});
+        }
+        catch(e)
+        {
+            ToError(e);
+        }
     }
     else
-        "Alive" === e.cmd || "Exit" === e.cmd && PROCESS.exit(0);
+        if("SetBlock" === e.cmd)
+        {
+            var a = 1e6 * (1 + e.Num);
+            Block.HashCount && process.send({cmd:"HASHRATE", CountNonce:Block.HashCount, Hash:Block.Hash}), Block.HashCount = 0, (Block = e).Time = new Date - 0,
+            Block.LastNonce = a, Block.Period = CONSENSUS_PERIOD_TIME * Block.Percent / 100, 0 < Block.Period && 0 < Block.RunPeriod && (CalcPOWHash(),
+            void 0 !== idInterval && clearInterval(idInterval), idInterval = setInterval(CalcPOWHash, Block.RunPeriod));
+        }
+        else
+            "Alive" === e.cmd || "Exit" === e.cmd && PROCESS.exit(0);
 });

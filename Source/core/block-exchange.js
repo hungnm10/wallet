@@ -774,7 +774,7 @@ module.exports = class CConsensus extends require("./block-loader")
         Str = Str.substr(1)
         ToInfo("" + finish + " -> " + Str + " " + DopStr)
     }
-    PreparePOWHash(Block, bSimplePow)
+    PreparePOWHash(Block, bSimplePow, bFast)
     {
         if(this.RelayMode)
             bSimplePow = true
@@ -795,13 +795,19 @@ module.exports = class CConsensus extends require("./block-loader")
         if(!WasHash || CompareArr(WasHash, Block.Hash) !== 0)
             AddInfoBlock(Block, "HASH:" + this.GetStrFromHashShort(WasHash) + "->" + this.GetStrFromHashShort(Block.Hash))
         Block.Prepared = true
-        if(!bSimplePow)
+        if(bFast)
         {
             Block.StartMining = true
-            this.MiningBlock = Block
             if(global.SetCalcPOW)
-                global.SetCalcPOW(this.MiningBlock)
+                global.SetCalcPOW(Block, "FastCalcBlock")
         }
+        else
+            if(!bSimplePow)
+            {
+                Block.StartMining = true
+                if(global.SetCalcPOW)
+                    global.SetCalcPOW(Block, "SetBlock")
+            }
         return true;
     }
     ReloadTrTable(Block)
@@ -952,7 +958,6 @@ module.exports = class CConsensus extends require("./block-loader")
             return ;
         if(!CAN_START)
             return ;
-        this.MiningBlock = undefined
         this.StartConsensus()
         var CURRENTBLOCKNUM = this.CurrentBlockNum;
         if(GrayConnect())
@@ -1060,8 +1065,8 @@ module.exports = class CConsensus extends require("./block-loader")
                 if(CompareArr(SeqHash, Block.SeqHash) !== 0)
                 {
                     Block.HasErr = 1
-                    AddInfoBlock(Block, "New simple pow")
-                    this.PreparePOWHash(Block, true)
+                    AddInfoBlock(Block, "New fast pow")
+                    this.PreparePOWHash(Block, true, 1)
                     this.AddToMaxPOW(Block)
                 }
                 if(Block.MaxPOW && Block.MaxPOW.SeqHash && Block.MaxPOW.AddrHash && Block.MaxPOW.LocalSeqHash)
@@ -1141,7 +1146,11 @@ module.exports = class CConsensus extends require("./block-loader")
     }
     MiningProcess(msg)
     {
-        var BlockMining = this.MiningBlock;
+        var BlockMining = this.GetBlock(msg.BlockNum);
+        if(!BlockMining || !BlockMining.StartMining)
+        {
+            return ;
+        }
         if(BlockMining && BlockMining.Hash && BlockMining.SeqHash && CompareArr(BlockMining.SeqHash, msg.SeqHash) === 0)
         {
             var ValueOld = GetHashFromSeqAddr(BlockMining.SeqHash, BlockMining.AddrHash, BlockMining.BlockNum);

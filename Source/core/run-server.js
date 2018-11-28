@@ -295,7 +295,7 @@ function RunStopPOWProcess(Mode)
     }
 };
 
-function SetCalcPOW(Block)
+function SetCalcPOW(Block,cmd)
 {
     if(!global.USE_MINING)
         return ;
@@ -307,7 +307,7 @@ function SetCalcPOW(Block)
         var CurWorker = ArrMiningWrk[i];
         if(!CurWorker.bOnline)
             continue;
-        CurWorker.send({cmd:"SetBlock", Account:GENERATE_BLOCK_ACCOUNT, MinerID:GENERATE_BLOCK_ACCOUNT, BlockNum:Block.BlockNum, SeqHash:Block.SeqHash,
+        CurWorker.send({cmd:cmd, BlockNum:Block.BlockNum, Account:GENERATE_BLOCK_ACCOUNT, MinerID:GENERATE_BLOCK_ACCOUNT, SeqHash:Block.SeqHash,
             Hash:Block.Hash, PrevHash:Block.PrevHash, Time:new Date() - 0, Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POW_RUN_COUNT,
             RunCount0:global.POW_RUN_COUNT0, Percent:global.POW_MAX_PERCENT, CountMiningCPU:GetCountMiningCPU(), ProcessMemorySize:ProcessMemorySize,
         });
