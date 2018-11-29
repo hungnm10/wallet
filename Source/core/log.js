@@ -166,7 +166,11 @@ global.PrepareStatEverySecond = function ()
     ToError(" ==ERROR== " + l + " " + r), AddToStatContext(CONTEXT_ERRORS, l), ADD_TO_STAT("ERRORS");
 }, global.HASH_RATE = 0, global.ADD_HASH_RATE = function (t)
 {
-    t /= 1e6, global.HASH_RATE += t, ADD_TO_STAT("MAX:HASHRATE", t);
+    t /= 1e6, global.HASH_RATE += t, ADD_TO_STAT("HASHRATE", t);
+}, global.GET_STAT = function (t)
+{
+    var e = CONTEXT_STATS.Total[t];
+    return e || (e = 0), e;
 }, global.ADD_TO_STAT_TIME = function (t,e,r)
 {
     if(global.STAT_MODE)
@@ -203,8 +207,7 @@ global.PrepareStatEverySecond = function ()
     for(o = 0; o < r.length; o++)
     {
         var i = r[o], T = i.arr;
-        l && T.length > l && (T = T.slice(T.length - l)), l && 0 <= ",POWER_MY_WIN,POWER_BLOCKCHAIN,".indexOf("," + i.name + ",") && (T = SERVER.GetStatBlockchain(i.name,
-        l));
+        l && T.length > l && (T = T.slice(T.length - l)), l && 0 <= ",POWER_MY_WIN,POWER_BLOCKCHAIN,".indexOf("," + i.name + ",") && (T = SERVER.GetStatBlockchain(i.name));
         for(var g = 0, S = 0; S < T.length; S++)
             T[S] && (g += T[S]);
         0 < T.length && (g /= T.length);

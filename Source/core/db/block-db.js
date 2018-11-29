@@ -799,6 +799,7 @@ module.exports = class CDB extends require("../code")
     }
     GetStatBlockchain(name, MinLength)
     {
+        MinLength = 500
         if(!MinLength)
             return [];
         var MAX_ARR_PERIOD = MAX_STAT_PERIOD * 2 + 10;

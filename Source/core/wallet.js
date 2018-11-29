@@ -65,6 +65,7 @@ class CApp
     AddTransaction(Tr)
     {
         this.ObservTree.insert({HASH:shaarr(Tr.body)})
+        Tr.ToAll = 1
         return SERVER.AddTransaction(Tr);
     }
     SetPrivateKey(KeyStr, bSetNew)

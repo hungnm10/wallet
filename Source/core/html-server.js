@@ -489,7 +489,7 @@ HTTPCaller.SendTransactionHex = function (Params)
 {
     var body = GetArrFromHex(Params.Hex);
     var Result = {result:1};
-    var Res = WALLET.AddTransaction({body:body});
+    var Res = WALLET.AddTransaction({body:body, ToAll:1});
     Result.sessionid = sessionid;
     Result.text = AddTrMap[Res];
     var final = false;

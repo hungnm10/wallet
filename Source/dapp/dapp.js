@@ -23,9 +23,9 @@ class DApp
     {
         SERVER.SendMessage(Body, ToAddr)
     }
-    AddTransaction(Body)
+    AddTransaction(Tr)
     {
-        SERVER.AddTransaction(Body)
+        SERVER.AddTransaction(Tr)
     }
     GetScriptTransaction(Body)
     {

@@ -66,13 +66,20 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
         if(HostingWorker && HostingWorker.connected)
         {
             HostingWorker.send({cmd:"Stat", Name:"MAX:ALL_NODES", Value:global.CountAllNode});
-            var arr = SERVER.GetStatBlockchain("POWER_BLOCKCHAIN", 600);
+            var arr = SERVER.GetStatBlockchain("POWER_BLOCKCHAIN");
             if(arr.length)
             {
                 var SumPow = 0;
-                for(var i = 0; i < arr.length; i++)
-                    SumPow += arr[i];
-                var AvgPow = SumPow / arr.length;
+                {
+                    var Count = 0;
+                    for(var i = arr.length - 100; i < arr.length; i++)
+                        if(arr[i])
+                        {
+                            SumPow += arr[i];
+                            Count++;
+                        }
+                }
+                var AvgPow = SumPow / Count;
                 var HashRate = Math.pow(2, AvgPow) / 1024 / 1024 / 1024;
                 HostingWorker.send({cmd:"Stat", Name:"MAX:HASH_RATE_G", Value:HashRate});
             }
@@ -89,7 +96,7 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
             HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
             HostingWorker.on('message', OnMessageHosting);
         }
-    }, 900);
+    }, 500);
     setInterval(function ()
     {
         if(HostingWorker && HostingWorker.connected)

@@ -197,6 +197,8 @@ module.exports = class CMessages extends require("./transaction-validator")
     }
     SendTransaction(Tr)
     {
+        if(!Tr.ToAll)
+            return ;
         var CurTime = GetCurrentTime(0) - 0;
         var Count;
         if(GrayConnect())
