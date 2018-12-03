@@ -1308,22 +1308,19 @@ module.exports = class CBlock extends require("./db/block-db")
     {
         if(Block.BlockNum < BLOCK_PROCESSING_LENGTH2)
             return true;
-        for(var i = 0; i < BLOCK_PROCESSING_LENGTH2; i++)
-        {
-            var num = Block.BlockNum - i - 1;
-            var PrevBlock = this.ReadBlockHeaderDB(num);
-            if(!PrevBlock || !PrevBlock.bSave)
-            {
-                ToError("----------" + StrError + " ERROR calc hash - block num: " + Block.BlockNum + "  prev block not found: " + num)
-                return false;
-            }
-        }
+        if(Block.BlockNum <= 12970036)
+            return true;
         var startPrev = Block.BlockNum - BLOCK_PROCESSING_LENGTH2;
         var arr = [];
         for(var i = 0; i < BLOCK_PROCESSING_LENGTH; i++)
         {
             var num = startPrev + i;
             var PrevBlock = this.ReadBlockHeaderDB(num);
+            if(!PrevBlock || !PrevBlock.bSave)
+            {
+                ToError(StrError + " ERROR CALC BLOCK: " + Block.BlockNum + " - prev block not found: " + num)
+                return false;
+            }
             arr.push(PrevBlock.Hash)
         }
         var PrevHash = CalcHashFromArray(arr, true);
@@ -1331,13 +1328,12 @@ module.exports = class CBlock extends require("./db/block-db")
         var TestValue = GetHashFromSeqAddr(testSeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
         if(CompareArr(TestValue.Hash, Block.Hash) !== 0)
         {
-            var Str = StrError + " ERROR HASH - block num: " + Block.BlockNum;
+            var Str = "--------" + StrError + " ERROR hash - block num: " + Block.BlockNum + "  test PrevHash=" + GetHexFromArr(PrevHash) + " test Hash=" + GetHexFromArr(TestValue.Hash) + "  testSeqHash=" + GetHexFromArr(testSeqHash);
             ToErrorTrace(Str)
-            return false;
         }
         return true;
     }
-    ToLogBlock(Block, StrInfo)
+    ToLogBlock(Block, StrInfo, arr)
     {
         ToLog("-------------" + StrInfo)
         ToLog("BlockNum=" + (Block.BlockNum))
@@ -1347,9 +1343,10 @@ module.exports = class CBlock extends require("./db/block-db")
         ToLog("TreeHash=" + GetHexFromArr(Block.TreeHash))
         ToLog("AddrHash=" + GetHexFromArr(Block.AddrHash))
         ToLog("SumHash=" + GetHexFromArr(Block.SumHash))
-        ToLog("Comment:" + Block.Comment1 + "   " + Block.Comment2)
-        console.trace()
-        process.exit()
+        for(var i = 0; i < arr.length; i++)
+        {
+            ToLog("arr[" + i + "]=" + GetHexFromArr(arr[i]))
+        }
     }
     GetBlock(num, bToMem, bReadBody)
     {
