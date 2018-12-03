@@ -1330,6 +1330,7 @@ module.exports = class CBlock extends require("./db/block-db")
         {
             var Str = "--------" + StrError + " ERROR hash - block num: " + Block.BlockNum + "  test PrevHash=" + GetHexFromArr(PrevHash) + " test Hash=" + GetHexFromArr(TestValue.Hash) + "  testSeqHash=" + GetHexFromArr(testSeqHash);
             ToErrorTrace(Str)
+            return false;
         }
         return true;
     }
