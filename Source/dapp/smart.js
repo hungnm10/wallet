@@ -89,6 +89,7 @@ class SmartApp extends require("./dapp")
             }"
         this.ROW_SIZE = 2 * (1 << 13)
         this.DBSmart = new DBRow("smart", this.ROW_SIZE, this.FORMAT_ROW)
+        this.InitHole()
         this.Start()
     }
     Start()
@@ -376,6 +377,8 @@ class SmartApp extends require("./dapp")
         var Data;
         for(var num = start; true; num++)
         {
+            if(this.IsHole(num))
+                continue;
             if(GetAllData)
                 Data = this.ReadSmart(num)
             else
@@ -440,6 +443,16 @@ class SmartApp extends require("./dapp")
             }
         }
         return Smart;
+    }
+    InitHole()
+    {
+        this.RowHole = {"19":1}
+    }
+    IsHole(num)
+    {
+        if(global.ALL_VIEW_ROWS)
+            return 0;
+        return this.RowHole[num];
     }
 };
 

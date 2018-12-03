@@ -293,7 +293,7 @@ class CApp
     {
         return this.DBHistory.GetMaxNum();
     }
-    GetHistoryAct(start, count, Filter, Direct)
+    GetHistory(start, count, Filter, Direct00)
     {
         if(Filter)
             Filter = Filter.toUpperCase()
@@ -303,13 +303,6 @@ class CApp
             var Item = this.DBHistory.Read(num);
             if(!Item)
                 break;
-            if(Direct && Direct !== Item.Direct)
-                continue;
-            if(Item.Direct === "+" && this.AccountMap[Item.ToID] === undefined)
-                continue;
-            else
-                if(Item.Direct === "-" && this.AccountMap[Item.FromID] === undefined)
-                    continue;
             Item.ToName = ""
             if(Item.ToID !== 1000000000000)
             {

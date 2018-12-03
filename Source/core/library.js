@@ -292,8 +292,9 @@ global.SAVE_CONST = function (bForce)
 };
 var ntpClient = require('ntp-client');
 
-function CheckTime()
+function CheckGlobalTime()
 {
+    ToLog("CheckGlobalTime");
     ntpClient.getNetworkTime("pool.ntp.org", 123, function (err,NetTime)
     {
         if(err)
@@ -308,10 +309,12 @@ function CheckTime()
         else
             if(Math.abs(global.DELTA_CURRENT_TIME) > 24 * 3600 * 1000)
                 global.DELTA_CURRENT_TIME = 0;
+        ToLog("Get global time: " + NetTime);
         SAVE_CONST();
     });
     SAVE_CONST();
 };
+global.CheckGlobalTime = CheckGlobalTime;
 global.GetDeltaCurrentTime = function ()
 {
     if(isNaN(global.DELTA_CURRENT_TIME) || typeof global.DELTA_CURRENT_TIME !== "number")
@@ -419,8 +422,16 @@ function GrayConnect()
         return 0;
 };
 global.GrayConnect = GrayConnect;
-if(!LOAD_CONST() && !global.POWPROCESS)
+var ResConst = LOAD_CONST();
+if(!global.POWPROCESS)
 {
-    CheckTime();
+    if(!ResConst)
+    {
+        CheckGlobalTime();
+    }
+    else
+        if(global.CHECK_GLOBAL_TIME)
+        {
+            CheckGlobalTime();
+        }
 }
-global.AUTO_COORECT_TIME = 1;

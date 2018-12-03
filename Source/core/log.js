@@ -207,7 +207,8 @@ global.PrepareStatEverySecond = function ()
     for(o = 0; o < r.length; o++)
     {
         var i = r[o], T = i.arr;
-        l && T.length > l && (T = T.slice(T.length - l)), l && 0 <= ",POWER_MY_WIN,POWER_BLOCKCHAIN,".indexOf("," + i.name + ",") && (T = SERVER.GetStatBlockchain(i.name));
+        l && T.length > l && (T = T.slice(T.length - l)), l && 0 <= ",POWER_MY_WIN,POWER_BLOCKCHAIN,".indexOf("," + i.name + ",") && (T = SERVER.GetStatBlockchain(i.name,
+        l));
         for(var g = 0, S = 0; S < T.length; S++)
             T[S] && (g += T[S]);
         0 < T.length && (g /= T.length);

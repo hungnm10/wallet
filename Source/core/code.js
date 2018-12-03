@@ -218,11 +218,14 @@ global.RestartNode = function RestartNode(bForce)
         ToLog("********************************** FORCE RESTART!!!");
         return ;
     }
-    var it = this.ActualNodes.iterator(), Node;
-    while((Node = it.next()) !== null)
+    if(this.ActualNodes)
     {
-        if(Node.Socket)
-            CloseSocket(Node.Socket, "Restart");
+        var it = this.ActualNodes.iterator(), Node;
+        while((Node = it.next()) !== null)
+        {
+            if(Node.Socket)
+                CloseSocket(Node.Socket, "Restart");
+        }
     }
     this.StopServer();
     this.StopNode();

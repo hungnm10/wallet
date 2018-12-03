@@ -11,108 +11,99 @@ body
     font-weight: 300;
 }
 
-
-body.styleBrown .bt
-{
-    background: #86754A;
-    color: #F5E5BB;
-}
 body.styleBrown
 {
-    background: #F5E5BB;
-}
-
-body.styleBrown table.grid
-{
-    background:#F5F0E3;
-}
-
-body.styleBrown .bttab
-{
-    background: #86754A;
-    color:white;
-}
-
-body.styleBrown .current
-{
-    background: #503F13;
-    color:white;
-}
-
-body.styleBrown input,textarea,select
-{
-    background:white;
-    color: black;
+    --color0:#503F13;
+    --color1:#86754A;
+    --color2:#F5E5BB;
+    --color3:#F5F0E3;
 }
 
 
-body.styleGreen .bt
-{
-    background: #4F7340;
-    color: #CBF4BA;
-}
 body.styleGreen
 {
-    background: #CBF4BA;
+    --color0:#204410;
+    --color1:#4F7340;
+    --color2:#CBF4BA;
+    --color3:#E7F4E1;
 }
 
-body.styleGreen table.grid
-{
-    background:#E7F4E1;
-}
-
-body.styleGreen .bttab
-{
-    background: #4F7340;
-    color:white;
-}
-
-body.styleGreen .current
-{
-    background: #204410;
-    color:white;
-}
-
-
-body.styleGreen input,textarea,select
-{
-    background:white;
-    color: black;
-}
-
-
-body.styleBlue .bt
-{
-    background: #354259;
-    color: #BED0F2;
-}
 body.styleBlue
 {
-    background: #BED0F2;
+    --color0:#0D1B35;
+    --color1:#354259;
+    --color2:#BED0F2;
+    --color3:#E1E7F2;
 }
 
-body.styleBlue table.grid
+body.styleGray
 {
-    background:#E1E7F2;
+    --color0:#424a5D;
+    --color1:#5b6775;
+    --color2:#FFFFFF;
+    --color3:#f3f3f4;
 }
 
-body.styleBlue .bttab
+body.styleContrast1
 {
-    background: #354259;
+    --color0:#101010;
+    --color1:#303030;
+    --color2: #b3cee8;
+    --color3:#FFFFFF;
+}
+
+body.styleContrast2
+{
+    --color0:#101010;
+    --color1:#303030;
+    --color2: #cee8df;
+    --color3:#FFFFFF;
+}
+
+body.styleContrast3
+{
+    --color0:#101010;
+    --color1:#303030;
+    --color2: #e8e0d4;
+    --color3:#FFFFFF;
+}
+
+
+body.univers .bt
+{
+    background: var(--color1);
+    color: var(--color2);
+}
+body.univers
+{
+    background: var(--color2);
+}
+
+body.univers table.grid
+{
+    background:var(--color3);
+}
+
+body.univers .bttab
+{
+    background: var(--color1);
     color:white;
 }
 
-body.styleBlue .current
+body.univers .current
 {
-    background: #0D1B35;
+    background: var(--color0);
     color:white;
 }
 
-body.styleBlue input,textarea,select
+body.univers input,textarea,select
 {
     background:white;
     color: black;
 }
+
+
+
 
 /*dark*/
 body.styleDark

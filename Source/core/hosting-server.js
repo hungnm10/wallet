@@ -25,6 +25,10 @@ setTimeout(function ()
 {
     setInterval(CheckAlive, 1000);
 }, 20000);
+setInterval(function ()
+{
+    process.send({cmd:"Alive"});
+}, 1000);
 process.on('message', function (msg)
 {
     LastAlive = (new Date()) - 0;
@@ -48,7 +52,7 @@ process.on('message', function (msg)
 function CheckAlive()
 {
     var Delta = (new Date()) - LastAlive;
-    if(Math.abs(Delta) > CHECK_STOP_CHILD_PROCESS)
+    if(Delta > CHECK_STOP_CHILD_PROCESS)
     {
         ToLog("HOSTING: ALIVE TIMEOUT Stop and exit: " + Delta + "/" + global.CHECK_STOP_CHILD_PROCESS);
         process.exit(0);
@@ -449,3 +453,29 @@ setInterval(function ()
     Accounts.DBActPrev.CloseDBFile(Accounts.DBActPrev.FileName);
     Accounts.DBAct.CloseDBFile(Accounts.DBAct.FileName);
 }, 500);
+setInterval(function ()
+{
+    var MaxNumBlockDB = SERVER.GetMaxNumBlockDB();
+    var arr = SERVER.GetStatBlockchain("POWER_BLOCKCHAIN", 100);
+    if(arr.length)
+    {
+        var SumPow = 0;
+        var Count = 0;
+        for(var i = arr.length - 100; i < arr.length; i++)
+            if(arr[i])
+            {
+                SumPow += arr[i];
+                Count++;
+            }
+        var AvgPow = SumPow / Count;
+        var HashRate = Math.pow(2, AvgPow) / 1024 / 1024 / 1024;
+        ADD_TO_STAT("MAX:HASH_RATE_G", HashRate);
+    }
+    var Count = COUNT_BLOCK_PROOF + 16 - 1;
+    if(MaxNumBlockDB > Count)
+    {
+        var StartNum = MaxNumBlockDB - Count;
+        var BufWrite = SERVER.BlockChainToBuf(StartNum, StartNum, MaxNumBlockDB);
+        NodeBlockChain = BufWrite;
+    }
+}, 1000);

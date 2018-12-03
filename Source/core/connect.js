@@ -892,8 +892,66 @@ module.exports = class CConnect extends require("./transfer-msg")
     SetTime(NewTime)
     {
         ToLog("Set new time: " + NewTime)
-        global.DELTA_CURRENT_TIME = NewTime - (GetCurrentTime(0) - 0)
-        SAVE_CONST(true)
+        if(NewTime)
+        {
+            global.DELTA_CURRENT_TIME = NewTime - (GetCurrentTime(0) - 0)
+            SAVE_CONST(true)
+        }
+    }
+    static
+    TIME_F()
+    {
+        return "{Time:uint, Sign:arr64}";
+    }
+    SendTimeDev(Node)
+    {
+        if(!WALLET.WalletOpen)
+        {
+            ToLog("Error Wallet not open")
+            return 0;
+        }
+        if(!this.SignCurrentTimeDev)
+        {
+            var SignArr = GetArrFromHex(SERVER.addrStr);
+            this.SignCurrentTimeDev = secp256k1.sign(shabuf(SignArr), WALLET.KeyPair.getPrivateKey('')).signature
+        }
+        var Time = GetCurrentTime() - 0;
+        ToLog("Sennd time: " + Time + " to " + NodeInfo(Node))
+        this.SendF(Node, {"Method":"TIME", "Data":{Time:Time, Sign:this.SignCurrentTimeDev}})
+        return 1;
+    }
+    SendTimeToAll()
+    {
+        var Count = 0;
+        for(var i = 0; i < this.NodesArr.length; i++)
+        {
+            var Node = this.NodesArr[i];
+            if(Node.Active)
+            {
+                if(this.SendTimeDev(Node))
+                    Count++
+            }
+        }
+        return Count;
+    }
+    TIME(Info, CurTime)
+    {
+        if(global.AUTO_COORECT_TIME)
+        {
+            var Node = Info.Node;
+            var Data = this.DataFromF(Info);
+            var SignArr = GetArrFromHex(Node.addrStr);
+            if(CheckDevelopSign(SignArr, Data.Sign))
+            {
+                this.SetTime(Data.Time)
+            }
+            else
+            {
+                Node.NextConnectDelta = 60 * 1000
+                ToLog("Error Sign TIME from " + NodeInfo(Node))
+                this.AddCheckErrCount(Node, 1, "Error Sign TIME")
+            }
+        }
     }
     ConnectToAll()
     {

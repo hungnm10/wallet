@@ -199,23 +199,17 @@ module.exports = class CDB extends require("../code")
     }
     WriteBlockDBFinaly(Block)
     {
-        var Ret = this.WriteKeyDB(Block);
+        var Ret = this.WriteBlockHeaderDB(Block);
         if(Ret)
         {
-            Ret = this.WriteBlockHeaderDB(Block)
-            if(Ret)
+            if(Block.TrDataLen === 0 && !IsZeroArr(Block.TreeHash))
             {
-                if(Block.TrDataLen === 0 && !IsZeroArr(Block.TreeHash))
-                {
-                    ToLogTrace("ERROR WRITE FINAL TrDataLen BLOCK")
-                    throw "ERROR WRITE";
-                }
-                if(USE_CHECK_KEY_DB)
-                    this.CheckKeyDB(Block.BlockNum)
-                this.OnWriteBlock(Block)
-                this.BlockNumDB = Block.BlockNum
-                Block.bSave = true
+                ToLogTrace("ERROR WRITE FINAL TrDataLen BLOCK")
+                throw "ERROR WRITE";
             }
+            this.OnWriteBlock(Block)
+            this.BlockNumDB = Block.BlockNum
+            Block.bSave = true
         }
         return Ret;
     }
@@ -269,70 +263,6 @@ module.exports = class CDB extends require("../code")
         Block.TrCount = arrTr.length
         Block.TrDataLen = TrDataLen
         return true;
-    }
-    WriteKeyDB(Block)
-    {
-        if(!USE_KEY_DB)
-            return true;
-        var arrTr = Block.arrContent;
-        if(!arrTr || arrTr.length === 0)
-        {
-            return true;
-        }
-        var infoKey = this.GetInfoKeyTransaction();
-        var Position = Block.TrDataPos;
-        var TrDataLen = 4;
-        var arrSize = [];
-        for(var i = 0; i < arrTr.length; i++)
-        {
-            var body = arrTr[i];
-            arrSize[i] = 6 + 2 + body.length
-            TrDataLen += arrSize[i]
-        }
-        var SumFileSize = Position + 4;
-        for(var i = 0; i < arrTr.length; i++)
-        {
-            var body = arrTr[i];
-            if(!this.WriteNewKeyDB(infoKey, body, SumFileSize, Block.BlockNum))
-            {
-                TO_ERROR_LOG("DB", 250, "Error write key file")
-                return false;
-            }
-            if(USE_CHECK_KEY_DB)
-                this.CheckOneHashDB(Block, body)
-            SumFileSize += arrSize[i]
-        }
-        return true;
-    }
-    CheckOneHashDB(Block, body)
-    {
-        var findNum = this.FindBlockByHashDB(body);
-        if(findNum === Block.BlockNum)
-        {
-        }
-        else
-        {
-            var buf = Buffer.from(body);
-            var Str = buf.toString('utf8', 1, buf.length);
-            if(findNum !== Block.BlockNum)
-            {
-                Str += " ERROR BlockNum  find=" + findNum + " must=" + Block.BlockNum
-            }
-            ToLogTrace("Not found body=" + Str)
-            findNum = this.FindBlockByHashDB(body)
-            {
-                throw "===========Not found body=" + Str;
-            }
-        }
-    }
-    CheckKeyDB(BlockNum)
-    {
-        var BlockDB = this.ReadBlockDB(BlockNum);
-        for(var i = 0; BlockDB && BlockDB.arrContent && i < BlockDB.arrContent.length; i++)
-        {
-            var body = BlockDB.arrContent[i];
-            this.CheckOneHashDB(BlockDB, body)
-        }
     }
     WriteBlockHeaderDB(Block)
     {
@@ -799,7 +729,6 @@ module.exports = class CDB extends require("../code")
     }
     GetStatBlockchain(name, MinLength)
     {
-        MinLength = 500
         if(!MinLength)
             return [];
         var MAX_ARR_PERIOD = MAX_STAT_PERIOD * 2 + 10;
@@ -807,12 +736,13 @@ module.exports = class CDB extends require("../code")
         {
             this.ClearStat()
         }
-        if(this.StatMap.CaclBlockNum !== this.BlockNumDB || this.StatMap.CalcMinLength !== MinLength)
+        var MaxNumBlockDB = this.GetMaxNumBlockDB();
+        if(this.StatMap.CaclBlockNum !== MaxNumBlockDB || this.StatMap.CalcMinLength !== MinLength)
         {
-            this.StatMap.CaclBlockNum = this.BlockNumDB
+            this.StatMap.CaclBlockNum = MaxNumBlockDB
             this.StatMap.CalcMinLength = MinLength
-            var start = this.BlockNumDB - MinLength + 1;
-            var finish = this.BlockNumDB + 1;
+            var start = MaxNumBlockDB - MinLength + 1;
+            var finish = MaxNumBlockDB + 1;
             var StartPos = this.StatMap.StartPos;
             var ArrPower = this.StatMap.ArrPower;
             var ArrPowerMy = this.StatMap.ArrPowerMy;
@@ -834,7 +764,7 @@ module.exports = class CDB extends require("../code")
                 {
                     CountReadDB++
                     var Power = 0, PowerMy = 0;
-                    if(num <= this.BlockNumDB)
+                    if(num <= MaxNumBlockDB)
                     {
                         var Block = this.ReadBlockHeaderDB(num);
                         if(Block)
@@ -900,7 +830,7 @@ module.exports = class CDB extends require("../code")
             Tr.TimePow = Tr.num + Tr.power - Math.log2(Tr.body.length / 128)
         }
     }
-    BlockChainToBuf(StartNum, EndBlockNum)
+    BlockChainToBuf(WriteNum, StartNum, EndBlockNum)
     {
         if(StartNum === undefined)
             return BufLib.GetNewBuffer(10);
@@ -923,9 +853,9 @@ module.exports = class CDB extends require("../code")
             arr.push(Block)
             PrevBlock = Block
         }
-        return this.ArrHeaderToBuf(arr);
+        return this.ArrHeaderToBuf(WriteNum, arr);
     }
-    ArrHeaderToBuf(arr)
+    ArrHeaderToBuf(StartNum, arr)
     {
         var CountSend = arr.length - BLOCK_PROCESSING_LENGTH2;
         var BufWrite;
@@ -935,11 +865,6 @@ module.exports = class CDB extends require("../code")
         }
         else
         {
-            var StartNum;
-            if(arr.length)
-                StartNum = arr[0].BlockNum
-            else
-                StartNum = 0
             var BufSize = 6 + 4 + BLOCK_PROCESSING_LENGTH2 * 32 + 32 + 6 + CountSend * 64;
             BufWrite = BufLib.GetNewBuffer(BufSize)
             BufWrite.Write(StartNum, "uint")

@@ -1046,8 +1046,10 @@
                 Str+="\nid:"+Block.id;
 
             Str+="\nTrCount:"+Block.TrCount;
-            Str+="\nTH:"+GetStrFromHash(Block.TreeHash);
+            Str+="\nTreeH:"+GetStrFromHash(Block.TreeHash);
             Str+="\nTrDataLen:"+Block.TrDataLen;
+            Str+="\nSumH:"+GetStrFromHash(Block.SumHash);
+
 
 
             Str+="\nMiner:"+Block.Miner1;
@@ -1073,7 +1075,7 @@
                 Str+="\nBlockDown:"+Block.BlockDown;
             }
         }
-        Str+="\nH:"+GetStrFromHash(Block.Hash);
+        Str+="\nHash:"+GetStrFromHash(Block.Hash);
 
         if(!Block.Comment1)
             Block.Comment1="";

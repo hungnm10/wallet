@@ -437,11 +437,27 @@ module.exports = class CBlock extends require("./db/block-db")
                 IsSum:byte\
             }";
     }
+    FindBlockHeaderDB(BlockNum, Name, Hash)
+    {
+        for(var Num = BlockNum - MAX_DELTA_BLOCKNUM; Num <= BlockNum + MAX_DELTA_BLOCKNUM; Num++)
+        {
+            var BlockDB = this.ReadBlockHeaderDB(Num);
+            if(BlockDB && BlockDB[Name] && CompareArr(BlockDB[Name], Hash) === 0)
+            {
+                if(BlockDB.BlockNum !== BlockNum)
+                    ToLog("Find " + BlockDB.BlockNum + " <- " + BlockNum)
+                return BlockDB;
+            }
+        }
+        ToLog("Not found " + BlockNum + " " + Name + "=" + this.GetStrFromHashShort(Hash))
+        return undefined;
+    }
     GETBLOCKHEADER(Info, CurTime)
     {
         var Data = this.DataFromF(Info);
         var arr = [];
-        var StartNum;
+        var StartNum = undefined;
+        var WriteNum = undefined;
         var BlockNum;
         var LoadHash = Data.Hash;
         var Foward = Data.Foward;
@@ -456,10 +472,6 @@ module.exports = class CBlock extends require("./db/block-db")
                 BlockNum = StartNum + COUNT_BLOCKS_FOR_LOAD + BLOCK_PROCESSING_LENGTH2
                 if(BlockNum > this.BlockNumDB)
                     BlockNum = this.BlockNumDB
-            }
-            else
-            {
-                StartNum = undefined
             }
         }
         else
@@ -481,8 +493,15 @@ module.exports = class CBlock extends require("./db/block-db")
                     StartNum = 0
             }
         }
-        var BufWrite = this.BlockChainToBuf(StartNum, BlockNum);
+        var BufWrite = this.BlockChainToBuf(StartNum, StartNum, BlockNum);
         this.Send(Info.Node, {"Method":"RETBLOCKHEADER", "Context":Info.Context, "Data":BufWrite}, 1)
+    }
+    GetBlockArrFromBuffer_Load(BufRead, Info)
+    {
+        var BlockArr = GetBlockArrFromBuffer(BufRead, Info);
+        if(BlockArr.length > 0 && BlockArr[0].BlockNum === BLOCK_PROCESSING_LENGTH2)
+            BlockArr.unshift(this.ReadBlockHeaderDB(BLOCK_PROCESSING_LENGTH2 - 1))
+        return BlockArr;
     }
     RETBLOCKHEADER_FOWARD(Info, CurTime)
     {
@@ -491,7 +510,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var Context = this.LoadHistoryContext;
         Context.time = undefined
         var BufRead = BufLib.GetReadBuffer(Info.Data);
-        var arr = GetBlockArrFromBuffer(BufRead, Info);
+        var arr = this.GetBlockArrFromBuffer_Load(BufRead, Info);
         var arr2 = [];
         var bFindDB = 0;
         if(arr.length > 1)
@@ -565,7 +584,7 @@ module.exports = class CBlock extends require("./db/block-db")
         {
             var BufRead = BufLib.GetReadBuffer(Info.Data);
             chain.time = undefined
-            var arr = GetBlockArrFromBuffer(BufRead, Info);
+            var arr = this.GetBlockArrFromBuffer_Load(BufRead, Info);
             if(arr.length <= 1)
             {
                 var keysend = "" + Info.Node.addrStr + ":" + chain.BlockNum;
@@ -808,8 +827,6 @@ module.exports = class CBlock extends require("./db/block-db")
             for(var i = 0; i < arr.length; i++)
                 arr[i].AddToLoad = 1
             chain.CurNumArrLoad = 0
-            if(this.LoadHistoryMessage)
-                ToLog("Start blocks load id=" + chain.id + " Count=" + arr.length + " FROM: " + arr[0].BlockNum + " TO " + arr[arr.length - 1].BlockNum)
         }
     }
     LoopBlockLoad()
@@ -1053,14 +1070,6 @@ module.exports = class CBlock extends require("./db/block-db")
         }
         return Sum;
     }
-    static
-    GETBLOCK_F()
-    {
-        return "{\
-                    BlockNum:uint,\
-                    TreeHash:hash\
-                }";
-    }
     RecalcLoadBlockStatictic()
     {
         return ;
@@ -1105,6 +1114,14 @@ module.exports = class CBlock extends require("./db/block-db")
             ADD_TO_STAT("NODE_CAN_GET:" + NodeName(Node), Node.CanGetBlocks, 1)
         }
     }
+    static
+    GETBLOCK_F()
+    {
+        return "{\
+                    BlockNum:uint,\
+                    TreeHash:hash,\
+                }";
+    }
     GETBLOCK(Info, CurTime)
     {
         var Data = this.DataFromF(Info);
@@ -1115,7 +1132,7 @@ module.exports = class CBlock extends require("./db/block-db")
             return ;
         }
         var BufWrite;
-        var BlockDB;
+        var BlockDB = undefined;
         if(TreeHash && !IsZeroArr(TreeHash))
         {
             BlockDB = this.ReadBlockDB(BlockNum)
@@ -1297,7 +1314,7 @@ module.exports = class CBlock extends require("./db/block-db")
             var PrevBlock = this.ReadBlockHeaderDB(num);
             if(!PrevBlock || !PrevBlock.bSave)
             {
-                ToLog("-----------------------" + StrError + " ERROR calc hash - block num: " + Block.BlockNum + "  prev block not found: " + num)
+                ToError("----------" + StrError + " ERROR calc hash - block num: " + Block.BlockNum + "  prev block not found: " + num)
                 return false;
             }
         }
@@ -1314,8 +1331,8 @@ module.exports = class CBlock extends require("./db/block-db")
         var TestValue = GetHashFromSeqAddr(testSeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
         if(CompareArr(TestValue.Hash, Block.Hash) !== 0)
         {
-            var Str = "-----------------------" + StrError + " ERROR hash - block num: " + Block.BlockNum + "  test PrevHash=" + GetHexFromArr(PrevHash) + " test Hash=" + GetHexFromArr(TestValue.Hash);
-            this.ToLogBlock(Block, Str)
+            var Str = StrError + " ERROR HASH - block num: " + Block.BlockNum;
+            ToErrorTrace(Str)
             return false;
         }
         return true;
@@ -1453,7 +1470,7 @@ function GetRootChain()
                 {
                     TO_ERROR_LOG("BLOCK", 10, "Error COUNT GetRootChain")
                     SERVER.FREE_ALL_MEM_CHAINS()
-                    break;
+                    return undefined;
                 }
             }
             return root_chain;

@@ -395,7 +395,7 @@ HTTPCaller.GetHashList = function (Params)
 };
 HTTPCaller.GetHistoryAct = function (Params)
 {
-    var arr = WALLET.GetHistoryAct(Params.StartNum, Params.CountNum, Params.Filter);
+    var arr = WALLET.GetHistory(Params.StartNum, Params.CountNum, Params.Filter);
     return {arr:arr, result:1};
 };
 var LastTimeGetHashRate = 0;

@@ -56,39 +56,23 @@ process.on('error', function (err)
     ToLog(err.stack);
 });
 var idHostingAliveInterval = 0;
+var LastHostingAlive = new Date() - 0;
 var HostingWorker;
 if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 {
-    HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
-    HostingWorker.on('message', OnMessageHosting);
     idHostingAliveInterval = setInterval(function ()
     {
+        var Delta = (new Date()) - LastHostingAlive;
+        if(HostingWorker && Delta > 3 * 1000)
+        {
+            ToLog("KILL PROCESS: " + HostingWorker.pid);
+            process.kill(HostingWorker.pid, 'SIGKILL');
+            LastHostingAlive = (new Date() - 0) + 10 * 1000;
+            HostingWorker = undefined;
+        }
         if(HostingWorker && HostingWorker.connected)
         {
             HostingWorker.send({cmd:"Stat", Name:"MAX:ALL_NODES", Value:global.CountAllNode});
-            var arr = SERVER.GetStatBlockchain("POWER_BLOCKCHAIN");
-            if(arr.length)
-            {
-                var SumPow = 0;
-                {
-                    var Count = 0;
-                    for(var i = arr.length - 100; i < arr.length; i++)
-                        if(arr[i])
-                        {
-                            SumPow += arr[i];
-                            Count++;
-                        }
-                }
-                var AvgPow = SumPow / Count;
-                var HashRate = Math.pow(2, AvgPow) / 1024 / 1024 / 1024;
-                HostingWorker.send({cmd:"Stat", Name:"MAX:HASH_RATE_G", Value:HashRate});
-            }
-            var Count = COUNT_BLOCK_PROOF + 16 - 1;
-            if(SERVER.BlockNumDB > Count)
-            {
-                var BufWrite = SERVER.BlockChainToBuf(SERVER.BlockNumDB - Count, SERVER.BlockNumDB);
-                HostingWorker.send({cmd:"NodeBlockChain", Value:BufWrite});
-            }
         }
         else
         {
@@ -109,6 +93,7 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 
 function OnMessageHosting(msg)
 {
+    LastHostingAlive = new Date() - 0;
     if(msg.cmd === "SendTransactionHex")
     {
         var body = GetArrFromHex(msg.Value);
@@ -256,7 +241,6 @@ function RunStopPOWProcess(Mode)
     for(var R = 0; R < GetCountMiningCPU(); R++)
     {
         let Worker = Fork(PathMiner);
-        console.log("Worker pid: " + Worker.pid);
         ArrMiningWrk.push(Worker);
         Worker.Num = ArrMiningWrk.length;
         Worker.on('message', function (msg)

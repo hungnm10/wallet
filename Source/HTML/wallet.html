@@ -447,14 +447,16 @@
         if(CONFIG_DATA.CONSTANTS.WALLET_NAME)
             Name=CONFIG_DATA.CONSTANTS.WALLET_NAME;
 
-        var StrVersion=" 0."+Data.VersionNum;
-        SetTitle(Name+StrVersion);
 
         if(CONFIG_DATA.CONSTANTS.COUNT_VIEW_ROWS)
             CountViewRows=CONFIG_DATA.CONSTANTS.COUNT_VIEW_ROWS;
 
         SetBlockChainConstant(Data);
         MaxBlockNum=GetCurrentBlockNumByTime();
+
+        var StrVersion=" 0."+Data.VersionNum;
+        //SetTitle((MaxBlockNum%100)+" "+Name+StrVersion);
+        SetTitle(Name+StrVersion);
 
         //if(Data.RelayMode || !Data.CurBlockNum || !Data.BlockNumDB || Data.CurBlockNum>Data.BlockNumDB+BLOCK_PROCESSING_LENGTH*2)
         if(Data.RelayMode && Data.CurBlockNum>Data.BlockNumDB+BLOCK_PROCESSING_LENGTH*2)
@@ -844,7 +846,8 @@
 
         if(!Select.value)
             Select.value=Select.options[0].value;
-        document.body.className=Select.value;
+        //document.body.className=Select.value;
+        document.body.className="univers "+Select.value;
     }
     window.onload=function()
     {
@@ -1379,6 +1382,13 @@
             <option value="styleBlue">Blue</option>
             <option value="styleGreen">Green</option>
             <option value="styleDark">Dark</option>
+            <option value="styleGray">Gray</option>
+            <option value="styleContrast1">Contrast 1</option>
+            <option value="styleContrast2">Contrast 2</option>
+            <option value="styleContrast3">Contrast 3</option>
+
+
+
         </select>
 
 
@@ -1804,3 +1814,4 @@
     <A href="https://github.com/terafoundation/wallet">GitHub</A>
     <!--progr76@gmail.com-->
 </DIV>
+
