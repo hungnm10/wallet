@@ -1067,9 +1067,12 @@ function CopyChainDraw(Chain,bWasRecursive,bMain)
     if(Chain.RootChain)
     {
         var rootChain = Chain.GetRootChain();
-        Item.rootid = rootChain.id;
-        if(!bWasRecursive)
-            Item.root = CopyChainDraw(rootChain, true);
+        if(rootChain)
+        {
+            Item.rootid = rootChain.id;
+            if(!bWasRecursive)
+                Item.root = CopyChainDraw(rootChain, true);
+        }
     }
     else
         Item.rootid = "";

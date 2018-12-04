@@ -633,7 +633,8 @@ module.exports = class CBlock extends require("./db/block-db")
                 {
                     chain.ParentChain = BlockFind.chain
                     chain.RootChain = BlockFind.chain.GetRootChain()
-                    chain.RootChain.BlockNumMax = chain.BlockHead.BlockNum
+                    if(chain.RootChain)
+                        chain.RootChain.BlockNumMax = chain.BlockHead.BlockNum
                     chain.StopSend = true
                     chain.AddInfo("StopSend - Find load Block")
                     break;
@@ -1476,7 +1477,11 @@ function GetRootChain()
         
 function GetFindDB()
         {
-            return this.GetRootChain().FindBlockDB;
+            var Root = this.GetRootChain();
+            if(Root)
+                return Root.FindBlockDB;
+            else
+                return false;
         };
         chain.GetRootChain = GetRootChain.bind(chain)
         chain.GetFindDB = GetFindDB.bind(chain)

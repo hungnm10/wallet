@@ -433,10 +433,10 @@ function SetGridData(e,t,r,n,a)
     glWorkNum++;
     for(var u = {SumCOIN:0, SumCENT:0}, l = o.rows[0].cells, c = l.length, s = 0; e && s < e.length; s++)
     {
-        var m = e[s], g = m.Num;
-        if(o.MaxNum = m.Num, !(y = i[g]))
+        var g = e[s], m = g.Num;
+        if(o.MaxNum = g.Num, !(y = i[m]))
         {
-            o.RowCount++, y = a ? o.insertRow(1) : o.insertRow( - 1), i[g] = y;
+            o.RowCount++, y = a ? o.insertRow(1) : o.insertRow( - 1), i[m] = y;
             for(var f = 0; f < c; f++)
             {
                 if("" != (v = l[f]).innerText)
@@ -449,11 +449,11 @@ function SetGridData(e,t,r,n,a)
             var p, v, d;
             if(p = y.cells[f])
                 if((v = l[f]).H)
-                    (d = "" + v.F(m)).trim(), p.innerHTML !== d && (p.innerHTML = d);
+                    (d = "" + v.F(g)).trim(), p.innerHTML !== d && (p.innerHTML = d);
                 else
-                    (d = "" + v.F(m)).trim(), p.innerText !== d && (p.innerText = d);
+                    (d = "" + v.F(g)).trim(), p.innerText !== d && (p.innerText = d);
         }
-        r && 0 === m.Currency && ADD(u, m.Value);
+        r && 0 === g.Currency && ADD(u, g.Value);
     }
     for(var S in i)
     {
@@ -699,7 +699,9 @@ MapCategory[21] = "Investment", MapCategory[22] = "Live Streaming", MapCategory[
 MapCategory[25] = "Media", MapCategory[26] = "Mining", MapCategory[27] = "Payments", MapCategory[28] = "Platform", MapCategory[29] = "Provenance & Notary",
 MapCategory[30] = "Real Estate", MapCategory[31] = "Recruitment", MapCategory[32] = "Service", MapCategory[33] = "Social Network",
 MapCategory[34] = "Social project", MapCategory[35] = "Supply & Logistics", MapCategory[36] = "Trading & Investing", MapCategory[37] = "Transport",
-MapCategory[38] = "Travel & Tourisim", MapCategory[39] = "Bounty", MapCategory[40] = "Code-library";
+MapCategory[38] = "Travel & Tourisim", MapCategory[39] = "Bounty", MapCategory[40] = "Code-library", MapCategory[41] = "Development",
+MapCategory[42] = "Exchanges", MapCategory[43] = "Security", MapCategory[44] = "Governance", MapCategory[45] = "Property",
+MapCategory[46] = "Insurance";
 var glTrSendNum = 0;
 
 function SendTransaction(i,u,l,c)
