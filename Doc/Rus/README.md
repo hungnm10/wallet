@@ -100,6 +100,11 @@ sudo ufw allow 30000/tcp
 sudo ufw allow 8080/tcp
 ```
 
+### Дистрибутив UBUNTU 16 перед загрузкой ноды выполнить:
+```
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+```
+
 
 
 ### Обновления
@@ -253,6 +258,7 @@ Version = 3 - поддержка переводов на счета со сма�
 * [Техническое WP - черновик](https://docs.google.com/document/d/1B6_qlAp2xs4aHkqOwyvRMCDJTjgeNiOJiGpIeT0VAzY/edit?usp=sharing)
 * [Торрент блокчейна (каталог DATA/DB)](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent)
 * [API](https://github.com/terafoundation/wallet/blob/master/Doc/Rus/API.md)
+* [Презентация - Проблематика блокчейна и пути решения](https://github.com/terafoundation/wallet/blob/master/Doc/Rus/%D0%A2%D0%95%D0%A0%D0%90%20-%20%D0%9F%D1%80%D0%B5%D0%B7%D0%B5%D0%BD%D1%82%D0%B0%D1%86%D0%B8%D1%8F.pdf)
 
 
 Топики на btt:
