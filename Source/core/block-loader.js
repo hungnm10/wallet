@@ -990,15 +990,8 @@ module.exports = class CBlock extends require("./db/block-db")
                 if(BlockMem)
                 {
                     BlockMem.bSave = false
-                    if(CurNum >= CurNumStart)
-                    {
-                        this.ReloadTrTable(BlockMem)
-                        AddInfoBlock(BlockMem, "--reload old table--")
-                    }
-                    else
-                    {
-                        AddInfoBlock(BlockMem, "--skip reload old--")
-                    }
+                    this.ReloadTrTable(BlockMem)
+                    AddInfoBlock(BlockMem, "--reload old table--")
                 }
                 if(!BlockMem)
                     break;
@@ -1329,7 +1322,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var TestValue = GetHashFromSeqAddr(testSeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
         if(CompareArr(TestValue.Hash, Block.Hash) !== 0)
         {
-            var Str = "--------" + StrError + " ERROR hash - block num: " + Block.BlockNum + "  test PrevHash=" + GetHexFromArr(PrevHash) + " test Hash=" + GetHexFromArr(TestValue.Hash) + "  testSeqHash=" + GetHexFromArr(testSeqHash);
+            var Str = StrError + " ERROR HASH - block num: " + Block.BlockNum;
             ToErrorTrace(Str)
             return false;
         }
