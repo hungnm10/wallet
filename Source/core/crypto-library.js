@@ -341,12 +341,6 @@ global.CreateNoncePOWInner = function (arr0,count)
     }
     return {nonce:maxnonce, Hash:Hash};
 };
-
-function shaarrblock2(Value1,Value2,BlockNum)
-{
-    return shaarrblock(arr2(Value1, Value2), BlockNum);
-};
-global.shaarrblock2 = shaarrblock2;
 global.CreateAddrPOW = function (SeqHash,AddrArr,MaxHash,Start,CountNonce,BlockNum)
 {
     var MaxNonce = 0;

@@ -32,7 +32,6 @@ const FORMAT_DATA_TRANSFER = "{\
     MaxPOW:[{BlockNum:uint,AddrHash:hash,SeqHash:hash}],\
     MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,SeqHash:hash}]}],\
     BaseBlockNum:uint,\
-    PrevHash:hash\
     }";
 const WorkStructSend = {};
 module.exports = class CConsensus extends require("./block-loader")
@@ -449,7 +448,7 @@ module.exports = class CConsensus extends require("./block-loader")
             Block.PrevHash = this.GetPrevHash(Block)
         }
         var Data = {"Version":2, "BlockNum":Block.BlockNum, "Array":arrTr, "MaxPOW":MaxPOWList, "MaxSum":MaxSumList, "BaseBlockNum":this.CurrentBlockNum - Block.BlockNum,
-            "PrevHash":Block.PrevHash};
+        };
         var BufWrite = BufLib.GetBufferFromObject(Data, FORMAT_DATA_TRANSFER, MAX_BLOCK_SIZE + 30000, WorkStructSend);
         return BufWrite;
     }

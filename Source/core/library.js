@@ -423,7 +423,7 @@ function GrayConnect()
 };
 global.GrayConnect = GrayConnect;
 var ResConst = LOAD_CONST();
-if(!global.POWPROCESS)
+if(global.START_SERVER)
 {
     if(!ResConst)
     {

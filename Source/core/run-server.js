@@ -11,11 +11,18 @@
 const fs = require('fs');
 require("./constant");
 const crypto = require('crypto');
+global.START_SERVER = 1;
 global.DATA_PATH = GetNormalPathString(global.DATA_PATH);
 global.CODE_PATH = GetNormalPathString(global.CODE_PATH);
 console.log("DATA DIR: " + global.DATA_PATH);
 console.log("PROGRAM DIR: " + global.CODE_PATH);
 require("./library");
+var VerArr = process.versions.node.split('.');
+if(VerArr[0] < 8)
+{
+    ToError("Error version of NodeJS=" + VerArr[0] + "  Pls, download new version from www.nodejs.org and update it. The minimum version must be 8");
+    process.exit();
+}
 var CServer = require("./server");
 global.glCurNumFindArr = 0;
 global.ArrReconnect = [];

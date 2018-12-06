@@ -238,6 +238,11 @@ function GetBlockArrFromBuffer(r)
     }
     return t;
 };
+
+function shaarrblock2(r,o,a)
+{
+    return shaarrblock(arr2(r, o), a);
+};
 "object" == typeof global && (global.GetHashFromSeqAddr = GetHashFromSeqAddr, global.CalcHashBlockFromSeqAddr = CalcHashBlockFromSeqAddr,
 global.GetHashFromNum2 = GetHashFromNum2, global.GetHashFromNum3 = GetHashFromNum3, global.GetHashFromArrNum2 = GetHashFromArrNum2,
 global.XORArr = XORArr, global.GetHash = GetHash, (global.LOCAL_RUN || global.TEST_NETWORK) && (BLOCKNUM_ALGO2 = 0, BLOCKNUM_HASH_NEW = 1e3)),
@@ -246,4 +251,4 @@ global.WriteUintToArr = WriteUintToArr, global.WriteUint32ToArr = WriteUint32ToA
 global.WriteUint16ToArrOnPos = WriteUint16ToArrOnPos, global.WriteUintToArrOnPos = WriteUintToArrOnPos, global.WriteArrToArr = WriteArrToArr,
 global.WriteArrToArrOnPos = WriteArrToArrOnPos, global.WriteArrToArrHOnPos = WriteArrToArrHOnPos, global.ConvertBufferToStr = ConvertBufferToStr,
 global.CopyObjValue = CopyObjValue, global.CopyArr = CopyArr, global.ParseNum = ParseNum, global.CompareArr = CompareArr, global.shaarr2 = shaarr2,
-global.arr2 = arr2, global.GetBlockArrFromBuffer = GetBlockArrFromBuffer);
+global.arr2 = arr2, global.GetBlockArrFromBuffer = GetBlockArrFromBuffer, global.shaarrblock2 = shaarrblock2);
