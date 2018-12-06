@@ -528,6 +528,8 @@ function Fork(Path,ArrArgs)
 function FixBlockBug12970020()
 {
     var Block = SERVER.ReadBlockHeaderDB(12970020);
+    if(!Block)
+        return ;
     CorrectBlockBug12970020(Block);
     var BufWrite = BufLib.GetNewBuffer(BLOCK_HEADER_SIZE);
     SERVER.BlockHeaderToBuf(BufWrite, Block);

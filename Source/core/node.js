@@ -198,7 +198,7 @@ module.exports = class CNode
                     if(Buf)
                     {
                         var Str = Buf.Data;
-                        if(Str.substr(0, 24) === "WAIT_CONNECT_FROM_SERVER")
+                        if(Str && Str.substr(0, 24) === "WAIT_CONNECT_FROM_SERVER")
                         {
                             AddNodeInfo(NODE, "2. CLIENT OK POW")
                             CloseSocket(SOCKET, "WAIT_CONNECT_FROM_SERVER")
