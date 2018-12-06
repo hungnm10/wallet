@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WEB WALLET</title>
+    <title>TERA Light</title>
 
     <link rel="stylesheet" type="text/css" href="wallet.css">
 
@@ -35,7 +35,7 @@
         {
 //            FillCategory("idCategory");
             LoadValues();
-            OnSelectTab($("idCurTabName").value);
+            //OnSelectTab($("idCurTabName").value);
 //            InitPasItems();
 //            SelectStyle();
 //            SelectTypeKey();
@@ -86,7 +86,7 @@
         {
             if(LoadValuesByArr(SaveIdArr))
             {
-                SetVisibleTab();
+                //SetVisibleTab();
             }
         }
         function SaveValues()
@@ -106,7 +106,7 @@
 
     <script>
         //TAB TAB
-        var TabArr=[{name:"TabAccounts"},{name:"TabSend"},{name:"TabDapps"}, {name:"TabExplorer"}];
+        var TabArr=[{name:"TabAccounts"},{name:"TabSend"},{name:"TabDapps"}, {name:"TabExplorer"},{name:"TabLogo"}];
         function SelectTab(name)
         {
             $("idCurTabName").value=name;
@@ -645,6 +645,12 @@
         }
 
 
+        .logo
+        {
+            top:10%;
+            left:0;
+        }
+
     </style>
 
 </head>
@@ -663,6 +669,14 @@
         </table>
         <DIV id="idStatus">&nbsp;</DIV>
 
+        <DIV id="TabLogo" style="display: block;">
+            <DIV align='center' style="width: 800px;">
+                <svg version = "1.1"  class="logo"  height = "600px"  width = "720px">
+                    <path transform="scale(3)" d="m116.5,2.58c0,0 114.5,187.5 114.5,187.5c0,0 -52.5,1 -52.5,1c0,0 -28,-44 -28,-44c0,0 -27,44 -27,44c0,0 -53.5,0 -53.5,0c0,0 54,-89 54,-89c0,0 -33.5,-57 -33.5,-57c0,0 26,-42.5 26,-42.5z" fill="rgb(0,0,0)" id="svg_2" stroke="#000000"/>
+                    <path transform="scale(3)" d="m81.6,60.6c0,0 27,44 27,44c0,0 -53,87 -53,87c0,0 -54,-1 -54,-1c0,0 80,-130 80,-130z" fill="rgb(0,0,0)" id="svg_3" stroke="#000000"/>
+                </svg>
+            </DIV>
+        </DIV>
 
         <DIV id="TabAccounts" style="display: none;">
             <BR>
