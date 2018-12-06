@@ -297,11 +297,8 @@
         //EXPLORER
         function UpdatesExplorerData()
         {
-            if(!MainServer)
-                return;
-//            if(!IsVisibleBlock("TabExplorer"))
+//            if(!MainServer)
 //                return;
-
             GetData("GetCurrentInfo",{Diagram:IsVisibleBlock("idStatBlock")}, function (Data)
             {
                 if(!Data || !Data.result)

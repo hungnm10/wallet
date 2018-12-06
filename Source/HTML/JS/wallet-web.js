@@ -121,23 +121,23 @@ function FindLider()
             t[i.SumPower] || (t[i.SumPower] = 0), t[i.SumPower]++, e.push(i);
         }
     }
-    if(e.length)
+    var r, o = 0;
+    for(var n in t)
+        t[n] >= o && (o = t[n], r = parseInt(n));
+    e.sort(function (e,t)
     {
-        var r, o = 0;
-        for(var n in t)
-            t[n] >= o && (o = t[n], r = parseInt(n));
-        e.sort(function (e,t)
+        return e.DeltaTime - t.DeltaTime;
+    });
+    for(var a = 0; a < e.length; a++)
+    {
+        var i;
+        if((i = e[a]).SumPower === r)
         {
-            return e.DeltaTime - t.DeltaTime;
-        });
-        for(var a = 0; a < e.length; a++)
-        {
-            var i;
-            if((i = e[a]).SumPower === r)
-                return SetStatus("Find " + i.ip + ":" + i.port + " with pow=" + i.SumPower + " " + o + "  ping=" + i.DeltaTime), MainServer = i,
-                SaveServerMap(), void OnFindServer();
+            SetStatus("Find " + i.ip + ":" + i.port + " with pow=" + i.SumPower + " " + o + "  ping=" + i.DeltaTime), MainServer = i, SaveServerMap();
+            break;
         }
     }
+    OnFindServer();
 };
 
 function CalcPowFromBlockChain(e)

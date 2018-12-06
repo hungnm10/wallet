@@ -73,7 +73,14 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
         if(HostingWorker && Delta > 3 * 1000)
         {
             ToLog("KILL PROCESS: " + HostingWorker.pid);
-            process.kill(HostingWorker.pid, 'SIGKILL');
+            try
+            {
+                process.kill(HostingWorker.pid, 'SIGKILL');
+            }
+            catch(e)
+            {
+                ToLog(e);
+            }
             LastHostingAlive = (new Date() - 0) + 10 * 1000;
             HostingWorker = undefined;
         }
@@ -461,6 +468,7 @@ function RunOnUpdate()
         }
         else
         {
+            FixBlockBug12970020();
         }
         ToLog("UPDATER Finish");
         global.SendLogToClient = 0;
@@ -515,4 +523,21 @@ function Fork(Path,ArrArgs)
         ArrArgs.push("NOPARAMJS");
     var Worker = child_process.fork(Path, ArrArgs);
     return Worker;
+};
+
+function FixBlockBug12970020()
+{
+    var Block = SERVER.ReadBlockHeaderDB(12970020);
+    CorrectBlockBug12970020(Block);
+    var BufWrite = BufLib.GetNewBuffer(BLOCK_HEADER_SIZE);
+    SERVER.BlockHeaderToBuf(BufWrite, Block);
+    var Ret = SERVER.WriteBufHeaderDB(BufWrite, Block.BlockNum);
+    return Ret;
+};
+
+function CorrectBlockBug12970020(Block)
+{
+    Block.TreeHash = GetArrFromHex("9FE0A443BD42E70206133119D6D13638D422E34BD5CC38A7A12368EB4A8A1D4F");
+    CreateHashMinimal(Block, 0);
+    Block.SumPow = 367146128;
 };

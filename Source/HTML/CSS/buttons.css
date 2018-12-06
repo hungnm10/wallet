@@ -57,11 +57,18 @@
     border: 1px solid black;
     background: transparent;
     font-weight: 400;
+    cursor: pointer;
 }
 .bt:hover,button:hover
 {
     filter: brightness(120%);
     cursor: pointer;
+}
+
+
+.bt:active
+{
+    cursor: progress;
 }
 
 

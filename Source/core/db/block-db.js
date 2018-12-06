@@ -130,6 +130,7 @@ module.exports = class CDB extends require("../code")
         var BlockNumTime = GetCurrentBlockNumByTime();
         if(BlockNumTime < MaxNum)
             MaxNum = BlockNumTime
+        var arr = [];
         for(var num = StartNum; num <= MaxNum; num++)
         {
             var Block;
@@ -139,6 +140,8 @@ module.exports = class CDB extends require("../code")
                 Block = this.ReadBlockHeaderDB(num)
             if(!Block)
                 return num > 0 ? num - 1 : 0;
+            if(num % 100000 === 0)
+                ToLog("CheckBlocksOnStartFoward: " + num)
             if(bCheckBody)
             {
                 var TreeHash = this.CalcTreeHashFromArrBody(Block.arrContent);
@@ -150,11 +153,19 @@ module.exports = class CDB extends require("../code")
             }
             if(PrevBlock)
             {
-                var arr = [];
-                var start = num - BLOCK_PROCESSING_LENGTH2;
-                for(var n = 0; n < BLOCK_PROCESSING_LENGTH; n++)
+                if(arr.length !== BLOCK_PROCESSING_LENGTH)
                 {
-                    var Prev = this.ReadBlockHeaderDB(start + n);
+                    var start = num - BLOCK_PROCESSING_LENGTH2;
+                    for(var n = 0; n < BLOCK_PROCESSING_LENGTH; n++)
+                    {
+                        var Prev = this.ReadBlockHeaderDB(start + n);
+                        arr.push(Prev.Hash)
+                    }
+                }
+                else
+                {
+                    arr.shift()
+                    var Prev = this.ReadBlockHeaderDB(num - BLOCK_PROCESSING_LENGTH - 1);
                     arr.push(Prev.Hash)
                 }
                 var PrevHash = CalcHashFromArray(arr, true);

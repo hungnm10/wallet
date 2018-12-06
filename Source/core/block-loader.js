@@ -1338,6 +1338,7 @@ module.exports = class CBlock extends require("./db/block-db")
         ToLog("TreeHash=" + GetHexFromArr(Block.TreeHash))
         ToLog("AddrHash=" + GetHexFromArr(Block.AddrHash))
         ToLog("SumHash=" + GetHexFromArr(Block.SumHash))
+        ToLog("SumPow=" + Block.SumPow)
         for(var i = 0; i < arr.length; i++)
         {
             ToLog("arr[" + i + "]=" + GetHexFromArr(arr[i]))
