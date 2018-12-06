@@ -1,5 +1,6 @@
 ﻿# TERA Smart money
 
+* [Light client (zip)](https://github.com/terafoundation/wallet/raw/master/Bin/Light/Tera-light.zip)
 
 Внимание:
 * Для быстрой начальной загрузки кошелька выложена [ссылка](https://github.com/terafoundation/wallet/raw/master/Torrent/Tera-folder-DB.torrent) на загрузку базы данных по P2P протоколу. Скачайте через торрент файл и распакуйте его. Далее положите папку DB в каталог DATA кошелька (с полной заменой).

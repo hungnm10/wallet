@@ -1,5 +1,6 @@
 ﻿# TERA Smart money
 
+* [Light client (zip)](https://github.com/terafoundation/wallet/raw/master/Bin/Light/Tera-light.zip)
 * [Wallet handbook - PDF](https://drive.google.com/file/d/1ej-8jkjKd3p78vdGXWkzzVJq5PTgyxEw/view?usp=sharing)
 * [<Документация на русском>](https://github.com/terafoundation/wallet/tree/master/Doc/Rus)
 
