@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>TEST</title>
+  <link rel="stylesheet" href="/codes.css">
+</head>
+<body>
+
+<style>
+    :root
+    {
+        --color1: red;
+        --background: #ccc;
+    }
+
+    .test
+    {
+
+        --size:400px;
+        width: var(--size);
+        height: var(--size);
+        border: 1px solid var(--color1);
+        color: var(--color1);
+
+        background-color: var(--background);
+        transition: background-color 0.01s;
+    }
+
+</style>
+
+  <script>
+
+      function $(id)
+      {
+          return document.getElementById(id);
+      }
+      window.onload=function ()
+      {
+//          var styles = getComputedStyle(document.documentElement);
+//          var colorValue = styles.getPropertyValue('--background');
+//          console.log("colorValue:"+colorValue+" styles="+styles)
+          document.documentElement.style.setProperty('--color1', 'blue');
+          document.documentElement.style.setProperty('--background', 'green');
+      }
+
+      function SetColor(This)
+      {
+          document.documentElement.style.setProperty('--background', This.value);
+      }
+  </script>
+
+
+  <div class="test">TEST!!!</div>
+  <input type="color" id="div-bkgd" value="#cccccc" onchange="SetColor(this)">
+
+
+</body>
+</html>
