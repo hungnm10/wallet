@@ -81,7 +81,7 @@ function InitVer3(Block)
     }
 };
 
-function CreatePOWVersion3(Block,bFast)
+function CreatePOWVersion3(Block,bHashPump)
 {
     if(!bWasInitVer3)
         InitVer3(Block);
@@ -116,6 +116,8 @@ function CreatePOWVersion3(Block,bFast)
         BufferBlockNum3[HashNum] = BlockNum;
     }
     Block.LastNonce += RunCount;
+    if(bHashPump)
+        return ;
     var Ret = 0;
     var PrevHashNum = ReadUint32FromArr(Block.PrevHash, 28);
     var HashBase = GetHashFromNum2(BlockNum, PrevHashNum);

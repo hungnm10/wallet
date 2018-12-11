@@ -46,11 +46,11 @@ PROCESS.on("message", function (e)
     if(LastAlive = new Date - 0, "FastCalcBlock" === e.cmd)
     {
         var o = e;
-        o.RunCount = 0, o.RunCount0 = 100;
+        StartHashPump(o), o.RunCount = 0, o.RunCount0 = 100;
         try
         {
-            CreatePOWVersionX(o, 1) && process.send({cmd:"POW", BlockNum:o.BlockNum, SeqHash:o.SeqHash, Hash:o.Hash, PowHash:o.PowHash,
-                AddrHash:o.AddrHash, Num:o.Num});
+            CreatePOWVersionX(o) && process.send({cmd:"POW", BlockNum:o.BlockNum, SeqHash:o.SeqHash, Hash:o.Hash, PowHash:o.PowHash, AddrHash:o.AddrHash,
+                Num:o.Num});
         }
         catch(e)
         {
@@ -68,3 +68,29 @@ PROCESS.on("message", function (e)
         else
             "Alive" === e.cmd || "Exit" === e.cmd && PROCESS.exit(0);
 });
+var BlockPump = void 0, idIntervalPump = void 0;
+
+function StartHashPump(e)
+{
+    (!BlockPump || BlockPump.BlockNum < e.BlockNum) && (BlockPump = {BlockNum:e.BlockNum, RunCount:e.RunCount, MinerID:e.MinerID,
+        Percent:e.Percent, LastNonce:0}), idIntervalPump || (idIntervalPump = setInterval(PumpHash, global.POWRunPeriod));
+};
+var StartTime = 1, EndTime = 0;
+
+function PumpHash()
+{
+    if(BlockPump)
+    {
+        var e = new Date - 0;
+        if(EndTime < StartTime)
+        {
+            if(100 * (e - StartTime) / CONSENSUS_PERIOD_TIME > BlockPump.Percent)
+                return void (EndTime = e);
+            CreatePOWVersionX(BlockPump, 1);
+        }
+        else
+        {
+            100 * (e - EndTime) / CONSENSUS_PERIOD_TIME > 100 - BlockPump.Percent && (StartTime = e);
+        }
+    }
+};

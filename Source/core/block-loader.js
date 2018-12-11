@@ -975,8 +975,23 @@ module.exports = class CBlock extends require("./db/block-db")
                 if(BlockMem)
                 {
                     BlockMem.bSave = false
-                    this.ReloadTrTable(BlockMem)
-                    AddInfoBlock(BlockMem, "--reload old table--")
+                    if(USE_FAST_CALC_BLOCK)
+                    {
+                        if(CurNum >= CurNumStart)
+                        {
+                            this.ReloadTrTable(BlockMem)
+                            AddInfoBlock(BlockMem, "--reload old table--")
+                        }
+                        else
+                        {
+                            AddInfoBlock(BlockMem, "--skip reload old--")
+                        }
+                    }
+                    else
+                    {
+                        this.ReloadTrTable(BlockMem)
+                        AddInfoBlock(BlockMem, "--reload old table--")
+                    }
                 }
                 if(!BlockMem)
                     break;

@@ -291,11 +291,6 @@ module.exports = class CConnect extends require("./transfer-msg")
             this.CheckDeltaTime(Data, Info.Node)
         }
     }
-    УстановитьСтатДанные(Node, Данные)
-    {
-        Node.StatData = Данные
-        Node.СтатДанныеБлока = this.БлокИзДанных(Node, Данные)
-    }
     PONG(Info, CurTime)
     {
         var Data = this.DataFromF(Info);
