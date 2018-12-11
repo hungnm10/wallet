@@ -16,9 +16,11 @@ global.MAX_STAT_PERIOD = 60;
 global.DATA_PATH = GetNormalPathString(global.DATA_PATH);
 global.CODE_PATH = GetNormalPathString(global.CODE_PATH);
 require("./library");
+require("./geo");
 global.READ_ONLY_DB = 1;
 global.MAX_STAT_PERIOD = 60;
 var HostNodeList = [];
+var AllNodeList = [];
 var NodeBlockChain = [];
 var LastAlive = new Date() - 0;
 setTimeout(function ()
@@ -42,6 +44,7 @@ process.on('message', function (msg)
             break;
         case "NodeList":
             HostNodeList = msg.Value;
+            AllNodeList = msg.ValueAll;
             break;
         case "NodeBlockChain":
             NodeBlockChain = msg.Value;
@@ -351,8 +354,13 @@ HostingCaller.GetCurrentInfo = function (Params)
 HostingCaller.GetNodeList = function (Params)
 {
     var arr = [];
-    var MaxNodes = 10;
-    var len = HostNodeList.length;
+    var List;
+    if(Params.All)
+        List = AllNodeList;
+    else
+        List = HostNodeList;
+    var MaxNodes = 20;
+    var len = List.length;
     var UseRandom = 0;
     if(len > MaxNodes)
     {
@@ -365,18 +373,27 @@ HostingCaller.GetNodeList = function (Params)
         var Item;
         if(UseRandom)
         {
-            Item = HostNodeList[random(HostNodeList.length)];
-            if(mapWasAdd[Item.addrStr])
+            var num = random(List.length);
+            Item = List[num];
+            if(mapWasAdd[Item.ip])
             {
                 continue;
             }
-            mapWasAdd[Item.addrStr] = 1;
+            mapWasAdd[Item.ip] = 1;
         }
         else
         {
-            Item = HostNodeList[i];
+            Item = List[i];
         }
         var Value = {ip:Item.ip, port:Item.portweb, };
+        if(Params.Geo)
+        {
+            if(!Item.Geo)
+                SetGeoLocation(Item);
+            Value.latitude = Item.latitude;
+            Value.longitude = Item.longitude;
+            Value.name = Item.name;
+        }
         arr.push(Value);
     }
     return {result:1, arr:arr};

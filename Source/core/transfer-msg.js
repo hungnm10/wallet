@@ -161,8 +161,10 @@ module.exports = class CMessages extends require("./transaction-validator")
         }
         this.SendF(Info.Node, {"Method":"MESSAGE", "Context":Info.Context, "Data":{Arr:arr}}, BufLength)
     }
-    AddTransaction(Tr)
+    AddTransaction(Tr, ToAll)
     {
+        if(ToAll)
+            Tr.ToAll = 1
         var Res = this.IsValidTransaction(Tr, this.CurrentBlockNum);
         if(Res <= 0 && Res !==  - 3)
             return Res;

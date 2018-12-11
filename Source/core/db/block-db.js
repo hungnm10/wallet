@@ -290,6 +290,13 @@ module.exports = class CDB extends require("../code")
             }
             Block.SumHash = shaarr2(PrevBlock.SumHash, Block.Hash)
             Block.SumPow = PrevBlock.SumPow + GetPowPower(Block.PowHash)
+            var TestValue = GetHashFromSeqAddr(Block.SeqHash, Block.AddrHash, Block.BlockNum);
+            if(CompareArr(TestValue.Hash, Block.Hash) !== 0)
+            {
+                var Str = "#1 ERROR HASH - block num: " + Block.BlockNum;
+                ToErrorTrace(Str)
+                return false;
+            }
             if(USE_CHECK_SAVE_DB)
                 if(!this.CheckSeqHashDB(Block, "WriteBlockHeaderDB"))
                     return false;

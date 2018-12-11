@@ -331,12 +331,15 @@ module.exports = class CTransport extends require("./connect")
         if(!Node.ip)
             return ;
         var Key = "" + Node.ip.trim();
-        Node.DeltaBan = Node.DeltaBan * 2
         if(!Node.DeltaBan)
-            Node.DeltaBan = 1000
-        this.BAN_IP[Key] = {TimeTo:(GetCurrentTime(0) - 0) + Node.DeltaBan * 1000}
+            Node.DeltaBan = 300
+        if(Node.DeltaBan > 1000000)
+            Node.DeltaBan = 1000000
+        Node.DeltaBan = Node.DeltaBan * 2
+        var TimeTo = (GetCurrentTime(0) - 0) + Node.DeltaBan * 1000;
+        this.BAN_IP[Key] = {TimeTo:TimeTo}
+        Node.BlockProcessCount = 0
         this.DeleteNodeFromActiveByIP(Node.ip)
-        ToLog("ADD TO BAN: " + NodeName(Node) + " " + Str)
         ADD_TO_STAT("AddToBan")
     }
     AddToBanIP(ip, Str, Period)
@@ -430,6 +433,8 @@ module.exports = class CTransport extends require("./connect")
     {
         if(!Node)
             return ;
+        if(!Node.Socket)
+            Node.Socket = Socket
         if(!Socket.Buf || Socket.Buf.length === 0)
         {
             Socket.Buf = Buf
@@ -1100,7 +1105,7 @@ module.exports = class CTransport extends require("./connect")
         }
         CloseSocket(Socket, Str)
     }
-    AddCheckErrCount(Node, Count)
+    AddCheckErrCount(Node, Count, StrErr)
     {
         if(!Node)
             return ;
@@ -1121,7 +1126,9 @@ module.exports = class CTransport extends require("./connect")
             Node.BlockProcessCount--
             if(Node.BlockProcessCount <  - 30)
             {
-                this.AddToBan(Node, "BlockProcess:" + Node.BlockProcessCount)
+                if(!StrErr)
+                    StrErr = ""
+                this.AddToBan(Node, StrErr + " BlockProcess:" + Node.BlockProcessCount)
             }
             else
             {

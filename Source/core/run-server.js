@@ -100,7 +100,18 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
         if(HostingWorker && HostingWorker.connected)
         {
             var arr = SERVER.GetDirectNodesArray(true, true).slice(1, 500);
-            HostingWorker.send({cmd:"NodeList", Value:arr});
+            var arr2 = [];
+            var CurTime = GetCurrentTime() - 0;
+            for(var i = 0; i < SERVER.NodesArr.length; i++)
+            {
+                var Item = SERVER.NodesArr[i];
+                if(Item.LastTime && (CurTime - Item.LastTime) < 3600 * 1000)
+                    arr2.push({ip:Item.ip});
+                else
+                    if(Item.LastTimeGetNode && (CurTime - Item.LastTimeGetNode) < 3600 * 1000)
+                        arr2.push({ip:Item.ip});
+            }
+            HostingWorker.send({cmd:"NodeList", Value:arr, ValueAll:arr2});
         }
     }, 5000);
 }
@@ -111,7 +122,7 @@ function OnMessageHosting(msg)
     if(msg.cmd === "SendTransactionHex")
     {
         var body = GetArrFromHex(msg.Value);
-        SERVER.AddTransaction({body:body});
+        SERVER.AddTransaction({body:body}, 1);
     }
 };
 global.StopHostingServer = function ()

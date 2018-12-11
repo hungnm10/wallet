@@ -1133,6 +1133,8 @@ module.exports = class CConnect extends require("./transfer-msg")
         CloseSocket(Node.Socket, "DeleteNodeFromActive")
         CloseSocket(Node.Socket2, "DeleteNodeFromActive")
         Node.ResetNode()
+        Node.Socket = undefined
+        Node.Socket2 = undefined
     }
     StartReconnect()
     {

@@ -437,21 +437,6 @@ module.exports = class CBlock extends require("./db/block-db")
                 IsSum:byte\
             }";
     }
-    FindBlockHeaderDB(BlockNum, Name, Hash)
-    {
-        for(var Num = BlockNum - MAX_DELTA_BLOCKNUM; Num <= BlockNum + MAX_DELTA_BLOCKNUM; Num++)
-        {
-            var BlockDB = this.ReadBlockHeaderDB(Num);
-            if(BlockDB && BlockDB[Name] && CompareArr(BlockDB[Name], Hash) === 0)
-            {
-                if(BlockDB.BlockNum !== BlockNum)
-                    ToLog("Find " + BlockDB.BlockNum + " <- " + BlockNum)
-                return BlockDB;
-            }
-        }
-        ToLog("Not found " + BlockNum + " " + Name + "=" + this.GetStrFromHashShort(Hash))
-        return undefined;
-    }
     GETBLOCKHEADER(Info, CurTime)
     {
         var Data = this.DataFromF(Info);
@@ -1322,7 +1307,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var TestValue = GetHashFromSeqAddr(testSeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
         if(CompareArr(TestValue.Hash, Block.Hash) !== 0)
         {
-            var Str = StrError + " ERROR HASH - block num: " + Block.BlockNum;
+            var Str = StrError + " #2 ERROR HASH - block num: " + Block.BlockNum;
             ToErrorTrace(Str)
             return false;
         }

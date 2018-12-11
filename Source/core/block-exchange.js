@@ -199,54 +199,6 @@ module.exports = class CConsensus extends require("./block-loader")
         }
         this.TreePoolTr.clear()
     }
-    CorrectTransferData(Data)
-    {
-        return ;
-        if(Data.Version === 2)
-        {
-            var MyBaseBlockNum = this.CurrentBlockNum - Data.BlockNum;
-            var DeltaAll = MyBaseBlockNum - Data.BaseBlockNum;
-            if(DeltaAll !== 0 && DeltaAll >=  - MAX_DELTA_BLOCKNUM && DeltaAll <= MAX_DELTA_BLOCKNUM)
-            {
-                ToLog("DeltaAll=" + DeltaAll + "  CurrentBlockNum=" + this.CurrentBlockNum + "   From Node CurrentBlockNum=" + (Data.BlockNum + Data.BaseBlockNum))
-                Data.BlockNum += DeltaAll
-                for(var i = 0; i < Data.MaxPOW.length; i++)
-                {
-                    var Item = Data.MaxPOW[i];
-                    for(var Num = Item.BlockNum + DeltaAll; Num <= Item.BlockNum; Num++)
-                    {
-                        var Block = this.GetBlock(Num);
-                        if(Block && Block.SeqHash && CompareArr(Item.SeqHash, Block.SeqHash) === 0)
-                        {
-                            if(Item.BlockNum !== Num)
-                            {
-                                ToLog("SET MaxPOW: " + Item.BlockNum + " <-" + Num)
-                                Item.BlockNum = Num
-                            }
-                            break;
-                        }
-                    }
-                }
-                for(var i = 0; i < Data.MaxSum.length; i++)
-                {
-                    var Item = Data.MaxSum[i];
-                    for(var Num = Item.BlockNum + DeltaAll; Num <= Item.BlockNum; Num++)
-                    {
-                        var Block = this.GetBlock(Num);
-                        if(Block && Block.SumHash && CompareArr(Item.SumHash, Block.SumHash) === 0)
-                        {
-                            if(Item.BlockNum !== Num)
-                            {
-                                ToLog("SET MaxSum: " + Item.BlockNum + " <-" + Num)
-                                Item.BlockNum = Num
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
     TRANSFER(Info, CurTime)
     {
         var startTime = process.hrtime();

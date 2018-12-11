@@ -79,16 +79,13 @@ global.SliceArr = function (arr,start,end)
     }
     return ret;
 };
-global.RandomValue = Math.floor(123 + Math.random() * 1000);
-global.random = function (max)
+var nRand = Math.floor(123 + Math.random() * 1000);
+
+function random(max)
 {
     return Math.floor(Math.random() * max);
-    RandomValue = (RandomValue * 63018038201 + 123) % 489133282872437279;
-    var ret = 1.0 * RandomValue / 489133282872437279;
-    if(max !== undefined)
-        ret = Math.floor(ret * max);
-    return ret;
 };
+global.random = random;
 global.AddrLevelArrFromBegin = function (arr1,arr2)
 {
     var Level = 0;

@@ -31,8 +31,10 @@
         function SetImg() {};
 
 
+
         window.onload=function()
         {
+
 //            FillCategory("idCategory");
             LoadValues();
             //OnSelectTab($("idCurTabName").value);
@@ -63,6 +65,7 @@
         function OnFindServer()
         {
             //$("idConnect").innerText=" Connect to: "+MainServer.ip+":"+MainServer.port;
+            //SetStatus(window.location.hostname);
 
 
 //            UpdatesData();
@@ -109,6 +112,7 @@
         var TabArr=[{name:"TabAccounts"},{name:"TabSend"},{name:"TabDapps"}, {name:"TabExplorer"},{name:"TabLogo"}];
         function SelectTab(name)
         {
+            SetStatus("");
             $("idCurTabName").value=name;
             SetVisibleTab();
             SaveValues();
@@ -161,12 +165,12 @@
         var FirstAccountsData=1;
         function UpdatesAccountsData()
         {
-            if(!MainServer)
-                return;
+//            if(!MainServer)
+//                return;
 
-            if(!FirstAccountsData)
-            if(!IsVisibleBlock("TabAccounts"))
-                return;
+//            if(!FirstAccountsData)
+//            if(!IsVisibleBlock("TabAccounts"))
+//                return;
 
             GetData("/GetAccountListByKey",{Key:$("idPubKey").value}, function (Data,responseText)
             {
@@ -299,6 +303,7 @@
         {
 //            if(!MainServer)
 //                return;
+
             GetData("GetCurrentInfo",{Diagram:IsVisibleBlock("idStatBlock")}, function (Data)
             {
                 if(!Data || !Data.result)
@@ -636,6 +641,7 @@
             left:10px;
             text-align: left;
             width:800px; /* ширина блока */
+            height: 20px;
             color:blue;
         }
 

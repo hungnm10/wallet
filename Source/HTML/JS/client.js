@@ -293,7 +293,12 @@ window.nw ? (window.Open = function (e,t,r,n)
         window.open(e);
 }, window.GetData = function (e,t,r)
 {
-    "http:" !== e.substr(0, 5) && ("/" !== e.substr(0, 1) && (e = "/" + e), MainServer && (e = "http://" + MainServer.ip + ":" + MainServer.port + e));
+    if("http:" !== e.substr(0, 5))
+        if("/" !== e.substr(0, 1) && (e = "/" + e), MainServer)
+            e = "http://" + MainServer.ip + ":" + MainServer.port + e;
+        else
+            if(!window.location.hostname)
+                return ;
     var n = null, a = new XMLHttpRequest;
     if(null === t)
         throw "ERROR GET-TYPE";
@@ -719,7 +724,7 @@ function SendTransaction(i,u,l,c)
             if(e)
             {
                 var t = GetHexFromArr(shaarr(i));
-                if(window.SetStatus && SetStatus("Send '" + t.substr(0, 8) + "' result:" + e.text), "Not add" === e.text)
+                if(window.SetStatus && SetStatus("Send '" + t.substr(0, 16) + "' result:" + e.text), "Not add" === e.text)
                     r(1, a + 1);
                 else
                     if("Bad time" === e.text)
