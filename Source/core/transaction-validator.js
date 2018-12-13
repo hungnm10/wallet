@@ -151,6 +151,8 @@ module.exports = class CSmartContract extends require("./block-exchange")
             return  - 2;
         if(Tr.num > BlockNum)
             return  - 3;
+        if(Tr.num < BlockNum - 10)
+            return  - 3;
         if(Tr.body[0] === TYPE_TRANSACTION_ACC_HASH)
             return  - 4;
         return 1;
