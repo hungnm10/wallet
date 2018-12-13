@@ -22,7 +22,7 @@ global.MAX_STAT_PERIOD = 60;
 var HostNodeList = [];
 var AllNodeList = [];
 var NodeBlockChain = [];
-var LastAlive = new Date() - 0;
+var LastAlive = Date.now();
 setTimeout(function ()
 {
     setInterval(CheckAlive, 1000);

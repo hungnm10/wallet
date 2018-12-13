@@ -162,6 +162,8 @@ module.exports = class CConnect extends require("./transfer-msg")
             {
                 if(Node.Hot)
                     Node.NextPing = 1000
+                if(Node.NextPing < 4000)
+                    Node.NextPing = 4000
                 var Delta = (new Date) - Node.PingStart;
                 if(Delta >= Node.NextPing)
                 {
@@ -213,7 +215,7 @@ module.exports = class CConnect extends require("./transfer-msg")
             CheckPoint:CHECK_POINT, Reserv3:[], Key:this.KeyToNode, Name:this.NameToNode, TrafficFree:this.SendTrafficFree, AccountBlockNum:BlockNumHash,
             AccountsHash:AccountsHash, MemoryUsage:Math.trunc(process.memoryUsage().heapTotal / 1024 / 1024), CheckDeltaTime:CHECK_DELTA_TIME,
             CodeVersion:CODE_VERSION, IsAddrList:global.ADDRLIST_MODE, CheckPointHashDB:CheckPointHashDB, PortWeb:HTTP_HOSTING_PORT, HashDB:HashDB,
-            StopGetBlock:StopGetBlock, СтатБлок:СтатДанные, DirectMAccount:DirectMAccount, Reserve:[], };
+            StopGetBlock:StopGetBlock, };
         return Ret;
     }
     static
@@ -245,10 +247,6 @@ module.exports = class CConnect extends require("./transfer-msg")
             PortWeb:uint16,\
             HashDB:hash,\
             StopGetBlock:uint,\
-            СтатНомер:uint,\
-            СтатБлок:arr70,\
-            DirectMAccount:arr6,\
-            Reserve:arr10,\
             }";
     }
     static
@@ -385,7 +383,7 @@ module.exports = class CConnect extends require("./transfer-msg")
             {
                 Node.NextConnectDelta = 60 * 1000
                 ToLog("Error Sign CheckPoint=" + Data.CheckPoint.BlockNum + " from " + NodeInfo(Node))
-                this.AddCheckErrCount(Node, 1, "Error Sign CheckPoint")
+                this.AddCheckErrCount(Node, 10, "Error Sign CheckPoint")
             }
         }
     }
@@ -405,7 +403,7 @@ module.exports = class CConnect extends require("./transfer-msg")
                     {
                         Node.NextConnectDelta = 60 * 1000
                         ToLog("Error Sign CheckDeltaTime Num=" + Data.CheckDeltaTime.Num + " from " + NodeInfo(Node))
-                        this.AddCheckErrCount(Node, 1, "Error Sign CheckDeltaTime")
+                        this.AddCheckErrCount(Node, 10, "Error Sign CheckDeltaTime")
                     }
                 }
             }
@@ -473,7 +471,7 @@ module.exports = class CConnect extends require("./transfer-msg")
                     ToLog("Error Sign CodeVersion=" + CodeVersion.VersionNum + " from " + NodeInfo(Node) + " HASH:" + GetHexFromArr(CodeVersion.Hash).substr(0,
                     20))
                     ToLog(JSON.stringify(CodeVersion))
-                    this.AddCheckErrCount(Node, 1, "Error Sign CodeVersion")
+                    this.AddCheckErrCount(Node, 10, "Error Sign CodeVersion")
                     Node.NextConnectDelta = 60 * 1000
                 }
             }
@@ -911,7 +909,7 @@ module.exports = class CConnect extends require("./transfer-msg")
             this.SignCurrentTimeDev = secp256k1.sign(shabuf(SignArr), WALLET.KeyPair.getPrivateKey('')).signature
         }
         var Time = GetCurrentTime() - 0;
-        ToLog("Sennd time: " + Time + " to " + NodeInfo(Node))
+        ToLog("Send time: " + Time + " to " + NodeInfo(Node))
         this.SendF(Node, {"Method":"TIME", "Data":{Time:Time, Sign:this.SignCurrentTimeDev}})
         return 1;
     }
@@ -944,7 +942,7 @@ module.exports = class CConnect extends require("./transfer-msg")
             {
                 Node.NextConnectDelta = 60 * 1000
                 ToLog("Error Sign TIME from " + NodeInfo(Node))
-                this.AddCheckErrCount(Node, 1, "Error Sign TIME")
+                this.AddCheckErrCount(Node, 10, "Error Sign TIME")
             }
         }
     }

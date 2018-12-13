@@ -13,73 +13,72 @@ require("./library.js");
 var MapNames = {}, FileIp = "./SITE/DB/iplocation.db", FileNames = "./SITE/DB/locationnames.csv", Format = "{Value:uint32,Length:uint32, id:uint32, latitude:uint32, longitude:uint32}",
 FormatStruct = {};
 
-function SetGeoLocation(e)
+function SetGeoLocation(t)
 {
-    if(!e.ip || !BufIP || !BufIP.length)
+    if(!t.ip || !BufIP || !BufIP.length)
         return !1;
-    var t = IPToUint(e.ip), i = FindItem(BufIP, 20, t);
-    return i && (e.latitude = i.latitude, e.longitude = i.longitude, e.name = MapNames[i.id]), e.Geo = 1, !0;
+    var e = IPToUint(t.ip), i = FindItem(BufIP, 20, e);
+    return i && (t.latitude = i.latitude, t.longitude = i.longitude, t.name = MapNames[i.id]), t.Geo = 1, !0;
 };
 
-function ReadItem(e,t)
+function ReadItem(t,e)
 {
-    return BufIP.len = e * t, BufLib.Read(BufIP, Format, void 0, FormatStruct);
+    return BufIP.len = t * e, BufLib.Read(BufIP, Format, void 0, FormatStruct);
 };
 
-function FindItem(e,t,i)
+function FindItem(t,e,i)
 {
-    var n, a = Math.trunc(e.length / t), r = (ReadItem(0, t), ReadItem(a, t), 0), u = a, o = Math.trunc(i * a / 4294967296);
-    for(a <= o && (o = a - 1), o < r && (o = r); ; )
+    var a, r = Math.trunc(t.length / e), n = (ReadItem(0, e), ReadItem(r, e), 0), u = r, o = Math.trunc(i * r / 4294967296);
+    for(r <= o && (o = r - 1), o < n && (o = n); ; )
     {
-        if(!(n = ReadItem(o, t)))
+        if(!(a = ReadItem(o, e)))
             throw "Error read num";
-        if(n.Value > i)
+        if(a.Value > i)
         {
-            if(u = o - 1, 0 === (l = o - r))
+            if(u = o - 1, 0 === (f = o - n))
                 return ;
-            o -= l = Math.trunc((1 + l) / 2);
+            o -= f = Math.trunc((1 + f) / 2);
         }
         else
-            if(n.Value < i)
+            if(a.Value < i)
             {
-                if(n.Value + n.Length >= i)
+                if(a.Value + a.Length >= i)
                     break;
-                var l;
-                if(r = o + 1, 0 === (l = u - o))
+                var f;
+                if(n = o + 1, 0 === (f = u - o))
                     return ;
-                o += l = Math.trunc((1 + l) / 2);
+                o += f = Math.trunc((1 + f) / 2);
             }
             else
-                if(n.Value === i)
+                if(a.Value === i)
                     break;
     }
-    return n;
+    return a;
 };
 
 function Init()
 {
-    console.log("loading"), BufIP = fs.readFileSync(FileIp);
-    for(var e = fs.readFileSync(FileNames), t = 0, i = 0; ; )
+    BufIP = fs.readFileSync(FileIp);
+    for(var t = fs.readFileSync(FileNames), e = 0; ; )
     {
-        var n = e.indexOf("\n", t);
-        if(n < 0)
+        var i = t.indexOf("\n", e);
+        if(i < 0)
             break;
-        var a = e.toString("utf-8", t, n - 1);
-        t = n + 1;
-        var r = a.split(","), u = parseInt(r[0]);
-        if(u)
+        var a = t.toString("utf-8", e, i - 1);
+        e = i + 1;
+        var r = a.split(","), n = parseInt(r[0]);
+        if(n)
         {
-            i++;
-            var o = r[10];
-            o || (o = r[7]), o || (o = r[5]), MapNames[u] = o;
+            0;
+            var u = r[10];
+            u || (u = r[7]), u || (u = r[5]), MapNames[n] = u;
         }
     }
-    console.log("loading ok Count=" + i);
 };
 
-function IPToUint(e)
+function IPToUint(t)
 {
-    var t = e.split(".");
-    return 256 * (256 * (256 *  + t[0] +  + t[1]) +  + t[2]) +  + t[3];
+    var e = t.split(".");
+    return 256 * (256 * (256 *  + e[0] +  + e[1]) +  + e[2]) +  + e[3];
 };
 global.SetGeoLocation = SetGeoLocation, Init();

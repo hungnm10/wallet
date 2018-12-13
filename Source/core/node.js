@@ -370,9 +370,24 @@ module.exports = class CNode
         }
         var Hash = shaarr2(Buf.addrArr, Buf.HashRND);
         var nonce = CreateNoncePOWExternMinPower(Hash, 0, Buf.MIN_POWER_POW_HANDSHAKE);
-        var Info = this.GetPOWClientData(nonce);
-        Info.PubKeyType = SERVER.PubKeyType
-        Info.Sign = secp256k1.sign(Buffer.from(Hash), SERVER.KeyPair.getPrivateKey('')).signature
+        var Info;
+        if(WALLET.WalletOpen && IsDeveloperAccount(WALLET.PubKeyArr))
+        {
+            Info = this.GetPOWClientData(0)
+            Info.Reconnect = 255
+            Info.Sign = secp256k1.sign(shabuf(Hash), WALLET.KeyPair.getPrivateKey('')).signature
+            Result = CheckDevelopSign(Hash, Info.Sign)
+            if(!Result)
+            {
+                throw "ERROR DEVELOPSIGN!";
+            }
+        }
+        else
+        {
+            Info = this.GetPOWClientData(nonce)
+            Info.PubKeyType = SERVER.PubKeyType
+            Info.Sign = secp256k1.sign(Buffer.from(Hash), SERVER.KeyPair.getPrivateKey('')).signature
+        }
         var BufWrite = BufLib.GetBufferFromObject(Info, FORMAT_POW_TO_SERVER, 1200, {});
         var BufAll = SERVER.GetBufFromData("POW_CONNECT6", BufWrite, 1);
         Socket.write(BufAll)

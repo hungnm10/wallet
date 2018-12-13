@@ -14,7 +14,7 @@ process.send && !global.DEBUGPROCESS ? (global.ToLog = function (e)
 {
     process.send({cmd:"log", message:e});
 }, process.send({cmd:"online", message:"OK"})) : PROCESS = global.DEBUGPROCESS;
-var LastAlive = new Date - 0;
+var LastAlive = Date.now();
 setInterval(CheckAlive, 1e3);
 var idInterval = void 0, Block = {};
 
@@ -81,7 +81,7 @@ function PumpHash()
 {
     if(BlockPump)
     {
-        var e = new Date - 0;
+        var e = Date.now();
         if(EndTime < StartTime)
         {
             if(100 * (e - StartTime) / CONSENSUS_PERIOD_TIME > BlockPump.Percent)

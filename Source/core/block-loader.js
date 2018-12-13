@@ -401,7 +401,7 @@ module.exports = class CBlock extends require("./db/block-db")
             if(Delta > 3000)
             {
                 task.RestartGetNextNode++
-                task.LastTimeRestartGetNextNode = new Date() - 0
+                task.LastTimeRestartGetNextNode = Date.now()
                 task.MapSend = {}
                 return {Result:false, timewait:true};
             }
@@ -1323,7 +1323,7 @@ module.exports = class CBlock extends require("./db/block-db")
         if(CompareArr(TestValue.Hash, Block.Hash) !== 0)
         {
             var Str = StrError + " #2 ERROR HASH - block num: " + Block.BlockNum;
-            ToErrorTrace(Str)
+            ToError(Str)
             return false;
         }
         return true;

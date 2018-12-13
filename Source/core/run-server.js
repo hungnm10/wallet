@@ -63,7 +63,7 @@ process.on('error', function (err)
     ToLog(err.stack);
 });
 var idHostingAliveInterval = 0;
-var LastHostingAlive = new Date() - 0;
+var LastHostingAlive = Date.now();
 var HostingWorker;
 if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 {
@@ -72,16 +72,19 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
         var Delta = (new Date()) - LastHostingAlive;
         if(HostingWorker && Delta > 3 * 1000)
         {
-            ToLog("KILL PROCESS: " + HostingWorker.pid);
-            try
+            if(!HostingWorker || HostingWorker.connected)
             {
-                process.kill(HostingWorker.pid, 'SIGKILL');
+                ToLog("KILL PROCESS: " + HostingWorker.pid);
+                try
+                {
+                    process.kill(HostingWorker.pid, 'SIGKILL');
+                }
+                catch(e)
+                {
+                    ToLog(e);
+                }
             }
-            catch(e)
-            {
-                ToLog(e);
-            }
-            LastHostingAlive = (new Date() - 0) + 10 * 1000;
+            LastHostingAlive = (Date.now()) + 10 * 1000;
             HostingWorker = undefined;
         }
         if(HostingWorker && HostingWorker.connected)
@@ -90,7 +93,7 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
         }
         else
         {
-            ToLog("NOT HOSTING CONNECTED. RESTART!");
+            ToLog("START SITE HOSTING");
             HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
             HostingWorker.on('message', OnMessageHosting);
         }
@@ -118,7 +121,7 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 
 function OnMessageHosting(msg)
 {
-    LastHostingAlive = new Date() - 0;
+    LastHostingAlive = Date.now();
     if(msg.cmd === "SendTransactionHex")
     {
         var body = GetArrFromHex(msg.Value);
@@ -299,11 +302,12 @@ function RunStopPOWProcess(Mode)
         });
         Worker.on('close', function (code)
         {
-            ToLog("STOP PROCESS: " + Worker.Num);
+            ToLog("STOP PROCESS: " + Worker.Num + " pid:" + Worker.pid);
             for(var i = 0; i < ArrMiningWrk.length; i++)
             {
-                if(ArrMiningWrk[i].Num === Worker.Num)
+                if(ArrMiningWrk[i].pid === Worker.pid)
                 {
+                    ToLog("Delete wrk from arr - pid:" + Worker.pid);
                     ArrMiningWrk.splice(i, 1);
                 }
             }
@@ -324,7 +328,7 @@ function SetCalcPOW(Block,cmd)
         if(!CurWorker.bOnline)
             continue;
         CurWorker.send({cmd:cmd, BlockNum:Block.BlockNum, Account:GENERATE_BLOCK_ACCOUNT, MinerID:GENERATE_BLOCK_ACCOUNT, SeqHash:Block.SeqHash,
-            Hash:Block.Hash, PrevHash:Block.PrevHash, Time:new Date() - 0, Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POW_RUN_COUNT,
+            Hash:Block.Hash, PrevHash:Block.PrevHash, Time:Date.now(), Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POW_RUN_COUNT,
             RunCount0:global.POW_RUN_COUNT0, Percent:global.POW_MAX_PERCENT, CountMiningCPU:GetCountMiningCPU(), ProcessMemorySize:ProcessMemorySize,
         });
     }

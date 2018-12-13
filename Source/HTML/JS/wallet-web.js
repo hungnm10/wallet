@@ -49,7 +49,7 @@ function SetError(e,t)
 
 function ConnectWebWallet()
 {
-    for(var e in StartTimeConnecting = new Date - 0, ConnectedCount = 0, ServerMap)
+    for(var e in StartTimeConnecting = Date.now(), ConnectedCount = 0, ServerMap)
     {
         ServerMap[e].SendHandShake = 0;
     }
@@ -66,17 +66,17 @@ function LoopHandShake()
     }
 };
 
-function DoNodeList(o)
+function DoNodeList(r)
 {
-    o.SendHandShake = 1, GetData("http://" + o.ip + ":" + o.port + "/GetNodeList", {}, function (e)
+    r.SendHandShake = 1, GetData("http://" + r.ip + ":" + r.port + "/GetNodeList", {}, function (e)
     {
         if(e && e.result)
         {
-            ConnectedCount++, o.GetHandShake = 1, o.BlockChain = e.BlockChain;
+            ConnectedCount++, r.GetHandShake = 1, r.BlockChain = e.BlockChain;
             for(var t = 0, n = 0; n < e.arr.length; n++)
             {
-                var r = e.arr[n];
-                !ServerMap[r.ip] && r.port && (ServerMap[r.ip] = r, t = 1);
+                var o = e.arr[n];
+                !ServerMap[o.ip] && o.port && (ServerMap[o.ip] = o, t = 1);
             }
             t && ConnectedCount < MaxConnectedCount && new Date - StartTimeConnecting < MaxTimeConnecting && setTimeout(LoopHandShake,
             100);
@@ -96,7 +96,7 @@ function LoopWalletInfo()
 
 function DoWalletInfo(t)
 {
-    t.StartTime = new Date - 0, t.SendWalletInfo = 1, GetData("http://" + t.ip + ":" + t.port + "/GetCurrentInfo", {BlockChain:1},
+    t.StartTime = Date.now(), t.SendWalletInfo = 1, GetData("http://" + t.ip + ":" + t.port + "/GetCurrentInfo", {BlockChain:1},
     
 function (e)
     {
@@ -121,9 +121,9 @@ function FindLider()
             t[i.SumPower] || (t[i.SumPower] = 0), t[i.SumPower]++, e.push(i);
         }
     }
-    var r, o = 0;
+    var o, r = 0;
     for(var n in t)
-        t[n] >= o && (o = t[n], r = parseInt(n));
+        t[n] >= r && (r = t[n], o = parseInt(n));
     e.sort(function (e,t)
     {
         return e.DeltaTime - t.DeltaTime;
@@ -131,9 +131,9 @@ function FindLider()
     for(var a = 0; a < e.length; a++)
     {
         var i;
-        if((i = e[a]).SumPower === r)
+        if((i = e[a]).SumPower === o)
         {
-            SetStatus("Find " + i.ip + ":" + i.port + " with pow=" + i.SumPower + " " + o + "  ping=" + i.DeltaTime), MainServer = i, SaveServerMap();
+            SetStatus("Find " + i.ip + ":" + i.port + " with pow=" + i.SumPower + " " + r + "  ping=" + i.DeltaTime), MainServer = i, SaveServerMap();
             break;
         }
     }
@@ -144,7 +144,7 @@ function CalcPowFromBlockChain(e)
 {
     var t = 0, n = GetBlockArrFromBuffer(e);
     if(n.length === COUNT_BLOCK_PROOF)
-        for(var r = 0; r < n.length; r++)
-            t += n[r].Power;
+        for(var o = 0; o < n.length; o++)
+            t += n[o].Power;
     return t;
 };

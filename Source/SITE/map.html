@@ -29,6 +29,7 @@
 //            if(glMouse)
 //                KY=glMouse.y/500;
 
+            var wasname=0;
 
             var map={};
             var Count=0;
@@ -39,7 +40,7 @@
                 var y=Math.trunc(obj.height-(obj.height-PointC.y+KY*obj.height*(Item.latitude/10000-90)/180));
                 var x=Math.trunc(PointC.x+KX*obj.width*(Item.longitude/10000-180)/360);
                 if(Item.longitude/10000-180<-20)
-                    x+=20;
+                    x+=25;
 
                 var strxy=""+x+":"+y;
                 if(!map[strxy])
@@ -55,6 +56,7 @@
             }
 
 
+            //arc
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.strokeStyle = "#ffe238";
@@ -64,21 +66,31 @@
                 var point=map[key];
                 ctx.beginPath();
                 ctx.arc(point.x,point.y,Math.sqrt(point.count),0,2 * Math.PI);
-//                ctx.fillText(point.count,point.x,point.y);
+//              ctx.fillText(point.count,point.x,point.y);
+                ctx.stroke();
+                ctx.fill();
+            }
 
-                if(glMoveMouse)
+            //name
+            ctx.fillStyle="#1b9031";
+            for(var key in map)
+            {
+                var point=map[key];
+                if(!wasname && glMoveMouse)
                 {
                     var dx=point.x-glMoveMouse.x;
                     var dy=point.y-glMoveMouse.y;
                     var dl2=dx*dx+dy*dy;
-                    if(dl2<40)
+                    if(dl2<17+point.count)
+                    {
+                        ctx.beginPath();
                         ctx.fillText(point.name,point.x,point.y-20);
+                        ctx.stroke();
+                        wasname=1;
+                    }
                 }
-
-                ctx.stroke();
-                ctx.fill();
-
             }
+
 
             if(0 && glMouse)
             {
@@ -201,22 +213,20 @@
 
     </script>
     <style>
-        .map
+        .basemap
         {
-            position: absolute;
-            top:30px;
-            left:20px;
+            width:1244px;
+            background:url('./PIC/world.jpg') no-repeat;
+            border:1px solid rgba(204, 198, 198, 0.97);
         }
         #idMap
         {
             z-index: 100;
             opacity: 0.7;
         }
+
         #idStatus
         {
-            position: absolute;
-            top: 2px;
-            left:20px;
             height: 20px;
             color: white;
         }
@@ -227,10 +237,11 @@
     </style>
 </head>
 <body>
+<DIV align='center'>
 <DIV id="idStatus"></DIV>
+<DIV class="basemap">
 <canvas class="map" width="1244" height="658" id='idMap'></canvas>
-<img class="map" src="world.jpg">
-
-
+</DIV>
+</DIV>
 </body>
 </html>

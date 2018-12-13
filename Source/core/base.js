@@ -39,6 +39,7 @@ module.exports = class CCommon
         this.PacketTree = new STreeBuffer(MAX_TIME_NETWORK_TRANSPORT, CompareItemHash32, "object")
         this.LoadedNodes = new STreeBuffer(MAX_TIME_NETWORK_TRANSPORT, CompareItemHash32, "object")
         this.ContextPackets = new STreeBuffer(10 * 1000, CompareItemHash32, "object")
+        this.TreeBlockBuf = new STreeBuffer(10 * 1000, CompareItemHashSimple, "string")
     }
     AddStatOnTimer()
     {
@@ -402,7 +403,7 @@ function TestCreateTr()
         0, 0, 0, 0, 0], Description:"Description", Adviser:10, };
     var Body = BufLib.GetBufferFromObject(TR, FORMAT_CREATE, 1000, {});
     var startTime = process.hrtime();
-    var StartData = new Date() - 0;
+    var StartData = Date.now();
     var nonce = CreateHashBodyPOWInnerMinPower(Body, 1000, 17);
     var Time = process.hrtime(startTime);
     var power = GetPowPower(shaarr(Body));

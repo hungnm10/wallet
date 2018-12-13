@@ -841,19 +841,33 @@ module.exports = class CTransport extends require("./connect")
         var power = GetPowPower(hashInfo);
         if(Info.Reconnect)
         {
-            if(Node.SecretForReconnect && Node.WaitConnectFromServer && CompareArr(Node.SecretForReconnect, Info.SecretForReconnect) === 0)
+            if((Node.SecretForReconnect && Node.WaitConnectFromServer && CompareArr(Node.SecretForReconnect, Info.SecretForReconnect) === 0) || Info.Reconnect === 255)
             {
-                Node.NextConnectDelta = 1000
-                Node.WaitConnectFromServer = 0
-                Node.GrayConnect = 0
-                AddNodeInfo(Node, "3. SERVER OK CONNECT  for client node " + SocketInfo(Socket))
-                this.AddNodeToActive(Node)
-                Node.Socket = Socket
-                SetSocketStatus(Socket, 3)
-                SetSocketStatus(Socket, 100)
-                Socket.Node = Node
-                Socket.write(this.GetBufFromData("POW_CONNECT0", "OK", 2))
-                return ;
+                var Result = 1;
+                if(Info.Reconnect === 255)
+                {
+                    Result = CheckDevelopSign(Hash, Info.Sign)
+                }
+                if(Result)
+                {
+                    Node.NextConnectDelta = 1000
+                    Node.WaitConnectFromServer = 0
+                    Node.GrayConnect = 0
+                    AddNodeInfo(Node, "3. SERVER OK CONNECT  for client node " + SocketInfo(Socket))
+                    this.AddNodeToActive(Node)
+                    Node.Socket = Socket
+                    SetSocketStatus(Socket, 3)
+                    SetSocketStatus(Socket, 100)
+                    Socket.Node = Node
+                    Socket.write(this.GetBufFromData("POW_CONNECT0", "OK", 2))
+                    return ;
+                }
+                else
+                {
+                    Node.NextConnectDelta = 60 * 1000
+                    ToLog("Error Sign Node from " + NodeInfo(Node))
+                    this.AddCheckErrCount(Node, 10, "Error Sign Node")
+                }
             }
             AddNodeInfo(Node, "SERV: ERROR_RECONNECT")
             Socket.end(this.GetBufFromData("POW_CONNEC11", "ERROR_RECONNECT", 2))
