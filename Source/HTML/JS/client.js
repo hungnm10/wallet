@@ -438,32 +438,32 @@ function SetGridData(e,t,r,n,a)
     glWorkNum++;
     for(var u = {SumCOIN:0, SumCENT:0}, l = o.rows[0].cells, c = l.length, s = 0; e && s < e.length; s++)
     {
-        var g = e[s], m = g.Num;
-        if(o.MaxNum = g.Num, !(y = i[m]))
+        var m = e[s], g = m.Num;
+        if(o.MaxNum = m.Num, !(S = i[g]))
         {
-            o.RowCount++, y = a ? o.insertRow(1) : o.insertRow( - 1), i[m] = y;
+            o.RowCount++, S = a ? o.insertRow(1) : o.insertRow( - 1), i[g] = S;
             for(var f = 0; f < c; f++)
             {
                 if("" != (v = l[f]).innerText)
-                    v.F = CreateEval(v.id, "Item"), "(" === v.id.substr(0, 1) && (v.H = 1), (p = y.insertCell(f)).className = v.className;
+                    v.F = CreateEval(v.id, "Item"), "(" === v.id.substr(0, 1) && (v.H = 1), (p = S.insertCell(f)).className = v.className;
             }
         }
-        y.Work = glWorkNum, CUR_ROW = y;
+        S.Work = glWorkNum, CUR_ROW = S;
         for(f = 0; f < c; f++)
         {
             var p, v, d;
-            if(p = y.cells[f])
+            if(p = S.cells[f])
                 if((v = l[f]).H)
-                    (d = "" + v.F(g)).trim(), p.innerHTML !== d && (p.innerHTML = d);
+                    (d = "" + v.F(m)).trim(), p.innerHTML !== d && (p.innerHTML = d);
                 else
-                    (d = "" + v.F(g)).trim(), p.innerText !== d && (p.innerText = d);
+                    (d = "" + v.F(m)).trim(), p.innerText !== d && (p.innerText = d);
         }
-        r && 0 === g.Currency && ADD(u, g.Value);
+        r && 0 === m.Currency && ADD(u, m.Value);
     }
-    for(var S in i)
+    for(var y in i)
     {
-        var y;
-        (y = i[S]).Work !== glWorkNum && (o.deleteRow(y.rowIndex), delete i[S]);
+        var S;
+        (S = i[y]).Work !== glWorkNum && (o.deleteRow(S.rowIndex), delete i[y]);
     }
     r && (document.getElementById(r).innerText = "Total: " + SUM_TO_STRING(u, 0));
     DoStableScroll();
@@ -798,6 +798,7 @@ function GetBodyCreateAcc(e)
 
 function GetArrFromTR(e)
 {
+    MaxBlockNum = GetCurrentBlockNumByTime();
     var t = [];
     WriteByte(t, e.Type), WriteByte(t, e.Version), WriteUint(t, 0), WriteUint(t, e.FromID), WriteUint32(t, e.To.length);
     for(var r = 0; r < e.To.length; r++)

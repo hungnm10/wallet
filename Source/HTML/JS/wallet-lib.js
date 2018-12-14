@@ -26,11 +26,11 @@ function SetAccountsData(e,t)
             i.MyAccount = !0;
             var o = ParseNum(i.Num);
             MapAccounts[o] || (MapAccounts[o] = {}), CopyObjKeys(MapAccounts[o], i);
-            var c = a.options[r];
-            c.text = GetAccountText(i, o, 1), c.value = o;
+            var c = a.options[r], u = GetAccountText(i, o, 1);
+            c.text !== u && CheckNameAccTo(), c.value = o, c.text = u;
         }
-        var u = LoadMapAfter.idAccount;
-        u && (a.value = u, delete LoadMapAfter.idAccount), SetCurCurencyName();
+        var d = LoadMapAfter.idAccount;
+        d && (a.value = d, delete LoadMapAfter.idAccount), SetCurCurencyName();
     }
 };
 
@@ -44,7 +44,7 @@ function CheckNameAccTo()
 {
     MaxBlockNum = GetCurrentBlockNumByTime();
     var e = ParseNum(document.getElementById("idTo").value);
-    (!MapAccounts[e] || MapAccounts[e].MustUpdate && MapAccounts[e].MustUpdate <= MaxBlockNum) && GetData("GetAccountList", {StartNum:e},
+    (!MapAccounts[e] || MapAccounts[e].MustUpdate && MapAccounts[e].MustUpdate >= MaxBlockNum) && GetData("GetAccountList", {StartNum:e},
     
 function (e)
     {
@@ -111,14 +111,14 @@ function CreateTransaction(t,e,n)
             else
                 m = d, l = "0";
             l += "000000000";
-            var S = {SumCOIN:ParseNum(m), SumCENT:ParseNum(l.substr(0, 9))}, T = 0, v = MapAccounts[a];
-            v && (T = v.Value.OperationID);
-            var A = [];
-            AttachItem && ((A = AttachItem.Data.Body) || (A = []));
+            var S = {SumCOIN:ParseNum(m), SumCENT:ParseNum(l.substr(0, 9))}, T = 0, A = MapAccounts[a];
+            A && (T = A.Value.OperationID);
+            var v = [];
+            AttachItem && ((v = AttachItem.Data.Body) || (v = []));
             var y = [];
             o && (y = GetArrFromHex(o));
             var N = {Type:111, Version:3, Reserve:0, FromID:a, OperationID:T, To:[{PubKey:y, ID:c, SumCOIN:S.SumCOIN, SumCENT:S.SumCENT}],
-                Description:u, Body:A, Sign:CurrentTR.Sign};
+                Description:u, Body:v, Sign:CurrentTR.Sign};
             Object.defineProperties(N, {bFindAcc:{configurable:!0, writable:!0, enumerable:!1, value:i}}), Object.defineProperties(N, {Run:{configurable:!0,
                     writable:!0, enumerable:!1, value:n}}), JSON.stringify(N) !== JSON.stringify(CurrentTR) ? (CurrentTR = N, GetSignTransaction(N,
             
