@@ -275,7 +275,7 @@ HTTPCaller.DappInfo = function (Params)
     }
     var WLData = HTTPCaller.DappWalletList(Params);
     var Ret = {result:1, Smart:Smart, Account:Account, BlockNumDB:SERVER.BlockNumDB, CurBlockNum:GetCurrentBlockNumByTime(), MaxAccID:DApps.Accounts.GetMaxAccount(),
-        MaxDappsID:DApps.Smart.GetMaxNum(), CurTime:(new Date()) - 0, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, MIN_POWER_POW_TR:MIN_POWER_POW_TR,
+        MaxDappsID:DApps.Smart.GetMaxNum(), CurTime:Date.now(), DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, MIN_POWER_POW_TR:MIN_POWER_POW_TR,
         FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME, MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE,
         WalletList:WLData.arr, WalletIsOpen:(WALLET.WalletOpen !== false), WalletCanSign:(WALLET.WalletOpen !== false && WALLET.KeyPair.WasInit),
         PubKey:WALLET.KeyPair.PubKeyStr, ArrLog:ArrLogClient, PRICE_DAO:PRICE_DAO(SERVER.BlockNumDB), };
@@ -420,7 +420,7 @@ HTTPCaller.GetWalletInfo = function ()
     }
     var Ret = {result:1, WalletOpen:WALLET.WalletOpen, WalletIsOpen:(WALLET.WalletOpen !== false), WalletCanSign:(WALLET.WalletOpen !== false && WALLET.KeyPair.WasInit),
         CODE_VERSION:CODE_VERSION, VersionNum:global.UPDATE_CODE_VERSION_NUM, RelayMode:SERVER.RelayMode, BlockNumDB:SERVER.BlockNumDB,
-        CurBlockNum:GetCurrentBlockNumByTime(), CurTime:(new Date()) - 0, IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr), AccountMap:WALLET.AccountMap,
+        CurBlockNum:GetCurrentBlockNumByTime(), CurTime:Date.now(), IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr), AccountMap:WALLET.AccountMap,
         ArrLog:ArrLogClient, MaxAccID:DApps.Accounts.GetMaxAccount(), MaxActNum:DApps.Accounts.GetActsMaxNum(), MaxDappsID:DApps.Smart.GetMaxNum(),
         NeedRestart:global.NeedRestart, ip:SERVER.ip, port:SERVER.port, NET_WORK_MODE:global.NET_WORK_MODE, INTERNET_IP_FROM_STUN:global.INTERNET_IP_FROM_STUN,
         HistoryMaxNum:MaxHistory, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME,

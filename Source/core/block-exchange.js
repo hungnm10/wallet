@@ -236,7 +236,7 @@ module.exports = class CConsensus extends require("./block-loader")
             }
         }
         ADD_TO_STAT_TIME("TRANSFER_MS", startTime)
-        var Delta = (new Date()) - this.StartLoadBlockTime;
+        var Delta = Date.now() - this.StartLoadBlockTime;
         if(Delta > 10 * 1000 && Node.TransferCount > 10)
         {
             Node.BlockProcessCount++

@@ -29,7 +29,7 @@ module.exports = class CConnect extends require("./transfer-msg")
     constructor(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
     {
         super(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
-        this.StartTime = (new Date()) - 0
+        this.StartTime = Date.now()
         this.WasNodesSort = false
         this.LevelNodes = []
         this.NodesArr = []
@@ -669,7 +669,7 @@ module.exports = class CConnect extends require("./transfer-msg")
     NodesArrSort()
     {
         this.NodesArr.sort(SortNodeBlockProcessCount)
-        if((GrayConnect() || !this.LoadHistoryMode) && (new Date()) - this.StartTime > 120 * 1000)
+        if((GrayConnect() || !this.LoadHistoryMode) && Date.now() - this.StartTime > 120 * 1000)
         {
             var arr = this.GetDirectNodesArray(true).slice(1, 200);
             SaveParams(GetDataPath("nodes.lst"), arr)

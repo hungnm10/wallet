@@ -163,7 +163,7 @@ module.exports = class CBlock extends require("./db/block-db")
             return ;
         if(global.NO_HISTORY_MODE)
             return ;
-        this.StartLoadBlockTime = (new Date()) - 0
+        this.StartLoadBlockTime = Date.now()
         if(Num > this.CurrentBlockNum + TIME_START_SAVE)
         {
             return ;

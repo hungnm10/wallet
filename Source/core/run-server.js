@@ -69,10 +69,10 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 {
     idHostingAliveInterval = setInterval(function ()
     {
-        var Delta = (new Date()) - LastHostingAlive;
+        var Delta = Date.now() - LastHostingAlive;
         if(HostingWorker && Delta > 3 * 1000)
         {
-            if(!HostingWorker || HostingWorker.connected)
+            if(HostingWorker)
             {
                 ToLog("KILL PROCESS: " + HostingWorker.pid);
                 try
@@ -81,19 +81,25 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
                 }
                 catch(e)
                 {
-                    ToLog(e);
                 }
+                HostingWorker = undefined;
             }
-            LastHostingAlive = (Date.now()) + 10 * 1000;
-            HostingWorker = undefined;
         }
         if(HostingWorker && HostingWorker.connected)
         {
-            HostingWorker.send({cmd:"Stat", Name:"MAX:ALL_NODES", Value:global.CountAllNode});
+            try
+            {
+                HostingWorker.send({cmd:"Stat", Name:"MAX:ALL_NODES", Value:global.CountAllNode});
+            }
+            catch(e)
+            {
+                HostingWorker = undefined;
+            }
         }
-        else
+        if(!HostingWorker)
         {
-            ToLog("START SITE HOSTING");
+            LastHostingAlive = (Date.now()) + 10 * 1000;
+            ToLog("STARTING WEB PROCESS");
             HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
             HostingWorker.on('message', OnMessageHosting);
         }
@@ -121,12 +127,26 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 
 function OnMessageHosting(msg)
 {
-    LastHostingAlive = Date.now();
-    if(msg.cmd === "SendTransactionHex")
+    if(LastHostingAlive < Date.now())
+        LastHostingAlive = Date.now();
+    if(msg.cmd === "log")
     {
-        var body = GetArrFromHex(msg.Value);
-        SERVER.AddTransaction({body:body}, 1);
+        ToLog(msg.message);
     }
+    else
+        if(msg.cmd === "online")
+        {
+            ToLog("RUNING WEB PROCESS: " + msg.message);
+        }
+        else
+            if(msg.cmd === "SendTransactionHex")
+            {
+                var body = GetArrFromHex(msg.Value);
+                SERVER.AddTransaction({body:body}, 1);
+            }
+            else
+            {
+            }
 };
 global.StopHostingServer = function ()
 {
@@ -329,7 +349,7 @@ function SetCalcPOW(Block,cmd)
             continue;
         CurWorker.send({cmd:cmd, BlockNum:Block.BlockNum, Account:GENERATE_BLOCK_ACCOUNT, MinerID:GENERATE_BLOCK_ACCOUNT, SeqHash:Block.SeqHash,
             Hash:Block.Hash, PrevHash:Block.PrevHash, Time:Date.now(), Num:CurWorker.Num, RunPeriod:global.POWRunPeriod, RunCount:global.POW_RUN_COUNT,
-            RunCount0:global.POW_RUN_COUNT0, Percent:global.POW_MAX_PERCENT, CountMiningCPU:GetCountMiningCPU(), ProcessMemorySize:ProcessMemorySize,
+            RunCountFind:global.POW_RUN_COUNT_FIND, Percent:global.POW_MAX_PERCENT, CountMiningCPU:GetCountMiningCPU(), ProcessMemorySize:ProcessMemorySize,
         });
     }
 };

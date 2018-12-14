@@ -134,8 +134,8 @@ function CreatePOWVersion3(Block,bHashPump)
         }
     }
     START_NONCE = Block.LastNonce0;
-    Block.LastNonce0 += Block.RunCount0;
-    var CountEnd = START_NONCE + Block.RunCount0;
+    Block.LastNonce0 += Block.RunCountFind;
+    var CountEnd = START_NONCE + Block.RunCountFind;
     for(var Nonce0 = START_NONCE; Nonce0 < CountEnd; Nonce0++)
     {
         var HashCurrent = GetHashFromArrNum2(Block.SeqHash, Miner, Nonce0);

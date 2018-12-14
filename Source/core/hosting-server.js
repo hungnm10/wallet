@@ -31,9 +31,14 @@ setInterval(function ()
 {
     process.send({cmd:"Alive"});
 }, 1000);
+process.send({cmd:"online", message:"OK"});
+global.ToLog = function (Str)
+{
+    process.send({cmd:"log", message:Str});
+};
 process.on('message', function (msg)
 {
-    LastAlive = (new Date()) - 0;
+    LastAlive = Date.now();
     switch(msg.cmd)
     {
         case "Exit":
@@ -54,7 +59,7 @@ process.on('message', function (msg)
 
 function CheckAlive()
 {
-    var Delta = (new Date()) - LastAlive;
+    var Delta = Date.now() - LastAlive;
     if(Delta > CHECK_STOP_CHILD_PROCESS)
     {
         ToLog("HOSTING: ALIVE TIMEOUT Stop and exit: " + Delta + "/" + global.CHECK_STOP_CHILD_PROCESS);
@@ -155,15 +160,35 @@ var HostingServer = http.createServer(function (request,response0)
     {
         DoCommandNew(response, Type, Path, Params);
     }
-}).listen(global.HTTP_HOSTING_PORT, function ()
-{
-    ToLog("Run Hosting-server on port:" + global.HTTP_HOSTING_PORT);
 });
 HostingServer.on('error', function (err)
 {
+    if(err.code === 'EADDRINUSE')
+    {
+        ToLogClient('Port ' + global.HTTP_HOSTING_PORT + ' in use, retrying...');
+        HostingServer.Server.close();
+        setTimeout(function ()
+        {
+            RunListenServer();
+        }, 5000);
+        return ;
+    }
     ToError("H##6");
     ToError(err);
 });
+RunListenServer();
+var bWasRun = 0;
+
+function RunListenServer()
+{
+    ToLogClient("Prepare to run WEB-server on port: " + global.HTTP_HOSTING_PORT);
+    HostingServer.listen(global.HTTP_HOSTING_PORT, '0.0.0.0', function ()
+    {
+        if(!bWasRun)
+            ToLogClient("Run WEB-server on port: " + global.HTTP_HOSTING_PORT);
+        bWasRun = 1;
+    });
+};
 var WalletFileMap = {};
 WalletFileMap["coinlib.js"] = 1;
 WalletFileMap["client.js"] = 1;
@@ -337,9 +362,9 @@ HostingCaller.GetDappList = function (Params)
 HostingCaller.GetCurrentInfo = function (Params)
 {
     var Ret = {result:1, VersionNum:global.UPDATE_CODE_VERSION_NUM, MaxNumBlockDB:SERVER.GetMaxNumBlockDB(), CurBlockNum:GetCurrentBlockNumByTime(),
-        MaxAccID:DApps.Accounts.GetMaxAccount(), MaxDappsID:DApps.Smart.GetMaxNum(), NETWORK:global.NETWORK, CurTime:(new Date()) - 0,
-        DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, MIN_POWER_POW_TR:MIN_POWER_POW_TR, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME,
-        MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE, };
+        MaxAccID:DApps.Accounts.GetMaxAccount(), MaxDappsID:DApps.Smart.GetMaxNum(), NETWORK:global.NETWORK, CurTime:Date.now(), DELTA_CURRENT_TIME:DELTA_CURRENT_TIME,
+        MIN_POWER_POW_TR:MIN_POWER_POW_TR, FIRST_TIME_BLOCK:FIRST_TIME_BLOCK, CONSENSUS_PERIOD_TIME:CONSENSUS_PERIOD_TIME, MIN_POWER_POW_ACC_CREATE:MIN_POWER_POW_ACC_CREATE,
+    };
     if(Params && Params.Diagram == true)
     {
         var arrNames = ["MAX:ALL_NODES", "MAX:HASH_RATE_G"];

@@ -754,7 +754,7 @@ function SendCallMethod(e,t,r,n,a)
             {
                 var t = e.Item.Value.OperationID;
                 !MapSendID[n] || 8e3 < new Date - MapSendID[n].Date ? MapSendID[n] = {OperationID:t + 10} : t = MapSendID[n].OperationID, MapSendID[n].OperationID++,
-                MapSendID[n].Date = new Date - 0, WriteUint(i, t), i.length += 10, SendTrArrayWithSign(i, n, o);
+                MapSendID[n].Date = Date.now(), WriteUint(i, t), i.length += 10, SendTrArrayWithSign(i, n, o);
             }
             else
                 SetStatus("Error - The account:" + n + " does not belong to a smart contract:" + a);
