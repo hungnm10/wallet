@@ -7,4 +7,4 @@ global.HTTP_PORT_NUMBER = 8080;
 if(global.LOCAL_RUN===undefined)
     global.LOCAL_RUN=0;
 
-require('./core/run-server');
+require('./process/main-process');

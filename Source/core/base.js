@@ -40,6 +40,7 @@ module.exports = class CCommon
         this.LoadedNodes = new STreeBuffer(MAX_TIME_NETWORK_TRANSPORT, CompareItemHash32, "object")
         this.ContextPackets = new STreeBuffer(10 * 1000, CompareItemHash32, "object")
         this.TreeBlockBuf = new STreeBuffer(10 * 1000, CompareItemHashSimple, "string")
+        this.TreeFindTX = new STreeBuffer(30 * 1000, CompareItemHashSimple, "string")
     }
     AddStatOnTimer()
     {

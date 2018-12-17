@@ -8,15 +8,16 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
+global.PROCESS_NAME = "WEB";
 const crypto = require('crypto');
 const http = require('http'), net = require('net'), url = require('url'), fs = require('fs'), querystring = require('querystring');
 global.MAX_STAT_PERIOD = 60;
-require("./constant");
+require("../core/constant");
 global.MAX_STAT_PERIOD = 60;
 global.DATA_PATH = GetNormalPathString(global.DATA_PATH);
 global.CODE_PATH = GetNormalPathString(global.CODE_PATH);
-require("./library");
-require("./geo");
+require("../core/library");
+require("../core/geo");
 global.READ_ONLY_DB = 1;
 global.MAX_STAT_PERIOD = 60;
 var HostNodeList = [];
@@ -32,15 +33,13 @@ setInterval(function ()
     process.send({cmd:"Alive"});
 }, 1000);
 process.send({cmd:"online", message:"OK"});
-global.ToLog = function (Str)
-{
-    process.send({cmd:"log", message:Str});
-};
 process.on('message', function (msg)
 {
     LastAlive = Date.now();
     switch(msg.cmd)
     {
+        case "ALive":
+            break;
         case "Exit":
             process.exit(0);
             break;
@@ -85,14 +84,14 @@ if(!global.HTTP_HOSTING_PORT)
     ToLogTrace("global.HTTP_HOSTING_PORT=" + global.HTTP_HOSTING_PORT);
     process.exit();
 }
-var CServerDB = require("./db/block-db");
+var CServerDB = require("../core/db/block-db");
 var KeyPair = crypto.createECDH('secp256k1');
 KeyPair.setPrivateKey(Buffer.from([77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 77, 77, 77, 77, 77, 77, 77, 77, 77, 77]));
 global.SERVER = new CServerDB(KeyPair, undefined, undefined, false, true);
 global.HTTP_PORT_NUMBER = 0;
-require("./html-server");
-require("./transaction-validator");
+require("../core/html-server");
+require("../core/transaction-validator");
 global.STAT_MODE = 1;
 setInterval(PrepareStatEverySecond, 1000);
 var HostingServer = http.createServer(function (request,response0)
@@ -166,7 +165,8 @@ HostingServer.on('error', function (err)
     if(err.code === 'EADDRINUSE')
     {
         ToLogClient('Port ' + global.HTTP_HOSTING_PORT + ' in use, retrying...');
-        HostingServer.Server.close();
+        if(HostingServer.Server)
+            HostingServer.Server.close();
         setTimeout(function ()
         {
             RunListenServer();
@@ -483,17 +483,10 @@ HostingCaller.SendTransactionHex = function (Params)
 };
 setInterval(function ()
 {
-    var Accounts = DApps.Accounts;
-    if(SERVER)
-        SERVER.ClearBufMap();
-    Accounts.DBState.ClearBufMap();
-    DApps.Smart.DBSmart.ClearBufMap();
+    DApps.Accounts.Close();
+    DApps.Smart.DBSmart.Close();
     global.BlockDB.CloseDBFile("block-header");
     global.BlockDB.CloseDBFile("block-body");
-    Accounts.DBState.CloseDBFile("accounts-state");
-    DApps.Smart.DBSmart.CloseDBFile("smart");
-    Accounts.DBActPrev.CloseDBFile(Accounts.DBActPrev.FileName);
-    Accounts.DBAct.CloseDBFile(Accounts.DBAct.FileName);
 }, 500);
 setInterval(function ()
 {

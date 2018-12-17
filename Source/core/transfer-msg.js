@@ -201,7 +201,6 @@ module.exports = class CMessages extends require("./transaction-validator")
     {
         if(!Tr.ToAll)
             return ;
-        this.TreePoolTr.clear()
         var CurTime = GetCurrentTime(0) - 0;
         var Count;
         if(GrayConnect())

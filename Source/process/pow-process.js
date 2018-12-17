@@ -8,12 +8,9 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.POWPROCESS = 1, require("./library"), require("./crypto-library"), require("./terahashmining");
+global.PROCESS_NAME = "POW", global.POWPROCESS = 1, require("../core/library"), require("../core/crypto-library"), require("../core/terahashmining");
 var PROCESS = process;
-process.send && !global.DEBUGPROCESS ? (global.ToLog = function (e)
-{
-    process.send({cmd:"log", message:e});
-}, process.send({cmd:"online", message:"OK"})) : PROCESS = global.DEBUGPROCESS;
+process.send && !global.DEBUGPROCESS ? process.send({cmd:"online", message:"OK"}) : PROCESS = global.DEBUGPROCESS;
 var LastAlive = Date.now();
 setInterval(CheckAlive, 1e3);
 var idInterval = void 0, Block = {};

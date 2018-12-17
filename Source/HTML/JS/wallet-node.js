@@ -58,8 +58,8 @@ function UseAutoCorrTime()
 function SetCodeVersion()
 {
     var e = JSON.parse(JSON.stringify(CONFIG_DATA.CODE_VERSION));
-    e.BlockNum || (e.LevelUpdate = 160), e.VersionNum++, e.BlockNum = CONFIG_DATA.CurBlockNum, e.addrArr = GetHexFromArr(e.addrArr),
-    e.Hash = GetHexFromArr(e.Hash), e.Sign = GetHexFromArr(e.Sign), e.Hash = void 0, e.Sign = void 0, e.StartLoadVersionNum = void 0;
+    e.BlockNum || (e.LevelUpdate = 160), e.BlockNum = CONFIG_DATA.CurBlockNum, e.addrArr = GetHexFromArr(e.addrArr), e.Hash = GetHexFromArr(e.Hash),
+    e.Sign = GetHexFromArr(e.Sign), e.Hash = void 0, e.Sign = void 0, e.StartLoadVersionNum = void 0;
     var t = JSON.stringify(e, "", 2);
     document.getElementById("idDevService").value = t;
 };

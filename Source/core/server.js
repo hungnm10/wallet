@@ -28,7 +28,6 @@ global.STAT_PERIOD = CONSENSUS_PERIOD_TIME / 5;
 const TRAFIC_LIMIT_SEND = TRAFIC_LIMIT_1S * STAT_PERIOD / 1000;
 const TRAFIC_LIMIT_NODE = TRAFIC_LIMIT_NODE_1S * STAT_PERIOD / 1000;
 const BUF_PACKET_SIZE = 32 * 1024;
-global.MAX_PACKET_LENGTH = 400 * 1024;
 global.FORMAT_POW_TO_CLIENT = "{addrArr:hash,HashRND:hash,MIN_POWER_POW_HANDSHAKE:uint,PubKeyType:byte,Sign:arr64,Reserve:arr33}";
 global.FORMAT_POW_TO_SERVER = "{\
         DEF_NETWORK:str15,\
@@ -106,7 +105,7 @@ module.exports = class CTransport extends require("./connect")
         {
             Map["TRANSFER"] = {Period:700, Hot:1}
             Map["TIME"] = {Period:2000, LowVersion:1, Hard:1, Immediately:1}
-            Map["PING"] = {Period:1000, LowVersion:1, Hard:1, Immediately:1}
+            Map["PING"] = {Period:4000, LowVersion:1, Hard:1, Immediately:1}
             Map["PONG"] = {Period:0, LowVersion:1, Immediately:1}
             Map["ADDLEVELCONNECT"] = {Period:1000, Hard:1}
             Map["RETADDLEVELCONNECT"] = {Period:0}
@@ -114,11 +113,11 @@ module.exports = class CTransport extends require("./connect")
             Map["GETMESSAGE"] = {Period:1000, Hard:1}
             Map["MESSAGE"] = {Period:1000, Hard:1}
             Map["TRANSACTION"] = {Period:PERIOD_GET_BLOCK, Hard:1}
-            Map["GETBLOCKHEADER"] = {Period:PERIOD_GET_BLOCK, Hard:2}
-            Map["GETBLOCK"] = {Period:PERIOD_GET_BLOCK, Hard:2}
+            Map["GETBLOCKHEADER"] = {Period:PERIOD_GET_BLOCK, Hard:2, Process:global.STATIC_PROCESS}
+            Map["GETBLOCK"] = {Period:PERIOD_GET_BLOCK, Hard:2, Process:global.STATIC_PROCESS}
             Map["GETNODES"] = {Period:1000, Hard:1, LowVersion:1, IsAddrList:1}
             Map["RETGETNODES2"] = {Period:0, IsAddrList:1}
-            Map["GETCODE"] = {Period:10000, Hard:1, LowVersion:1}
+            Map["GETCODE"] = {Period:10000, Hard:1, LowVersion:1, Process:global.STATIC_PROCESS}
             Map["RETBLOCKHEADER"] = {Period:0}
             Map["RETGETBLOCK"] = {Period:0}
             Map["RETCODE"] = {Period:0}
@@ -358,7 +357,21 @@ module.exports = class CTransport extends require("./connect")
         ADD_TO_STAT("USEPACKET")
         var CurTime = GetCurrentTime();
         Meta.Node.LastTime = CurTime - 0
-        this.OnGetMethod(Meta, CurTime)
+        if(Meta.MethodTiming.Process)
+        {
+            var Data = this.DataFromF(Meta);
+            try
+            {
+                Meta.MethodTiming.Process.Worker.send({cmd:Meta.Method, Data:Data, addrStr:Meta.Node.addrStr, Context:Meta.Context})
+            }
+            catch(e)
+            {
+            }
+        }
+        else
+        {
+            this.OnGetMethod(Meta, CurTime)
+        }
         ADD_TO_STAT_TIME("MAX:TIME_USE_PACKET", startTime)
         ADD_TO_STAT_TIME("TIME_USE_PACKET", startTime)
         ADD_TO_STAT_TIME("MAX:TIME_USE_PACKET:" + Meta.Method, startTime)
@@ -526,6 +539,7 @@ module.exports = class CTransport extends require("./connect")
         Buf.Context.ContextID = Buf.ContextID
         Buf.Node = Node
         Buf.Socket = Socket
+        Buf.MethodTiming = Param
         if(!global.ADDRLIST_MODE || Param.IsAddrList)
         {
             if(Param.Hard)
@@ -1030,7 +1044,8 @@ module.exports = class CTransport extends require("./connect")
             if(err.code === 'EADDRINUSE')
             {
                 ToLogClient('Port ' + SELF.port + ' in use, retrying...')
-                SELF.Server.close()
+                if(SELF.Server)
+                    SELF.Server.close()
                 setTimeout(function ()
                 {
                     SELF.RunListenServer()
@@ -1083,7 +1098,8 @@ module.exports = class CTransport extends require("./connect")
             global.INTERNET_IP_FROM_STUN = value.address
             if(!SELF.ip)
                 SELF.ip = INTERNET_IP_FROM_STUN
-            server.close()
+            if(server)
+                server.close()
             SELF.RunListenServer()
         })
         var StrStunAddr = 'stun.l.google.com';

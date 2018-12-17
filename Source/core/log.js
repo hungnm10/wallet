@@ -19,8 +19,8 @@ var StartStatTime, file_name_error = GetDataPath("err.log"), file_name_errorPrev
 
 function ToLogFile(t,e,r)
 {
-    e instanceof Error && (e = e.message + "\n" + e.stack), console.log(START_PORT_NUMBER + ": " + GetStrOnlyTime() + ": " + e),
-    r || SaveToLogFileSync(t, e);
+    e instanceof Error && (e = e.message + "\n" + e.stack), global.START_SERVER || (e = global.PROCESS_NAME + ": " + e), process.send ? process.send({cmd:"log",
+        message:e}) : console.log(START_PORT_NUMBER + ": " + GetStrOnlyTime() + ": " + e), r || SaveToLogFileSync(t, e);
 };
 
 function ToLogClient(t,e,r)

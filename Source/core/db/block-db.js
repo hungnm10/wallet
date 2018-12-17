@@ -20,29 +20,8 @@ module.exports = class CDB extends require("../code")
     constructor(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
     {
         super(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
-        this.StartOneProcess()
         this.BlockNumDB = 0
         this.ClearBufMap()
-    }
-    StartOneProcess()
-    {
-        if(global.READ_ONLY_DB)
-            return ;
-        var path = GetDataPath("DB/run");
-        if(fs.existsSync(path))
-        {
-            fs.unlinkSync(path)
-        }
-        try
-        {
-            this.BlockRunFI = BlockDB.OpenDBFile("run")
-        }
-        catch(e)
-        {
-            ToLog("****************************************** DETECT START ANOTHER PROCESS ******************************************")
-            ToLog("EXIT")
-            process.exit()
-        }
     }
     LoadMemBlocksOnStart()
     {
@@ -144,7 +123,7 @@ module.exports = class CDB extends require("../code")
                 ToLog("CheckBlocksOnStartFoward: " + num)
             if(bCheckBody)
             {
-                var TreeHash = this.CalcTreeHashFromArrBody(Block.arrContent);
+                var TreeHash = CalcTreeHashFromArrBody(Block.arrContent);
                 if(CompareArr(Block.TreeHash, TreeHash) !== 0)
                 {
                     ToLog("BAD TreeHash block=" + Block.BlockNum)
@@ -845,10 +824,44 @@ module.exports = class CDB extends require("../code")
     {
         if(StartNum === undefined)
             return BufLib.GetNewBuffer(10);
+        var GetLength = EndBlockNum - StartNum + 1;
         var PrevBlock;
         if(StartNum > 0)
             PrevBlock = this.ReadBlockHeaderDB(StartNum - 1)
         var arr = [];
+        var arr0 = this.PrevBlockChainArr;
+        if(arr0 && arr0.length === GetLength)
+        {
+            var StartNumArr =  - 1;
+            var EndNumArr =  - 1;
+            for(var i = 0; i < arr0.length; i++)
+            {
+                var BlockArr = arr0[i];
+                if(BlockArr.BlockNum === StartNum)
+                {
+                    StartNumArr = i
+                }
+                if(BlockArr.BlockNum <= EndBlockNum)
+                {
+                    EndNumArr = i
+                }
+            }
+            if(StartNumArr >= 0 && EndNumArr > StartNumArr)
+            {
+                var BlockArr = arr0[EndNumArr];
+                var Block = this.ReadBlockHeaderDB(BlockArr.BlockNum);
+                if(Block)
+                    if(CompareArr(BlockArr.SumHash, Block.SumHash) == 0)
+                    {
+                        arr0.splice(EndNumArr + 1, arr.length)
+                        if(StartNumArr > 0)
+                            arr0.splice(StartNumArr - 1, StartNumArr)
+                        arr = arr0
+                        PrevBlock = Block
+                        StartNum = Block.BlockNum + 1
+                    }
+            }
+        }
         for(var num = StartNum; num <= EndBlockNum; num++)
         {
             var Block = this.ReadBlockHeaderDB(num);
@@ -864,6 +877,7 @@ module.exports = class CDB extends require("../code")
             arr.push(Block)
             PrevBlock = Block
         }
+        this.PrevBlockChainArr = arr
         return this.ArrHeaderToBuf(WriteNum, arr);
     }
     ArrHeaderToBuf(StartNum, arr)
@@ -900,5 +914,50 @@ module.exports = class CDB extends require("../code")
             }
         }
         return BufWrite;
+    }
+};
+
+function AddInfo(Block,Str,BlockNumStart)
+{
+    if(!global.STAT_MODE)
+        return ;
+    if(!Block.Info)
+        Block.Info = Str;
+    else
+        if(Block.Info.length < 2000)
+        {
+            var timesend = "" + SERVER.CurrentBlockNum - BlockNumStart;
+            var now = GetCurrentTime();
+            timesend += ".[" + now.getSeconds().toStringZ(2) + "." + now.getMilliseconds().toStringZ(3) + "]";
+            Str = timesend + ": " + Str;
+            Block.Info += "\n" + Str;
+        }
+};
+global.AddInfoChain = function (Str)
+{
+    if(!global.STAT_MODE)
+        return ;
+    if(this.BlockNumStart > GetCurrentBlockNumByTime() - HISTORY_BLOCK_COUNT)
+        AddInfo(this, Str, this.BlockNumStart);
+};
+global.AddInfoBlock = function (Block,Str)
+{
+    if(!global.STAT_MODE)
+        return ;
+    if(Block && Block.BlockNum && Block.BlockNum > GetCurrentBlockNumByTime() - HISTORY_BLOCK_COUNT)
+        AddInfo(Block, Str, Block.BlockNum);
+};
+global.GetNodeStrPort = function (Node)
+{
+    if(!Node)
+        return "";
+    if(LOCAL_RUN)
+        return "" + Node.port;
+    else
+    {
+        if(!Node.ip)
+            return "";
+        var arr = Node.ip.split(".");
+        return "" + arr[2] + "." + arr[3];
     }
 };

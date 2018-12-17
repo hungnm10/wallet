@@ -1069,9 +1069,9 @@ function $Event(Description)
         BlockNum:RunContext.BlockNum, TrNum:RunContext.TrNum});
     if(global.DebugEvent)
         DebugEvent(Description);
-    if(WALLET.CurTrItem)
+    if(global.CurTrItem)
     {
-        ToLogClient(Description, GetHexFromArr(WALLET.CurTrItem.HASH), false);
+        ToLogClient(Description, global.CurTrItem, false);
     }
 };
 

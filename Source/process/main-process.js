@@ -9,21 +9,22 @@
 */
 
 const fs = require('fs');
-require("./constant");
+require("../core/constant");
 const crypto = require('crypto');
 global.START_SERVER = 1;
+global.PROCESS_NAME = "MAIN";
 global.DATA_PATH = GetNormalPathString(global.DATA_PATH);
 global.CODE_PATH = GetNormalPathString(global.CODE_PATH);
 console.log("DATA DIR: " + global.DATA_PATH);
 console.log("PROGRAM DIR: " + global.CODE_PATH);
-require("./library");
+require("../core/library");
 var VerArr = process.versions.node.split('.');
 if(VerArr[0] < 8)
 {
     ToError("Error version of NodeJS=" + VerArr[0] + "  Pls, download new version from www.nodejs.org and update it. The minimum version must be 8");
     process.exit();
 }
-var CServer = require("./server");
+var CServer = require("../core/server");
 global.glCurNumFindArr = 0;
 global.ArrReconnect = [];
 global.ArrConnect = [];
@@ -62,51 +63,29 @@ process.on('error', function (err)
     ToError(err.stack);
     ToLog(err.stack);
 });
-var idHostingAliveInterval = 0;
-var LastHostingAlive = Date.now();
-var HostingWorker;
+var ArrChildProcess = [];
+var WebProcess = {Name:"WEB PROCESS", idInterval:0, idInterval1:0, idInterval2:0, LastAlive:Date.now(), Worker:undefined, Path:"./process/web-process.js",
+    OnMessage:OnMessageHosting};
 if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 {
-    idHostingAliveInterval = setInterval(function ()
+    ArrChildProcess.push(WebProcess);
+    WebProcess.idInterval1 = setInterval(function ()
     {
-        var Delta = Date.now() - LastHostingAlive;
-        if(HostingWorker && Delta > 3 * 1000)
-        {
-            if(HostingWorker)
-            {
-                ToLog("KILL PROCESS: " + HostingWorker.pid);
-                try
-                {
-                    process.kill(HostingWorker.pid, 'SIGKILL');
-                }
-                catch(e)
-                {
-                }
-                HostingWorker = undefined;
-            }
-        }
-        if(HostingWorker && HostingWorker.connected)
+        if(WebProcess.Worker && WebProcess.Worker.connected)
         {
             try
             {
-                HostingWorker.send({cmd:"Stat", Name:"MAX:ALL_NODES", Value:global.CountAllNode});
+                WebProcess.Worker.send({cmd:"Stat", Name:"MAX:ALL_NODES", Value:global.CountAllNode});
             }
             catch(e)
             {
-                HostingWorker = undefined;
+                WebProcess.Worker = undefined;
             }
         }
-        if(!HostingWorker)
-        {
-            LastHostingAlive = (Date.now()) + 10 * 1000;
-            ToLog("STARTING WEB PROCESS");
-            HostingWorker = Fork("./core/hosting-server.js", ["READONLYDB"]);
-            HostingWorker.on('message', OnMessageHosting);
-        }
     }, 500);
-    setInterval(function ()
+    WebProcess.idInterval2 = setInterval(function ()
     {
-        if(HostingWorker && HostingWorker.connected)
+        if(WebProcess.Worker && WebProcess.Worker.connected)
         {
             var arr = SERVER.GetDirectNodesArray(true, true).slice(1, 500);
             var arr2 = [];
@@ -120,46 +99,155 @@ if(global.HTTP_HOSTING_PORT && !global.NWMODE)
                     if(Item.LastTimeGetNode && (CurTime - Item.LastTimeGetNode) < 3600 * 1000)
                         arr2.push({ip:Item.ip});
             }
-            HostingWorker.send({cmd:"NodeList", Value:arr, ValueAll:arr2});
+            WebProcess.Worker.send({cmd:"NodeList", Value:arr, ValueAll:arr2});
         }
     }, 5000);
 }
 
 function OnMessageHosting(msg)
 {
-    if(LastHostingAlive < Date.now())
-        LastHostingAlive = Date.now();
-    if(msg.cmd === "log")
+    if(msg.cmd === "SendTransactionHex")
     {
-        ToLog(msg.message);
+        var body = GetArrFromHex(msg.Value);
+        SERVER.AddTransaction({body:body}, 1);
     }
-    else
-        if(msg.cmd === "online")
-        {
-            ToLog("RUNING WEB PROCESS: " + msg.message);
-        }
-        else
-            if(msg.cmd === "SendTransactionHex")
-            {
-                var body = GetArrFromHex(msg.Value);
-                SERVER.AddTransaction({body:body}, 1);
-            }
-            else
-            {
-            }
 };
-global.StopHostingServer = function ()
+global.STATIC_PROCESS = {Name:"STATIC PROCESS", idInterval:0, idInterval1:0, idInterval2:0, LastAlive:Date.now(), Worker:undefined,
+    Path:"./process/static-process.js", OnMessage:OnMessageStatic};
+ArrChildProcess.push(STATIC_PROCESS);
+
+function OnMessageStatic(msg)
 {
-    if(idHostingAliveInterval)
-        clearInterval(idHostingAliveInterval);
-    idHostingAliveInterval = 0;
-    if(HostingWorker && HostingWorker.connected)
+    switch(msg.cmd)
     {
-        HostingWorker.send({cmd:"Exit"});
-        HostingWorker = undefined;
+        case "Send":
+            {
+                var Node = SERVER.NodesMap[msg.addrStr];
+                if(Node)
+                {
+                    msg.Data = msg.Data.data;
+                    SERVER.Send(Node, msg, 1);
+                }
+                break;
+            }
     }
 };
-require("./html-server");
+global.TX_PROCESS = {Name:"TX PROCESS", idInterval:0, idInterval1:0, idInterval2:0, LastAlive:Date.now(), Worker:undefined,
+    Path:"./process/tx-process.js", OnMessage:OnMessageWriter};
+ArrChildProcess.push(TX_PROCESS);
+
+function OnMessageWriter(msg)
+{
+    switch(msg.cmd)
+    {
+        case "RunOK":
+            {
+                break;
+            }
+    }
+};
+setInterval(function ()
+{
+    if(global.DApps && DApps.Accounts)
+    {
+        DApps.Accounts.Close();
+        DApps.Smart.DBSmart.Close();
+    }
+}, 1000);
+
+function StartAllChilds()
+{
+    for(var i = 0; i < ArrChildProcess.length; i++)
+    {
+        var Item = ArrChildProcess[i];
+        StartChildProcess(Item);
+    }
+};
+
+function StartChildProcess(Item)
+{
+    let ITEM = Item;
+    ITEM.idInterval = setInterval(function ()
+    {
+        var Delta = Date.now() - ITEM.LastAlive;
+        if(ITEM.Worker && Delta > 3 * 1000)
+        {
+            if(ITEM.Worker)
+            {
+                ToLog("KILL PROCESS " + ITEM.Name + ": " + ITEM.Worker.pid);
+                try
+                {
+                    process.kill(ITEM.Worker.pid, 'SIGKILL');
+                }
+                catch(e)
+                {
+                }
+                ITEM.Worker = undefined;
+            }
+        }
+        try
+        {
+            ITEM.Worker.send({cmd:"Alive"});
+        }
+        catch(e)
+        {
+            ITEM.Worker = undefined;
+        }
+        if(!ITEM.Worker)
+        {
+            ITEM.LastAlive = (Date.now()) + 10 * 1000;
+            ToLog("STARTING " + ITEM.Name);
+            ITEM.Worker = Fork(ITEM.Path, ["READONLYDB"]);
+            ITEM.Worker.on('message', function (msg)
+            {
+                if(ITEM.LastAlive < Date.now())
+                    ITEM.LastAlive = Date.now();
+                if(msg.cmd === "log")
+                {
+                    ToLog(msg.message);
+                }
+                else
+                    if(msg.cmd === "ToLogClient")
+                    {
+                        ToLogClient(msg.Str, msg.StrKey, msg.bFinal);
+                    }
+                    else
+                        if(msg.cmd === "online")
+                        {
+                            ToLog("RUNING " + ITEM.Name + " : " + msg.message);
+                        }
+                        else
+                            if(ITEM.OnMessage)
+                            {
+                                ITEM.OnMessage(msg);
+                            }
+            });
+        }
+    }, 500);
+};
+global.StopChildProcess = function ()
+{
+    for(var i = 0; i < ArrChildProcess.length; i++)
+    {
+        var Item = ArrChildProcess[i];
+        if(Item.idInterval)
+            clearInterval(Item.idInterval);
+        Item.idInterval = 0;
+        if(Item.idInterval1)
+            clearInterval(Item.idInterval1);
+        Item.idInterval1 = 0;
+        if(Item.idInterval2)
+            clearInterval(Item.idInterval2);
+        Item.idInterval2 = 0;
+        if(Item.Worker && Item.Worker.connected)
+        {
+            Item.Worker.send({cmd:"Exit"});
+            Item.Worker = undefined;
+        }
+    }
+    RunStopPOWProcess("STOP");
+};
+require("../core/html-server");
 RunServer();
 setInterval(function run1()
 {
@@ -263,7 +351,7 @@ function RunStopPOWProcess(Mode)
         return ;
     var PathMiner = GetCodePath("../miner.js");
     if(!fs.existsSync(PathMiner))
-        PathMiner = "./core/pow-process.js";
+        PathMiner = "./process/pow-process.js";
     if(ArrMiningWrk.length >= GetCountMiningCPU())
         return ;
     if(GrayConnect())
@@ -471,6 +559,7 @@ function RunOnce()
     {
         clearInterval(idRunOnce);
         RunOnUpdate();
+        StartAllChilds();
         if(global.RESTART_PERIOD_SEC)
         {
             var Period = (random(600) + global.RESTART_PERIOD_SEC);
@@ -495,15 +584,16 @@ function RunOnUpdate()
     if(CurNum !== UPDATE_CODE_VERSION_NUM)
     {
         global.UPDATE_NUM_COMPLETE = UPDATE_CODE_VERSION_NUM;
-        SAVE_CONST(true);
         global.SendLogToClient = 1;
         ToLog("UPDATER Start");
+        SAVE_CONST(true);
         if(global.TEST_NETWORK)
         {
         }
         else
         {
             FixBlockBug12970020();
+            RecreateAccountHashDB();
         }
         ToLog("UPDATER Finish");
         global.SendLogToClient = 0;
@@ -577,4 +667,35 @@ function CorrectBlockBug12970020(Block)
     Block.TreeHash = GetArrFromHex("9FE0A443BD42E70206133119D6D13638D422E34BD5CC38A7A12368EB4A8A1D4F");
     CreateHashMinimal(Block, 0);
     Block.SumPow = 367146128;
+};
+
+function RecreateAccountHashDB()
+{
+    var name = "accounts-hash";
+    var fname = GetDataPath("DB/" + name);
+    if(fs.existsSync(fname))
+    {
+        global.UpdateMode = 1;
+        ToLog("Start updating " + name);
+        const DBRow = require("../core/db/db-row");
+        var DB0 = new DBRow(name, 6 + 32 + 12, "{BlockNum:uint,Hash:hash, Reserve: arr12}");
+        var DB2 = DApps.Accounts.DBAccountsHash;
+        for(var num = START_BLOCK_ACCOUNT_HASH; true; num += PERIOD_ACCOUNT_HASH)
+        {
+            var Item = DB0.Read(num);
+            if(!Item)
+                break;
+            var Block = SERVER.ReadBlockHeaderDB(num);
+            if(!Block)
+                break;
+            var Data = {Num:Block.BlockNum / PERIOD_ACCOUNT_HASH, BlockNum:Block.BlockNum, Hash:Item.Hash, SumHash:Block.SumHash};
+            DB2.Write(Data);
+            DB2.Truncate(Block.BlockNum / PERIOD_ACCOUNT_HASH);
+        }
+        ToLog("Finish updating " + name);
+        DB0.Close();
+        DB2.Close();
+        global.UpdateMode = 0;
+        fs.unlinkSync(fname);
+    }
 };

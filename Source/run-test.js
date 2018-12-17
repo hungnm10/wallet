@@ -10,4 +10,4 @@ if(global.LOCAL_RUN===undefined)
 
 global.TEST_NETWORK = 1;
 
-require('./core/run-server');
+require('./process/main-process');

@@ -52,6 +52,9 @@ module.exports = class CSmartContract extends require("./block-exchange")
     }
     OnWriteBlock(Block)
     {
+    }
+    BlockProcessTX(Block)
+    {
         if(Block.BlockNum < 1)
             return ;
         var COUNT_MEM_BLOCKS = 0;
@@ -99,8 +102,9 @@ module.exports = class CSmartContract extends require("./block-exchange")
                 if(App)
                 {
                     DApps.Accounts.BeginTransaction()
-                    var item = WALLET.ObservTree.find({HASH:shaarr(arr[i])});
-                    WALLET.CurTrItem = item
+                    var StrHex = GetHexFromArr(shaarr(arr[i]));
+                    var item = SERVER.TreeFindTX.LoadValue(StrHex);
+                    global.CurTrItem = item
                     var Result = App.OnWriteTransaction(Block, arr[i], BlockNum, i);
                     if(item)
                     {
@@ -111,15 +115,13 @@ module.exports = class CSmartContract extends require("./block-exchange")
                             if(type === global.TYPE_TRANSACTION_FILE)
                                 ResultStr += ": file/" + BlockNum + "/" + i
                         }
-                        item.result = ResultStr
-                        ToLogClient(ResultStr, GetHexFromArr(item.HASH), true)
-                        WALLET.ObservTree.remove(item)
+                        ToLogClient(ResultStr, item, true)
                     }
                     if(Result === true)
                         DApps.Accounts.CommitTransaction(BlockNum, i)
                     else
                         DApps.Accounts.RollBackTransaction()
-                    WALLET.CurTrItem = undefined
+                    global.CurTrItem = undefined
                 }
             }
         if(COUNT_MEM_BLOCKS)

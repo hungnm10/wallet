@@ -8,8 +8,8 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 754;
-global.MIN_CODE_VERSION_NUM = 752;
+global.UPDATE_CODE_VERSION_NUM = 760;
+global.MIN_CODE_VERSION_NUM = 753;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
 "STAT_MODE", "UPDATE_NUM_COMPLETE", "HTTP_IP_CONNECT", "HTTP_PORT_NUMBER", "HTTP_PORT_PASSWORD", "WALLET_NAME", "WALLET_DESCRIPTION",
@@ -67,6 +67,8 @@ global.MAX_CONNECT_CHILD = 7;
 global.MAX_NODES_RETURN = 100;
 global.MAX_WAIT_PERIOD_FOR_STATUS = 10 * 1000;
 global.MAX_GRAY_CONNECTIONS_TO_SERVER = 10;
+global.MAX_PACKET_LENGTH = 400 * 1024;
+global.COUNT_BLOCKS_FOR_LOAD = 600;
 global.TR_LEN = 100;
 global.BLOCK_PROCESSING_LENGTH = 8;
 global.BLOCK_PROCESSING_LENGTH2 = BLOCK_PROCESSING_LENGTH * 2;
@@ -86,12 +88,12 @@ global.MIN_POWER_POW_ACC_CREATE = 16;
 global.START_MINING = 2 * 1000 * 1000;
 global.REF_PERIOD_MINING = 1 * 1000 * 1000;
 global.DELTA_BLOCK_ACCOUNT_HASH = 1000;
-global.PERIOD_ACCOUNT_HASH = 10;
+global.PERIOD_ACCOUNT_HASH = 50;
+global.START_BLOCK_ACCOUNT_HASH = 14500000;
 global.BLOCK_COUNT_IN_MEMORY = 40;
 global.HISTORY_BLOCK_COUNT = 40;
 global.MAX_STAT_PERIOD = 1 * 3600;
 global.MAX_SIZE_LOG = 200 * 1024 * 1024;
-global.DECENTRALIZATION_LENGTH_FACTOR = 0;
 global.READ_ONLY_DB = 0;
 global.USE_CHECK_SAVE_DB = 1;
 global.START_NETWORK_DATE = 1530446400000;
@@ -105,12 +107,14 @@ global.PRICE_DAO = function (BlockNum)
 InitParamsArg();
 if(global.LOCAL_RUN)
 {
+    global.DELTA_BLOCK_ACCOUNT_HASH = 30;
+    global.PERIOD_ACCOUNT_HASH = 10;
+    global.START_BLOCK_ACCOUNT_HASH = 1;
     global.SMART_BLOCKNUM_START = 0;
     global.START_MINING = 60;
     global.REF_PERIOD_MINING = 10;
     var Num = (new Date) - 0 - 50 * 1000;
     global.START_NETWORK_DATE = Math.trunc(Num / 1000) * 1000;
-    global.DELTA_BLOCK_ACCOUNT_HASH = 60;
     global.TEST_TRANSACTION_GENERATE = 0;
     global.MIN_POWER_POW_TR = 0;
     global.MIN_POWER_POW_ACC_CREATE = 0;
@@ -124,7 +128,7 @@ else
         var Num = (new Date) - 0 - 50 * 1000;
         console.log("CURRENT NUM: " + (Math.trunc(Num / 1000) * 1000));
         global.SMART_BLOCKNUM_START = 0;
-        global.START_NETWORK_DATE = 1541613403000 + 230000 * 1000 + 1000000 * 1000;
+        global.START_NETWORK_DATE = 1544879533000;
         global.START_MINING = 1000;
         global.REF_PERIOD_MINING = 1000;
         global.MIN_POWER_POW_TR = 8;
@@ -133,13 +137,15 @@ else
         global.TRANSACTION_PROOF_COUNT = 200 * 1000;
         global.MAX_SIZE_LOG = 20 * 1024 * 1024;
         global.DELTA_BLOCK_ACCOUNT_HASH = 1000;
-        global.PERIOD_ACCOUNT_HASH = 50;
+        global.START_BLOCK_ACCOUNT_HASH = 1000;
         global.WALLET_NAME = "TEST";
         NETWORK = "TERA-TEST";
         if(global.START_PORT_NUMBER === undefined)
             global.START_PORT_NUMBER = 40000;
         global.ALL_VIEW_ROWS = 1;
     }
+global.MIN_POWER_POW_TR = 0;
+global.AVG_TRANSACTION_COUNT = 2000;
 global.GetNetworkName = function ()
 {
     return NETWORK + "-" + DEF_MAJOR_VERSION;

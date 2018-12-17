@@ -43,7 +43,6 @@ module.exports = class CConsensus extends require("./block-loader")
         this.RelayMode = false
         this.SendCount = 0
         this.TreeSendPacket = new RBTree(CompareItemHash)
-        this.MapMining = undefined
         if(!global.ADDRLIST_MODE && !this.VirtualMode)
         {
             this.idBlockChainTimer = setInterval(this.StartBlockChain.bind(this), CONSENSUS_PERIOD_TIME - 5)
@@ -894,24 +893,6 @@ module.exports = class CConsensus extends require("./block-loader")
         var Tree = CalcMerklFromArray(arrHASH);
         return Tree.Root;
     }
-    CalcTreeHashFromArrBody(arrContent)
-    {
-        if(arrContent)
-        {
-            var arrHASH = [];
-            for(var i = 0; i < arrContent.length; i++)
-            {
-                var HASH = shaarr(arrContent[i]);
-                arrHASH.push(HASH)
-            }
-            var Tree = CalcMerklFromArray(arrHASH);
-            return Tree.Root;
-        }
-        else
-        {
-            return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        }
-    }
     CreateTreeHash(Block)
     {
         if(Block.EndExchange)
@@ -941,40 +922,6 @@ module.exports = class CConsensus extends require("./block-loader")
         Block.arrContent = arrContent
         Block.TrCount = Block.arrContent.length
     }
-    InitMapMining()
-    {
-        if(!global.DECENTRALIZATION_LENGTH_FACTOR)
-            return ;
-        this.MapMining = {}
-        for(var Num = this.BlockNumDB - global.DECENTRALIZATION_LENGTH_FACTOR; Num <= this.BlockNumDB; Num++)
-        {
-            var Block = this.ReadBlockHeaderFromMapDB(Num);
-            if(Block)
-            {
-                this.AddToMapMining(Block)
-            }
-        }
-    }
-    AddToMapMining(Block)
-    {
-        if(!global.DECENTRALIZATION_LENGTH_FACTOR)
-            return ;
-        if(!this.MapMining)
-            this.InitMapMining()
-        var MinerID = ReadUintFromArr(Block.AddrHash, 0);
-        this.MapMining[MinerID] = Block.BlockNum
-    }
-    DeleteHeadMapMining()
-    {
-        for(var Key in this.MapMining)
-        {
-            var Num = this.MapMining[Key];
-            if(Num < this.BlockNumDB - global.DECENTRALIZATION_LENGTH_FACTOR)
-            {
-                delete this.MapMining[Key]
-            }
-        }
-    }
     DoBlockChain()
     {
         if(glStopNode)
@@ -994,7 +941,7 @@ module.exports = class CConsensus extends require("./block-loader")
         var bWasSave = false;
         var LoadBlockNum;
         var LoadHash;
-        var start_save = CURRENTBLOCKNUM + TIME_START_SAVE;
+        var start_save = CURRENTBLOCKNUM + TIME_END_EXCHANGE;
         for(var i = CURRENTBLOCKNUM - BLOCK_PROCESSING_LENGTH2; i > BLOCK_PROCESSING_LENGTH2 && i < CURRENTBLOCKNUM; i++)
         {
             var Block = this.GetBlock(i);
@@ -1156,8 +1103,6 @@ module.exports = class CConsensus extends require("./block-loader")
                     Block.StartMining = false
                     if(this.WriteBlockDB(Block))
                     {
-                        this.AddToMapMining(Block)
-                        this.DeleteHeadMapMining()
                         if(Block.arrContent && Block.arrContent.length)
                             ADD_TO_STAT("MAX:TRANSACTION_COUNT", Block.arrContent.length)
                         AddInfoBlock(Block, "SAVE TO DB: " + this.GetStrFromHashShort(Block.SumHash))

@@ -12,6 +12,7 @@ var fs = require('fs');
 const os = require('os');
 require("./constant.js");
 require('../HTML/JS/terahashlib.js');
+require("./crypto-library");
 if(global.USE_PARAM_JS)
 {
     var PathParams = GetCodePath("../extern-run.js");

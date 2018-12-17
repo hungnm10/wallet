@@ -59,6 +59,8 @@ module.exports = class
             ToLogTrace("CANNOT WRITE - DB IN READ_ONLY MODE!!!")
             process.exit()
         }
+        if(bWrite)
+            CheckStartOneProcess(name + "-run")
         this.LastHash = undefined
         this.WasUpdate = 1
         var Item = this.DBMap[name];
@@ -89,3 +91,30 @@ module.exports = class
         return Item;
     }
 };
+var MapCheckProcess = {};
+var BlockDB = new module.exports();
+
+function CheckStartOneProcess(Name)
+{
+    if(global.UpdateMode)
+        return ;
+    if(global.READ_ONLY_DB || MapCheckProcess[Name])
+        return ;
+    MapCheckProcess[Name] = 1;
+    var path = GetDataPath("DB/" + Name);
+    if(fs.existsSync(path))
+    {
+        fs.unlinkSync(path);
+    }
+    try
+    {
+        BlockDB.OpenDBFile(Name);
+    }
+    catch(e)
+    {
+        ToLog("****** DETECT START ANOTHER PROCESS for: " + Name);
+        ToLog("EXIT");
+        process.exit();
+    }
+};
+global.CheckStartOneProcess = CheckStartOneProcess;

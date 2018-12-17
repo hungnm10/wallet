@@ -13,6 +13,7 @@ const fs = require('fs');
 const DBRow = require("../core/db/db-row");
 const MAX_SUM_TER = 1e9;
 const MAX_SUM_CENT = 1e9;
+global.EventMap = {};
 const TYPE_TRANSACTION_CREATE = 100;
 const TYPE_TRANSACTION_TRANSFER = 105;
 const TYPE_TRANSACTION_TRANSFER2 = 110;
@@ -138,7 +139,9 @@ class AccountApp extends require("./dapp")
         this.DBActPrev = new DBRow("accounts-act-prev", this.DBAct.DataSize, this.DBAct.Format)
         if(global.READ_ONLY_DB)
             return ;
-        this.DBAccountsHash = new DBRow("accounts-hash", 6 + 32 + 12, "{BlockNum:uint,Hash:hash, Reserve: arr12}")
+        this.DBAccountsHash = new DBRow("accounts-hash2", 6 + 32 + 32 + 10, "{BlockNum:uint,Hash:hash, SumHash:hash, Reserve: arr10}")
+        if(global.START_SERVER)
+            return ;
         this.Start()
         setInterval(this.ControlActSize.bind(this), 60 * 1000)
     }
@@ -159,6 +162,14 @@ class AccountApp extends require("./dapp")
         for(var i = 10; i < BLOCK_PROCESSING_LENGTH2; i++)
             this.DBState.Write({Num:i, PubKey:GetArrFromHex(ARR_PUB_KEY[i - 8]), Value:{BlockNum:1}, Name:""})
         ToLog("MAX_NUM:" + this.DBState.GetMaxNum())
+    }
+    Close()
+    {
+        this.DBState.Close()
+        this.DBActPrev.Close()
+        this.DBAct.Close()
+        if(this.DBAccountsHash)
+            this.DBAccountsHash.Close()
     }
     ClearDataBase()
     {
@@ -217,7 +228,7 @@ class AccountApp extends require("./dapp")
             ToError("DoCoinBaseTR: " + e)
         }
         this.CommitBlock(Block.BlockNum)
-        this.CalcHash(Block.BlockNum)
+        this.CalcHash(Block)
     }
     OnWriteTransaction(Block, Body, BlockNum, TrNum, ContextFrom)
     {
@@ -264,13 +275,15 @@ class AccountApp extends require("./dapp")
                 }
             case TYPE_TRANSACTION_ACC_HASH:
                 {
+                    if(global.LOCAL_RUN || global.TEST_NETWORK);
+                    else
+                        if(BlockNum < START_BLOCK_ACCOUNT_HASH + 101000)
+                            break;
                     var BlockNumHash = BlockNum - DELTA_BLOCK_ACCOUNT_HASH;
                     if(!this.TRCheckAccountHash(Body, BlockNum, TrNum))
                     {
                         Result = "BAD ACCOUNT HASH"
                         ToLog("2. ****FIND BAD ACCOUNT HASH IN BLOCK: " + BlockNumHash + " DO BLOCK=" + BlockNum)
-                        ToLog("Need to Rewrite transactions from: " + (BlockNum - 2 * DELTA_BLOCK_ACCOUNT_HASH))
-                        SERVER.SetTruncateBlockDB(BlockNumHash - 1)
                     }
                     else
                     {
@@ -447,7 +460,7 @@ class AccountApp extends require("./dapp")
         {
             return 0;
         }
-        var Item = this.DBAccountsHash.Read(TR.BlockNum);
+        var Item = this.DBAccountsHash.Read(TR.BlockNum / PERIOD_ACCOUNT_HASH);
         if(Item)
         {
             if(CompareArr(Item.Hash, TR.Hash) === 0)
@@ -709,7 +722,8 @@ class AccountApp extends require("./dapp")
     {
         this.DeleteActOneDB(this.DBAct, BlockNumFrom)
         this.DeleteActOneDB(this.DBActPrev, BlockNumFrom)
-        this.DBAccountsHash.Truncate(BlockNumFrom - 1)
+        if(BlockNumFrom % PERIOD_ACCOUNT_HASH === 0)
+            this.DBAccountsHash.Truncate(BlockNumFrom / PERIOD_ACCOUNT_HASH - 1)
         WALLET.OnDeleteBlock(BlockNumFrom)
     }
     DeleteActOneDB(DBAct, BlockNum)
@@ -964,7 +978,9 @@ class AccountApp extends require("./dapp")
         else
             if(BlockNum < 5300000)
                 return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        var Item = this.DBAccountsHash.Read(BlockNum);
+        if(BlockNum % PERIOD_ACCOUNT_HASH !== 0)
+            return undefined;
+        var Item = this.DBAccountsHash.Read(BlockNum / PERIOD_ACCOUNT_HASH);
         if(Item)
             return Item.Hash;
         else
@@ -981,25 +997,21 @@ class AccountApp extends require("./dapp")
         else
             return 0;
     }
-    CalcHash(BlockNum)
+    CalcHash(Block)
     {
-        if(global.LOCAL_RUN || global.TEST_NETWORK)
-        {
-            if(BlockNum < 100)
-                return ;
-        }
-        else
-            if(BlockNum < 5300000)
-                return ;
+        if(Block.BlockNum % PERIOD_ACCOUNT_HASH !== 0)
+            return ;
+        if(Block.BlockNum < START_BLOCK_ACCOUNT_HASH)
+            return ;
         if(this.DBState.WasUpdate)
         {
             this.DBState.MerkleHash = this.DBState.CalcMerkleTree()
             this.DBState.WasUpdate = 0
         }
         var Hash = this.DBState.MerkleHash;
-        var Data = {Num:BlockNum, BlockNum:BlockNum, Hash:Hash};
+        var Data = {Num:Block.BlockNum / PERIOD_ACCOUNT_HASH, BlockNum:Block.BlockNum, Hash:Hash, SumHash:Block.SumHash};
         this.DBAccountsHash.Write(Data)
-        this.DBAccountsHash.Truncate(BlockNum)
+        this.DBAccountsHash.Truncate(Block.BlockNum / PERIOD_ACCOUNT_HASH)
     }
     GetAdviserByMiner(Map, Id)
     {

@@ -13,7 +13,6 @@ const fs = require("fs");
 const crypto = require('crypto');
 const RBTree = require('bintrees').RBTree;
 const STAT_BLOCK_LOAD_PERIOD = CONSENSUS_PERIOD_TIME / 5;
-global.COUNT_BLOCKS_FOR_LOAD = 600;
 global.PERIOD_GET_BLOCK = 300;
 if(global.LOCAL_RUN || global.TEST_NETWORK)
 {
@@ -27,10 +26,10 @@ global.PACKET_ALIVE_PERIOD_NEXT_NODE = PACKET_ALIVE_PERIOD / 2;
 global.MAX_BLOCK_SEND = 8;
 global.COUNT_TASK_FOR_NODE = 10;
 const Formats = {BLOCK_TRANSFER:"{\
-        BlockNum:uint,\
-        TreeHash:hash,\
-        arrContent:[tr],\
-        }",
+            BlockNum:uint,\
+            TreeHash:hash,\
+            arrContent:[tr],\
+            }",
     WRK_BLOCK_TRANSFER:{}, };
 module.exports = class CBlock extends require("./db/block-db")
 {
@@ -154,7 +153,9 @@ module.exports = class CBlock extends require("./db/block-db")
         else
         {
             if(this.LoadHistoryMessage)
+            {
                 ToLog("Start synchronization")
+            }
         }
     }
     StartLoadBlockHeader(LoadHash, Num, StrInfo, bIsSum)
@@ -363,8 +364,8 @@ module.exports = class CBlock extends require("./db/block-db")
             }
             if(Node.Active)
             {
-                if(!Node.INFO || !Node.INFO.WasPing || Node.StopGetBlock || Node.INFO.CheckPointHashDB && CHECK_POINT.BlockNum && CompareArr(CHECK_POINT.Hash,
-                Node.INFO.CheckPointHashDB) !== 0)
+                if(!Node.INFO || !Node.INFO.WasPing || Node.StopGetBlock || (Node.INFO.CheckPointHashDB && CHECK_POINT.BlockNum && CompareArr(CHECK_POINT.Hash,
+                Node.INFO.CheckPointHashDB) !== 0))
                 {
                     timewait = true
                     continue;
@@ -436,50 +437,6 @@ module.exports = class CBlock extends require("./db/block-db")
                 Count:uint,\
                 IsSum:byte\
             }";
-    }
-    GETBLOCKHEADER(Info, CurTime)
-    {
-        var Data = this.DataFromF(Info);
-        var arr = [];
-        var StartNum = undefined;
-        var WriteNum = undefined;
-        var BlockNum;
-        var LoadHash = Data.Hash;
-        var Foward = Data.Foward;
-        if(Foward)
-        {
-            var BlockDB = this.ReadBlockHeaderDB(Data.BlockNum);
-            if(BlockDB && BlockDB.SumHash && CompareArr(BlockDB.SumHash, LoadHash) === 0)
-            {
-                StartNum = Data.BlockNum - BLOCK_PROCESSING_LENGTH2
-                if(StartNum < 0)
-                    StartNum = 0
-                BlockNum = StartNum + COUNT_BLOCKS_FOR_LOAD + BLOCK_PROCESSING_LENGTH2
-                if(BlockNum > this.BlockNumDB)
-                    BlockNum = this.BlockNumDB
-            }
-        }
-        else
-        {
-            BlockNum = Data.BlockNum
-            var IsSum = Data.IsSum;
-            var Count = Data.Count;
-            if(!Count || Count < 0 || BlockNum < 0)
-                return ;
-            if(Count > COUNT_BLOCKS_FOR_LOAD)
-                Count = COUNT_BLOCKS_FOR_LOAD
-            Count += BLOCK_PROCESSING_LENGTH2
-            var BlockDB = this.ReadBlockHeaderDB(BlockNum);
-            if(BlockDB && (BlockDB.Prepared && (!IsSum) && BlockDB.Hash && CompareArr(BlockDB.Hash, LoadHash) === 0 || BlockDB.bSave && IsSum && BlockDB.SumHash && CompareArr(BlockDB.SumHash,
-            LoadHash) === 0))
-            {
-                StartNum = BlockNum - Count + 1
-                if(StartNum < 0)
-                    StartNum = 0
-            }
-        }
-        var BufWrite = this.BlockChainToBuf(StartNum, StartNum, BlockNum);
-        this.Send(Info.Node, {"Method":"RETBLOCKHEADER", "Context":Info.Context, "Data":BufWrite}, 1)
     }
     GetBlockArrFromBuffer_Load(BufRead, Info)
     {
@@ -561,7 +518,7 @@ module.exports = class CBlock extends require("./db/block-db")
     }
     RETBLOCKHEADER(Info, CurTime)
     {
-        Info.Node.NextPing = 1000
+        Info.Node.NextPing = MIN_PERIOD_PING
         if(Info.Context.Foward)
             return this.RETBLOCKHEADER_FOWARD(Info, CurTime);
         var chain = Info.Context.Chain;
@@ -917,7 +874,6 @@ module.exports = class CBlock extends require("./db/block-db")
         var startTime = process.hrtime();
         if(this.LoadHistoryMessage)
             ToLog("WRITE DATA Count:" + arr.length + "  " + arr[0].BlockNum + "-" + arr[arr.length - 1].BlockNum)
-        this.MapMining = undefined
         var CurrentBlockNum = GetCurrentBlockNumByTime();
         var Block, FirstBlock;
         for(var i = 0; i < arr.length; i++)
@@ -1116,69 +1072,10 @@ module.exports = class CBlock extends require("./db/block-db")
                     TreeHash:hash,\
                 }";
     }
-    GETBLOCK(Info, CurTime)
-    {
-        var Data = this.DataFromF(Info);
-        var BlockNum = Data.BlockNum;
-        var TreeHash = Data.TreeHash;
-        if(Info.Context.SendCount)
-        {
-            return ;
-        }
-        var BufWrite;
-        var BlockDB = undefined;
-        if(TreeHash && !IsZeroArr(TreeHash))
-        {
-            BlockDB = this.ReadBlockDB(BlockNum)
-        }
-        var StrSend;
-        if(BlockDB && CompareArr(BlockDB.TreeHash, TreeHash) === 0)
-        {
-            var BufWrite = BufLib.GetBufferFromObject(BlockDB, Formats.BLOCK_TRANSFER, MAX_PACKET_LENGTH, Formats.WRK_BLOCK_TRANSFER);
-            StrSend = "OK"
-        }
-        else
-        {
-            var BlockFind = this.FindBlockInLoadedChain(BlockNum, TreeHash);
-            if(BlockFind && CompareArr(BlockFind.TreeHash, TreeHash) === 0)
-            {
-                var Res = this.ReadBlockBodyDB(BlockFind);
-                if(Res)
-                {
-                    var BufWrite = BufLib.GetBufferFromObject(BlockFind, Formats.BLOCK_TRANSFER, MAX_PACKET_LENGTH, Formats.WRK_BLOCK_TRANSFER);
-                    StrSend = "OK"
-                    ADD_TO_STAT("BLOCK_SEND_MEM")
-                }
-            }
-        }
-        if(StrSend === "OK")
-        {
-            var TreeHash = this.CalcTreeHashFromArrBody(BlockDB.arrContent);
-            if(CompareArr(BlockDB.TreeHash, TreeHash) !== 0)
-            {
-                ToLog("1. BAD CMP TreeHash block=" + BlockDB.BlockNum + " TO: " + NodeName(Info.Node) + "  TreeHash=" + GetHexFromArr(TreeHash) + "  BlockTreeHash=" + GetHexFromArr(BlockDB.TreeHash))
-                StrSend = "NO"
-            }
-        }
-        if(StrSend === "OK")
-        {
-            ADD_TO_STAT("BLOCK_SEND")
-        }
-        else
-        {
-            BufWrite = BufLib.GetNewBuffer(100)
-            StrSend = "NO"
-        }
-        this.Send(Info.Node, {"Method":"RETGETBLOCK", "Context":Info.Context, "Data":BufWrite}, 1)
-    }
     RETGETBLOCK(Info, CurTime)
     {
-        Info.Node.NextPing = 1000
+        Info.Node.NextPing = MIN_PERIOD_PING
         var Block = Info.Context.Block;
-        if(Block && Block.TreeEq)
-        {
-            ADD_TO_STAT("DOUBLE_RETGETBLOCK")
-        }
         if(Block && !Block.TreeEq)
         {
             var Data = BufLib.GetObjectFromBuffer(Info.Data, Formats.BLOCK_TRANSFER, Formats.WRK_BLOCK_TRANSFER);
@@ -1194,7 +1091,7 @@ module.exports = class CBlock extends require("./db/block-db")
                 AddInfoBlock(Block, "LOAD TR OK")
             }
             var arrContent = Data.arrContent;
-            var TreeHash = this.CalcTreeHashFromArrBody(arrContent);
+            var TreeHash = CalcTreeHashFromArrBody(arrContent);
             if(CompareArr(Block.TreeHash, TreeHash) !== 0)
             {
                 ToLog("2. BAD CMP TreeHash block=" + Block.BlockNum + " from:" + NodeName(Info.Node) + "  TreeHash=" + GetHexFromArr(TreeHash) + "  BlockTreeHash=" + GetHexFromArr(Block.TreeHash))
@@ -1301,8 +1198,6 @@ module.exports = class CBlock extends require("./db/block-db")
     CheckSeqHashDB(Block, StrError)
     {
         if(Block.BlockNum < BLOCK_PROCESSING_LENGTH2)
-            return true;
-        if(Block.BlockNum <= 12970036)
             return true;
         var startPrev = Block.BlockNum - BLOCK_PROCESSING_LENGTH2;
         var arr = [];
@@ -1525,50 +1420,5 @@ function GetFindDB()
         this.ChainBindMethods(chain)
         this.SetChainNum(chain)
         this.PrepareTransactionsForLoad(chain, arr, 1)
-    }
-};
-
-function AddInfo(Block,Str,BlockNumStart)
-{
-    if(!global.STAT_MODE)
-        return ;
-    if(!Block.Info)
-        Block.Info = Str;
-    else
-        if(Block.Info.length < 2000)
-        {
-            var timesend = "" + SERVER.CurrentBlockNum - BlockNumStart;
-            var now = GetCurrentTime();
-            timesend += ".[" + now.getSeconds().toStringZ(2) + "." + now.getMilliseconds().toStringZ(3) + "]";
-            Str = timesend + ": " + Str;
-            Block.Info += "\n" + Str;
-        }
-};
-global.AddInfoChain = function (Str)
-{
-    if(!global.STAT_MODE)
-        return ;
-    if(this.BlockNumStart > GetCurrentBlockNumByTime() - HISTORY_BLOCK_COUNT)
-        AddInfo(this, Str, this.BlockNumStart);
-};
-global.AddInfoBlock = function (Block,Str)
-{
-    if(!global.STAT_MODE)
-        return ;
-    if(Block && Block.BlockNum && Block.BlockNum > GetCurrentBlockNumByTime() - HISTORY_BLOCK_COUNT)
-        AddInfo(Block, Str, Block.BlockNum);
-};
-global.GetNodeStrPort = function (Node)
-{
-    if(!Node)
-        return "";
-    if(LOCAL_RUN)
-        return "" + Node.port;
-    else
-    {
-        if(!Node.ip)
-            return "";
-        var arr = Node.ip.split(".");
-        return "" + arr[2] + "." + arr[3];
     }
 };

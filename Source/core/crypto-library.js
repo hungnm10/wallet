@@ -445,6 +445,25 @@ function CalcMerklFromArray(Arr,Tree0)
     return CalcMerklFromArray(Arr2, Tree);
 };
 
+function CalcTreeHashFromArrBody(arrContent)
+{
+    if(arrContent)
+    {
+        var arrHASH = [];
+        for(var i = 0; i < arrContent.length; i++)
+        {
+            var HASH = shaarr(arrContent[i]);
+            arrHASH.push(HASH);
+        }
+        var Tree = CalcMerklFromArray(arrHASH);
+        return Tree.Root;
+    }
+    else
+    {
+        return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+};
+
 function TestMerklTree()
 {
     var h1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -1045,6 +1064,7 @@ global.CreateHashBody = CreateHashBody;
 global.CreateHashBodyPOWInnerMinPower = CreateHashBodyPOWInnerMinPower;
 global.CalcHashFromArray = CalcHashFromArray;
 global.CalcMerklFromArray = CalcMerklFromArray;
+global.CalcTreeHashFromArrBody = CalcTreeHashFromArrBody;
 global.UpdateMerklTree = UpdateMerklTree;
 global.IsZeroArr = IsZeroArr;
 global.GetHashWithNonce = GetHashWithNonce;

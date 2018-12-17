@@ -19,6 +19,7 @@ global.CODE_VERSION = {BlockNum:0, addrArr:[], LevelUpdate:0, BlockPeriod:0, Ver
     StartLoadVersionNum:0};
 global.START_LOAD_CODE = {};
 const MAX_PERIOD_GETNODES = 120 * 1000;
+global.MIN_PERIOD_PING = 4 * 1000;
 const MAX_PERIOD_PING = 120 * 1000;
 var MAX_PING_FOR_CONNECT = 200;
 var MAX_TIME_CORRECT = 3 * 3600 * 1000;
@@ -161,9 +162,9 @@ module.exports = class CConnect extends require("./transfer-msg")
             if(this.IsCanConnect(Node) && !Node.IsAddrList)
             {
                 if(Node.Hot)
-                    Node.NextPing = 1000
-                if(Node.NextPing < 4000)
-                    Node.NextPing = 4000
+                    Node.NextPing = MIN_PERIOD_PING
+                if(Node.NextPing < MIN_PERIOD_PING)
+                    Node.NextPing = MIN_PERIOD_PING
                 var Delta = (new Date) - Node.PingStart;
                 if(Delta >= Node.NextPing)
                 {
@@ -188,11 +189,13 @@ module.exports = class CConnect extends require("./transfer-msg")
         var BlockNumHash = GetCurrentBlockNumByTime() - BLOCK_PROCESSING_LENGTH2;
         var AccountsHash = DApps.Accounts.GetHashOrUndefined(BlockNumHash);
         var CheckPointHashDB = [];
-        if(CHECK_POINT.BlockNum)
+        if(CHECK_POINT.BlockNum && CHECK_POINT.BlockNum <= this.BlockNumDB)
         {
             var Block = this.ReadBlockHeaderFromMapDB(CHECK_POINT.BlockNum);
             if(Block)
+            {
                 CheckPointHashDB = Block.Hash
+            }
         }
         var HashDB = [];
         if(this.BlockNumDB > 0)
@@ -374,6 +377,8 @@ module.exports = class CConnect extends require("./transfer-msg")
                 var Block = this.ReadBlockHeaderDB(CHECK_POINT.BlockNum);
                 if(Block && CompareArr(Block.Hash, CHECK_POINT.Hash) !== 0)
                 {
+                    if(global.TEST_NETWORK)
+                        ToLog("reload chains")
                     this.BlockNumDB = CHECK_POINT.BlockNum - 1
                     this.TruncateBlockDB(this.BlockNumDB)
                     this.StartLoadHistory(Node)

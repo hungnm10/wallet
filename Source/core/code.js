@@ -63,16 +63,6 @@ module.exports = class CCode extends require("./base")
     {
         return "uint";
     }
-    GETCODE(Info)
-    {
-        var VersionNum = this.DataFromF(Info);
-        var fname = GetDataPath("Update/wallet-" + VersionNum + ".zip");
-        if(fs.existsSync(fname))
-        {
-            var data = fs.readFileSync(fname);
-            this.Send(Info.Node, {"Method":"RETCODE", "Context":Info.Context, "Data":data}, BUF_TYPE)
-        }
-    }
     RETCODE(Info)
     {
         var VersionNum = Info.Context.VersionNum;
@@ -213,8 +203,7 @@ global.RestartNode = function RestartNode(bForce)
     }
     else
     {
-        StopHostingServer();
-        RunStopPOWProcess("STOP");
+        StopChildProcess();
         ToLog("********************************** FORCE RESTART!!!");
         return ;
     }
@@ -229,8 +218,7 @@ global.RestartNode = function RestartNode(bForce)
     }
     this.StopServer();
     this.StopNode();
-    RunStopPOWProcess("STOP");
-    StopHostingServer();
+    StopChildProcess();
     ToLog("****************************************** RESTART!!!");
     ToLog("EXIT 1");
 };

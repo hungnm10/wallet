@@ -181,7 +181,8 @@
 
         function IsPrivateMode()
         {
-            if($("idPrivKey").value)
+            var PrivKeyStr=$("idPrivKey").value;
+            if(PrivKeyStr  && PrivKeyStr.length===64)
                 return 1;
             else
                 return 0;
@@ -198,8 +199,12 @@
             SetVisibleBlock("WalRow1",!EditFlag?StrYes:StrNo);
 
             SetVisibleBlock("WalRow2",EditFlag?StrYes:StrNo);
-            SetVisibleBlock("WalRow3",EditFlag?StrYes:StrNo);
+            if($("idShowPubKey").checked)
+                SetVisibleBlock("WalRow3",EditFlag?StrYes:StrNo);
+            else
+                SetVisibleBlock("WalRow3","none");
             SetVisibleBlock("WalRow4",EditFlag?StrYes:StrNo);
+
 
             if(!EditFlag)
             {
@@ -709,6 +714,7 @@
                 <tr id="WalRow4">
                     <td></td>
                     <td colspan="1"><button class="bigs" onclick="OnPrivKeyNew()">Generate key</button>
+                        <INPUT type="checkbox" id="idShowPubKey" oninput="SetVisibleItemsKeys(1)"> Show pub key
                     <!--Set password:<INPUT class="bigs" type="search" id="idProtKey">-->
                     </td>
                     <td></td>
@@ -958,4 +964,5 @@
 
 </body>
 </html>
+
 

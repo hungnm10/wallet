@@ -23,7 +23,6 @@ class CApp
     {
         CheckCreateDir(GetDataPath(WalletPath))
         this.DBHistory = new DBRow("../" + WalletPath + "/wallet-act", 4 * 6 + 1 + 200 + 10 + 6, "{BlockNum:uint, FromID:uint, FromOperationID:uint, ToID:uint, Direct:str1, Description:str200, SumCOIN:uint,SumCENT:uint32, Currency:uint}")
-        this.ObservTree = new RBTree(CompareItemHASH32)
         this.Password = ""
         this.WalletOpen = undefined
         var Params = LoadParams(CONFIG_NAME, undefined);
@@ -47,7 +46,6 @@ class CApp
         this.KeyPair = crypto.createECDH('secp256k1')
         if(Params.Protect)
         {
-            ToLogClient("Wallet protect by password")
             this.KeyXOR = GetArrFromHex(Params.KeyXOR)
             this.WalletOpen = false
             this.SetPrivateKey(Params.PubKey)
@@ -64,7 +62,10 @@ class CApp
     }
     AddTransaction(Tr)
     {
-        this.ObservTree.insert({HASH:shaarr(Tr.body)})
+        if(!global.TX_PROCESS.Worker)
+            return 0;
+        var StrHex = GetHexFromArr(shaarr(Tr.body));
+        global.TX_PROCESS.Worker.send({cmd:"FindTX", TX:StrHex})
         return SERVER.AddTransaction(Tr, 1);
     }
     SetPrivateKey(KeyStr, bSetNew)
@@ -184,7 +185,6 @@ class CApp
     {
         if(this.WalletOpen === false)
         {
-            ToLogClient("Wallet is close by password")
             return ;
         }
         var Params = {};

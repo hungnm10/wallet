@@ -43,6 +43,7 @@ module.exports = class CDBState extends require("./db")
         this.LastHash = undefined
         this.WasUpdate = 1
         this.CheckNewNum(Data)
+        Data.Num = Math.trunc(Data.Num)
         this.DeleteMap(Data.Num)
         var BufWrite = BufLib.GetBufferFromObject(Data, this.Format, this.DataSize, this.WorkStruct, 1);
         var Position = Data.Num * this.DataSize;
@@ -65,6 +66,7 @@ module.exports = class CDBState extends require("./db")
     }
     Read(Num, GetBufOnly)
     {
+        Num = Math.trunc(Num)
         var Data;
         if(isNaN(Num) || Num < 0 || Num > this.GetMaxNum())
         {
@@ -239,5 +241,10 @@ module.exports = class CDBState extends require("./db")
     {
         this.BufMap = {}
         this.BufMapCount = 0
+    }
+    Close()
+    {
+        this.ClearBufMap()
+        this.CloseDBFile(this.FileName)
     }
 };
