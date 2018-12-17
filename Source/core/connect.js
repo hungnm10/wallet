@@ -186,7 +186,7 @@ module.exports = class CConnect extends require("./transfer-msg")
         var GrayAddres = 0;
         if(GrayConnect())
             GrayAddres = 1
-        var BlockNumHash = GetCurrentBlockNumByTime() - BLOCK_PROCESSING_LENGTH2;
+        var BlockNumHash = Math.trunc((GetCurrentBlockNumByTime() - BLOCK_PROCESSING_LENGTH2) / PERIOD_ACCOUNT_HASH) * PERIOD_ACCOUNT_HASH;
         var AccountsHash = DApps.Accounts.GetHashOrUndefined(BlockNumHash);
         var CheckPointHashDB = [];
         if(CHECK_POINT.BlockNum && CHECK_POINT.BlockNum <= this.BlockNumDB)

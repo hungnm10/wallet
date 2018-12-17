@@ -136,13 +136,16 @@ module.exports = class CSmartContract extends require("./block-exchange")
             DApps[key].OnWriteBlockFinish(Block)
         }
     }
-    OnDelete(Block)
+    BlockDeleteTX(Block)
     {
         this.BufHashTree.LastAddNum = 0
         for(var key in DApps)
         {
             DApps[key].OnDeleteBlock(Block)
         }
+    }
+    OnDelete(Block)
+    {
     }
     IsValidTransaction(Tr, BlockNum)
     {

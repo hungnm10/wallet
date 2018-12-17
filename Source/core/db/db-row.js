@@ -113,6 +113,7 @@ module.exports = class CDBState extends require("./db")
     }
     Truncate(LastNum)
     {
+        LastNum = Math.trunc(LastNum)
         var Position = (LastNum + 1) * this.DataSize;
         if(Position < 0)
             Position = 0

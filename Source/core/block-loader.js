@@ -132,6 +132,7 @@ module.exports = class CBlock extends require("./db/block-db")
         this.FREE_ALL_MEM_CHAINS()
         if(global.NO_HISTORY_MODE)
         {
+            this.LoadHistoryMode = 0
             return ;
         }
         if(global.CREATE_ON_START && !LOCAL_RUN)
@@ -196,7 +197,7 @@ module.exports = class CBlock extends require("./db/block-db")
         var Context = this.LoadHistoryContext;
         if(Context.PrevBlockNum === Context.BlockNum)
         {
-            var DeltaTime = new Date() - Context.StartTimeHistory;
+            var DeltaTime = Date.now() - Context.StartTimeHistory;
             if(DeltaTime > 10 * 1000)
             {
                 ToLog("DETECT TIMEOUT LOADHISTORY")
@@ -207,7 +208,7 @@ module.exports = class CBlock extends require("./db/block-db")
         else
         {
             Context.PrevBlockNum = Context.BlockNum
-            Context.StartTimeHistory = new Date()
+            Context.StartTimeHistory = Date.now()
         }
         if(Context.Pause)
         {
@@ -398,7 +399,7 @@ module.exports = class CBlock extends require("./db/block-db")
         {
             if(!task.LastTimeRestartGetNextNode)
                 task.LastTimeRestartGetNextNode = 0
-            var Delta = new Date() - task.LastTimeRestartGetNextNode;
+            var Delta = Date.now() - task.LastTimeRestartGetNextNode;
             if(Delta > 3000)
             {
                 task.RestartGetNextNode++
@@ -1139,7 +1140,7 @@ module.exports = class CBlock extends require("./db/block-db")
             {
                 var Context = this.LoadHistoryContext;
                 Context.PrevBlockNum = Context.BlockNum
-                Context.StartTimeHistory = new Date()
+                Context.StartTimeHistory = Date.now()
             }
         }
     }

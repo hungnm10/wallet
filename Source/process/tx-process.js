@@ -51,7 +51,7 @@ process.on('message', function (msg)
 function CheckAlive()
 {
     var Delta = Date.now() - LastAlive;
-    if(Delta > CHECK_STOP_CHILD_PROCESS)
+    if(Delta > 100 * 1000)
     {
         ToLog("TX-PROCESS: ALIVE TIMEOUT Stop and exit: " + Delta + "/" + global.CHECK_STOP_CHILD_PROCESS);
         process.exit(0);
@@ -77,6 +77,9 @@ var KeyPair = crypto.createECDH('secp256k1');
 KeyPair.setPrivateKey(Buffer.from([77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 77, 77, 77, 77, 77, 77, 77, 77, 77, 77]));
 global.SERVER = new CServerDB(KeyPair, undefined, undefined, false, true);
+ToLog("Start CalcMerkleTree");
+DApps.Accounts.CalcMerkleTree();
+ToLog("Finsih CalcMerkleTree");
 setInterval(function ()
 {
     if(SERVER)
@@ -84,7 +87,7 @@ setInterval(function ()
     global.BlockDB.CloseDBFile("block-header");
     global.BlockDB.CloseDBFile("block-body");
     DoTXProcess();
-}, 500);
+}, 1000);
 
 function RunTransaction(msg)
 {
@@ -101,17 +104,21 @@ function DoTXProcess()
     {
         return ;
     }
-    for(var Num = BlockMin.BlockNum + 1; Num < BlockMin.BlockNum + 1000; Num++)
+    for(var Num = BlockMin.BlockNum; Num < BlockMin.BlockNum + 1000; Num++)
     {
         var Block = SERVER.ReadBlockDB(Num);
         if(!Block)
+        {
             break;
-        if(IsZeroArr(Block.SumHash))
-            break;
+        }
+        SERVER.BlockProcessTX(Block);
+        if(Num % 100000 === 0)
+            ToLog("BlockProcessTX: " + Num);
         var Item = BlockList[Block.BlockNum];
         if(Item && CompareArr(Item.SumHash, Block.SumHash) === 0)
+        {
             continue;
-        SERVER.BlockProcessTX(Block);
+        }
         BlockList[Block.BlockNum] = {BlockNum:Block.BlockNum, SumHash:Block.SumHash};
         LastBlockNum = Block.BlockNum;
     }
@@ -119,6 +126,15 @@ function DoTXProcess()
 
 function FindMinimal()
 {
+    var MaxNumBlockDB = SERVER.GetMaxNumBlockDB();
+    if(MaxNumBlockDB)
+    {
+        var Block = SERVER.ReadBlockHeaderDB(MaxNumBlockDB);
+        SERVER.BlockDeleteTX({BlockNum:Block.BlockNum + 1});
+        BlockList[Block.BlockNum + 1] = undefined;
+        if(MaxNumBlockDB < LastBlockNum)
+            LastBlockNum = MaxNumBlockDB;
+    }
     for(var Num = LastBlockNum; Num--; Num > 0)
     {
         var Block = SERVER.ReadBlockHeaderDB(Num);
@@ -138,6 +154,8 @@ function FindMinimal()
         var Item = BlockList[Block.BlockNum];
         if(Item && CompareArr(Item.SumHash, Block.SumHash) === 0)
             return Block;
+        if(Item && Item.BlockNum === 0)
+            break;
     }
     Block = SERVER.ReadBlockHeaderDB(0);
     return Block;
@@ -147,13 +165,17 @@ function InitTXProcess()
 {
     if(LastBlockNum === undefined)
     {
-        var DB = DApps.Accounts.DBAccountsHash;
-        var Item = DB.Read(DB.GetMaxNum());
-        if(Item)
+        LastBlockNum = SERVER.GetMaxNumBlockDB();
+        var MaxNum = DApps.Accounts.DBAccountsHash.GetMaxNum();
+        if(MaxNum < 1)
+            LastBlockNum = 0;
+        if(MaxNum >= 0)
         {
-            LastBlockNum = Item.BlockNum;
+            var Item = DApps.Accounts.DBAccountsHash.Read(MaxNum);
+            if(Item)
+            {
+                LastBlockNum = Item.BlockNum;
+            }
         }
-        if(!LastBlockNum || LastBlockNum < START_BLOCK_ACCOUNT_HASH)
-            LastBlockNum = START_BLOCK_ACCOUNT_HASH;
     }
 };

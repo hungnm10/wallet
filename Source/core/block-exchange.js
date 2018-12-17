@@ -941,7 +941,7 @@ module.exports = class CConsensus extends require("./block-loader")
         var bWasSave = false;
         var LoadBlockNum;
         var LoadHash;
-        var start_save = CURRENTBLOCKNUM + TIME_END_EXCHANGE;
+        var start_save = CURRENTBLOCKNUM + TIME_START_SAVE;
         for(var i = CURRENTBLOCKNUM - BLOCK_PROCESSING_LENGTH2; i > BLOCK_PROCESSING_LENGTH2 && i < CURRENTBLOCKNUM; i++)
         {
             var Block = this.GetBlock(i);

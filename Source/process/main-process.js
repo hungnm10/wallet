@@ -65,7 +65,7 @@ process.on('error', function (err)
 });
 var ArrChildProcess = [];
 var WebProcess = {Name:"WEB PROCESS", idInterval:0, idInterval1:0, idInterval2:0, LastAlive:Date.now(), Worker:undefined, Path:"./process/web-process.js",
-    OnMessage:OnMessageHosting};
+    OnMessage:OnMessageHosting, PeriodAlive:3000};
 if(global.HTTP_HOSTING_PORT && !global.NWMODE)
 {
     ArrChildProcess.push(WebProcess);
@@ -113,7 +113,7 @@ function OnMessageHosting(msg)
     }
 };
 global.STATIC_PROCESS = {Name:"STATIC PROCESS", idInterval:0, idInterval1:0, idInterval2:0, LastAlive:Date.now(), Worker:undefined,
-    Path:"./process/static-process.js", OnMessage:OnMessageStatic};
+    Path:"./process/static-process.js", OnMessage:OnMessageStatic, PeriodAlive:3000};
 ArrChildProcess.push(STATIC_PROCESS);
 
 function OnMessageStatic(msg)
@@ -133,7 +133,7 @@ function OnMessageStatic(msg)
     }
 };
 global.TX_PROCESS = {Name:"TX PROCESS", idInterval:0, idInterval1:0, idInterval2:0, LastAlive:Date.now(), Worker:undefined,
-    Path:"./process/tx-process.js", OnMessage:OnMessageWriter};
+    Path:"./process/tx-process.js", OnMessage:OnMessageWriter, PeriodAlive:100 * 1000 * 300};
 ArrChildProcess.push(TX_PROCESS);
 
 function OnMessageWriter(msg)
@@ -170,7 +170,7 @@ function StartChildProcess(Item)
     ITEM.idInterval = setInterval(function ()
     {
         var Delta = Date.now() - ITEM.LastAlive;
-        if(ITEM.Worker && Delta > 3 * 1000)
+        if(ITEM.Worker && Delta > ITEM.PeriodAlive)
         {
             if(ITEM.Worker)
             {
@@ -195,7 +195,7 @@ function StartChildProcess(Item)
         }
         if(!ITEM.Worker)
         {
-            ITEM.LastAlive = (Date.now()) + 10 * 1000;
+            ITEM.LastAlive = (Date.now()) + ITEM.PeriodAlive * 3;
             ToLog("STARTING " + ITEM.Name);
             ITEM.Worker = Fork(ITEM.Path, ["READONLYDB"]);
             ITEM.Worker.on('message', function (msg)
@@ -214,7 +214,7 @@ function StartChildProcess(Item)
                     else
                         if(msg.cmd === "online")
                         {
-                            ToLog("RUNING " + ITEM.Name + " : " + msg.message);
+                            ToLog("RUNING " + ITEM.Name + " : " + msg.message + " pid: " + ITEM.Worker.pid);
                         }
                         else
                             if(ITEM.OnMessage)
@@ -592,8 +592,11 @@ function RunOnUpdate()
         }
         else
         {
-            FixBlockBug12970020();
-            RecreateAccountHashDB();
+            if(CurNum < 771)
+            {
+                RecreateAccountHashDB();
+                CheckRewriteAllTr(14615000, "66475B1AAF239330170DE2AA093D256E4EDFA9976FE10D9A33BEF5EA24905971");
+            }
         }
         ToLog("UPDATER Finish");
         global.SendLogToClient = 0;
@@ -619,11 +622,19 @@ function CheckRewriteTr(Num,StrHash,StartRewrite)
 
 function CheckRewriteAllTr(Num,StrHash)
 {
+    var MaxNum = SERVER.GetMaxNumBlockDB();
+    if(MaxNum < START_BLOCK_ACCOUNT_HASH)
+        return "NONE";
     var AccountsHash = DApps.Accounts.GetHashOrUndefined(Num);
     if(!AccountsHash || GetHexFromArr(AccountsHash) !== StrHash)
     {
-        ToLog("START REWRITE ALL TRANSACTIONS");
-        SERVER.RewriteAllTransactions();
+        ToLog("***************** START REWRITE ALL DAPPS");
+        global.UpdateMode = 1;
+        for(var key in DApps)
+        {
+            DApps[key].ClearDataBase();
+        }
+        global.UpdateMode = 0;
         return "Rewrite";
     }
     else

@@ -177,7 +177,7 @@ I do not recommend installing the test network on the same computer for the foll
 
 # FAQs
 
-## Mining is possible only if there is a public IP
+## Mining is possible only on a public IP
 * Check the presence of a direct ip-address (order from the provider)
 * Check if the port is routed from the router to your computer
 * Check the firewall (port must open on the computer)

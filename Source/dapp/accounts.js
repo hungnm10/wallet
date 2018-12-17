@@ -78,9 +78,9 @@ class MerkleDBRow extends DBRow
         this.MerkleArr = []
         this.MerkleCalc = {}
     }
-    CalcMerkleTree()
+    CalcMerkleTree(bForceUpdate)
     {
-        if(!this.MerkleTree)
+        if(!this.MerkleTree || bForceUpdate)
         {
             this.MerkleCalc = {}
             this.MerkleTree = {LevelsHash:[this.MerkleArr], RecalcCount:0}
@@ -161,6 +161,7 @@ class AccountApp extends require("./dapp")
         this.DBState.Write({Num:9, PubKey:GetArrFromHex(ARR_PUB_KEY[1]), Value:{BlockNum:1, SumCOIN:0}, Name:"Developer account"})
         for(var i = 10; i < BLOCK_PROCESSING_LENGTH2; i++)
             this.DBState.Write({Num:i, PubKey:GetArrFromHex(ARR_PUB_KEY[i - 8]), Value:{BlockNum:1}, Name:""})
+        this.CalcMerkleTree(1)
         ToLog("MAX_NUM:" + this.DBState.GetMaxNum())
     }
     Close()
@@ -277,7 +278,7 @@ class AccountApp extends require("./dapp")
                 {
                     if(global.LOCAL_RUN || global.TEST_NETWORK);
                     else
-                        if(BlockNum < START_BLOCK_ACCOUNT_HASH + 101000)
+                        if(BlockNum < START_BLOCK_ACCOUNT_HASH + 121000)
                             break;
                     var BlockNumHash = BlockNum - DELTA_BLOCK_ACCOUNT_HASH;
                     if(!this.TRCheckAccountHash(Body, BlockNum, TrNum))
@@ -460,6 +461,8 @@ class AccountApp extends require("./dapp")
         {
             return 0;
         }
+        if(BlockNum < START_BLOCK_ACCOUNT_HASH + 121000)
+            return 1;
         var Item = this.DBAccountsHash.Read(TR.BlockNum / PERIOD_ACCOUNT_HASH);
         if(Item)
         {
@@ -720,10 +723,11 @@ class AccountApp extends require("./dapp")
     }
     DeleteAct(BlockNumFrom)
     {
+        if(global.START_SERVER)
+            throw "DeleteAct START_SERVER";
         this.DeleteActOneDB(this.DBAct, BlockNumFrom)
         this.DeleteActOneDB(this.DBActPrev, BlockNumFrom)
-        if(BlockNumFrom % PERIOD_ACCOUNT_HASH === 0)
-            this.DBAccountsHash.Truncate(BlockNumFrom / PERIOD_ACCOUNT_HASH - 1)
+        this.DBAccountsHash.Truncate(Math.trunc(BlockNumFrom / PERIOD_ACCOUNT_HASH))
         WALLET.OnDeleteBlock(BlockNumFrom)
     }
     DeleteActOneDB(DBAct, BlockNum)
@@ -1005,13 +1009,17 @@ class AccountApp extends require("./dapp")
             return ;
         if(this.DBState.WasUpdate)
         {
-            this.DBState.MerkleHash = this.DBState.CalcMerkleTree()
-            this.DBState.WasUpdate = 0
+            this.CalcMerkleTree()
         }
         var Hash = this.DBState.MerkleHash;
         var Data = {Num:Block.BlockNum / PERIOD_ACCOUNT_HASH, BlockNum:Block.BlockNum, Hash:Hash, SumHash:Block.SumHash};
         this.DBAccountsHash.Write(Data)
         this.DBAccountsHash.Truncate(Block.BlockNum / PERIOD_ACCOUNT_HASH)
+    }
+    CalcMerkleTree(bForce)
+    {
+        this.DBState.MerkleHash = this.DBState.CalcMerkleTree(bForce)
+        this.DBState.WasUpdate = 0
     }
     GetAdviserByMiner(Map, Id)
     {
