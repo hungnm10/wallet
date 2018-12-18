@@ -592,10 +592,9 @@ function RunOnUpdate()
         }
         else
         {
-            if(CurNum < 771)
+            if(CurNum < 781)
             {
-                RecreateAccountHashDB();
-                CheckRewriteAllTr(14615000, "66475B1AAF239330170DE2AA093D256E4EDFA9976FE10D9A33BEF5EA24905971");
+                CheckRewriteAllTr(100000, "2502F4136C778545135E19A5DDCAFAE48BDC60707A8B8CC455E230BC1CC211E4", 14615000, "5F2D5096D1BFA1BE1161B0E8FA56FAA323220DB5B2262D240FF304007B7ADDA0");
             }
         }
         ToLog("UPDATER Finish");
@@ -620,13 +619,18 @@ function CheckRewriteTr(Num,StrHash,StartRewrite)
     }
 };
 
-function CheckRewriteAllTr(Num,StrHash)
+function CheckRewriteAllTr(Num,StrHash,Num2,StrHash2)
 {
+    if(global.LOCAL_RUN || global.TEST_NETWORK)
+        return "NONE";
     var MaxNum = SERVER.GetMaxNumBlockDB();
     if(MaxNum < START_BLOCK_ACCOUNT_HASH)
         return "NONE";
     var AccountsHash = DApps.Accounts.GetHashOrUndefined(Num);
-    if(!AccountsHash || GetHexFromArr(AccountsHash) !== StrHash)
+    var AccountsHash2 = DApps.Accounts.GetHashOrUndefined(Num2);
+    if(AccountsHash2 && GetHexFromArr(AccountsHash2) === StrHash2)
+        return "OK";
+    if(AccountsHash && GetHexFromArr(AccountsHash) !== StrHash)
     {
         ToLog("***************** START REWRITE ALL DAPPS");
         global.UpdateMode = 1;

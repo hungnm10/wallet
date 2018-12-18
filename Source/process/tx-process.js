@@ -83,9 +83,6 @@ var KeyPair = crypto.createECDH('secp256k1');
 KeyPair.setPrivateKey(Buffer.from([77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 77, 77, 77, 77, 77, 77, 77, 77, 77, 77]));
 global.SERVER = new CServerDB(KeyPair, undefined, undefined, false, true);
-ToLog("Start CalcMerkleTree");
-DApps.Accounts.CalcMerkleTree();
-ToLog("Finsih CalcMerkleTree");
 setInterval(function ()
 {
     if(SERVER)
@@ -110,7 +107,7 @@ function DoTXProcess()
     {
         return ;
     }
-    for(var Num = BlockMin.BlockNum; Num < BlockMin.BlockNum + 10000; Num++)
+    for(var Num = BlockMin.BlockNum; Num < BlockMin.BlockNum + 20000; Num++)
     {
         var Block = SERVER.ReadBlockDB(Num);
         if(!Block)
@@ -171,6 +168,9 @@ function InitTXProcess()
 {
     if(LastBlockNum === undefined)
     {
+        ToLog("Start CalcMerkleTree");
+        DApps.Accounts.CalcMerkleTree();
+        ToLog("Finsih CalcMerkleTree");
         LastBlockNum = SERVER.GetMaxNumBlockDB();
         var MaxNum = DApps.Accounts.DBAccountsHash.GetMaxNum();
         if(MaxNum < 1)
@@ -185,7 +185,10 @@ function InitTXProcess()
         }
         if(LastBlockNum > 100)
             LastBlockNum = LastBlockNum - 100;
-        ToLog("Start num = " + LastBlockNum);
+        if(LastBlockNum <= 0)
+            RewriteAllTransactions();
+        else
+            ToLog("Start num = " + LastBlockNum);
     }
 };
 

@@ -1685,8 +1685,8 @@
             <INPUT type="button" onclick="ViewBegin(DefHash)" class="btdoitm bt" value="|<-">
             <INPUT type="button" onclick="ViewPrev(DefHash)" class="btdoit bt" value="<< Prev">
             <INPUT type="number" id="idViewHashNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefHash)">
-            <INPUT type="button" onclick="ViewNext(DefHash,ServerBlockNumDB/CONFIG_DATA.PERIOD_ACCOUNT_HASH)" class="btdoit bt" value="Next >>">
-            <INPUT type="button" onclick="ViewEnd(DefHash,ServerBlockNumDB/CONFIG_DATA.PERIOD_ACCOUNT_HASH)" class="btdoitm bt" value="->|">
+            <INPUT type="button" onclick="ViewNext(DefHash,CONFIG_DATA.MAX_ACCOUNT_HASH)" class="btdoit bt" value="Next >>">
+            <INPUT type="button" onclick="ViewEnd(DefHash,CONFIG_DATA.MAX_ACCOUNT_HASH)" class="btdoitm bt" value="->|">
 
             <table id="grid_hash_all" class="grid">
                 <tr>

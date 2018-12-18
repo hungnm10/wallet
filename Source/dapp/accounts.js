@@ -186,7 +186,17 @@ class AccountApp extends require("./dapp")
             this.DBAct.CloseDBFile(this.DBAct.FileName)
             if(fs.existsSync(this.DBActPrev.FileNameFull))
             {
-                fs.unlinkSync(this.DBActPrev.FileNameFull)
+                var FileNameFull2 = this.DBActPrev.FileNameFull + "_del";
+                try
+                {
+                    fs.renameSync(this.DBActPrev.FileNameFull, FileNameFull2)
+                }
+                catch(e)
+                {
+                    ToLog("Can-t rename for delete act-file: " + FileNameFull2)
+                    return ;
+                }
+                fs.unlinkSync(FileNameFull2)
             }
             try
             {
@@ -278,7 +288,7 @@ class AccountApp extends require("./dapp")
                 {
                     if(global.LOCAL_RUN || global.TEST_NETWORK);
                     else
-                        if(BlockNum < START_BLOCK_ACCOUNT_HASH + 121000)
+                        if(BlockNum < START_BLOCK_ACCOUNT_HASH + 200000)
                             break;
                     var BlockNumHash = BlockNum - DELTA_BLOCK_ACCOUNT_HASH;
                     if(!this.TRCheckAccountHash(Body, BlockNum, TrNum))
@@ -461,7 +471,7 @@ class AccountApp extends require("./dapp")
         {
             return 0;
         }
-        if(BlockNum < START_BLOCK_ACCOUNT_HASH + 121000)
+        if(BlockNum < START_BLOCK_ACCOUNT_HASH + 200000)
             return 1;
         var Item = this.DBAccountsHash.Read(TR.BlockNum / PERIOD_ACCOUNT_HASH);
         if(Item)
@@ -974,14 +984,6 @@ class AccountApp extends require("./dapp")
     }
     GetHashOrUndefined(BlockNum)
     {
-        if(global.LOCAL_RUN || global.TEST_NETWORK)
-        {
-            if(BlockNum < 100)
-                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        }
-        else
-            if(BlockNum < 5300000)
-                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         if(BlockNum % PERIOD_ACCOUNT_HASH !== 0)
             return undefined;
         var Item = this.DBAccountsHash.Read(BlockNum / PERIOD_ACCOUNT_HASH);
