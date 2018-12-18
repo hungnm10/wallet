@@ -3,6 +3,7 @@
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
  * @license: Not for evil
+ * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
@@ -71,9 +72,9 @@ global.FORMAT_ACCOUNT_HASH = "{\
     }";
 class MerkleDBRow extends DBRow
 {
-    constructor(FileName, DataSize, Format)
+    constructor(FileName, DataSize, Format, bReadOnly)
     {
-        super(FileName, DataSize, Format)
+        super(FileName, DataSize, Format, bReadOnly)
         this.MerkleTree
         this.MerkleArr = []
         this.MerkleCalc = {}
@@ -123,6 +124,7 @@ class AccountApp extends require("./dapp")
     constructor()
     {
         super()
+        var bReadOnly = (global.PROCESS_NAME !== "TX");
         this.CreateTrCount = 0
         this.FORMAT_ACCOUNT_ROW = "{\
             Currency:uint,\
@@ -134,12 +136,14 @@ class AccountApp extends require("./dapp")
             Reserve:arr9,\
             }"
         this.ACCOUNT_ROW_SIZE = 6 + 33 + 40 + (6 + 4 + 6 + 84) + 6 + 6 + 9
-        this.DBState = new MerkleDBRow("accounts-state", this.ACCOUNT_ROW_SIZE, this.FORMAT_ACCOUNT_ROW)
-        this.DBAct = new DBRow("accounts-act", 6 + 6 + (6 + 4 + 6 + 6 + 84) + 1 + 11, "{ID:uint, BlockNum:uint,PrevValue:{SumCOIN:uint,SumCENT:uint32, Reserve0:uint, OperationID:uint,Smart:uint32,Data:arr80}, Mode:byte, TrNum:uint16, Reserve: arr9}")
-        this.DBActPrev = new DBRow("accounts-act-prev", this.DBAct.DataSize, this.DBAct.Format)
+        this.DBState = new MerkleDBRow("accounts-state", this.ACCOUNT_ROW_SIZE, this.FORMAT_ACCOUNT_ROW, bReadOnly)
+        this.DBAct = new DBRow("accounts-act", 6 + 6 + (6 + 4 + 6 + 6 + 84) + 1 + 11, "{ID:uint, BlockNum:uint,PrevValue:{SumCOIN:uint,SumCENT:uint32, Reserve0:uint, OperationID:uint,Smart:uint32,Data:arr80}, Mode:byte, TrNum:uint16, Reserve: arr9}",
+        bReadOnly)
+        this.DBActPrev = new DBRow("accounts-act-prev", this.DBAct.DataSize, this.DBAct.Format, bReadOnly)
         if(global.READ_ONLY_DB)
             return ;
-        this.DBAccountsHash = new DBRow("accounts-hash2", 6 + 32 + 32 + 10, "{BlockNum:uint,Hash:hash, SumHash:hash, Reserve: arr10}")
+        this.DBAccountsHash = new DBRow("accounts-hash2", 6 + 32 + 32 + 10, "{BlockNum:uint,Hash:hash, SumHash:hash, Reserve: arr10}",
+        bReadOnly)
         if(global.START_SERVER)
             return ;
         this.Start()

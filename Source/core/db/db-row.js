@@ -3,6 +3,7 @@
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
  * @license: Not for evil
+ * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
@@ -12,14 +13,14 @@
 const fs = require('fs');
 module.exports = class CDBState extends require("./db")
 {
-    constructor(FileName, DataSize, Format)
+    constructor(FileName, DataSize, Format, bReadOnly)
     {
         super()
         this.FileName = FileName
         this.DataSize = DataSize
         this.Format = Format
         this.WorkStruct = {}
-        var FI = this.OpenDBFile(this.FileName);
+        var FI = this.OpenDBFile(this.FileName, !bReadOnly);
         this.FileNameFull = FI.fname
         this.LastHash = undefined
         this.WasUpdate = 1

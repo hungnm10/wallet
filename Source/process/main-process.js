@@ -3,6 +3,7 @@
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
  * @license: Not for evil
+ * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
@@ -146,22 +147,24 @@ function OnMessageWriter(msg)
             }
     }
 };
-setInterval(function ()
-{
-    if(global.DApps && DApps.Accounts)
-    {
-        DApps.Accounts.Close();
-        DApps.Smart.DBSmart.Close();
-    }
-}, 1000);
 
-function StartAllChilds()
+function StartAllProcess()
 {
     for(var i = 0; i < ArrChildProcess.length; i++)
     {
         var Item = ArrChildProcess[i];
         StartChildProcess(Item);
     }
+    setInterval(function ()
+    {
+        if(global.DApps && DApps.Accounts)
+        {
+            DApps.Accounts.Close();
+            DApps.Smart.DBSmart.Close();
+        }
+        if(WALLET && WALLET.DBHistory)
+            WALLET.DBHistory.Close();
+    }, 500);
 };
 
 function StartChildProcess(Item)
@@ -559,7 +562,7 @@ function RunOnce()
     {
         clearInterval(idRunOnce);
         RunOnUpdate();
-        StartAllChilds();
+        StartAllProcess();
         if(global.RESTART_PERIOD_SEC)
         {
             var Period = (random(600) + global.RESTART_PERIOD_SEC);

@@ -3,6 +3,7 @@
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
  * @license: Not for evil
+ * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
@@ -64,6 +65,7 @@ class SmartApp extends require("./dapp")
     constructor()
     {
         super()
+        var bReadOnly = (global.PROCESS_NAME !== "TX");
         this.FORMAT_ROW = "{\
             Version:byte,\
             TokenGenerate:byte,\
@@ -88,7 +90,7 @@ class SmartApp extends require("./dapp")
             HTML:str,\
             }"
         this.ROW_SIZE = 2 * (1 << 13)
-        this.DBSmart = new DBRow("smart", this.ROW_SIZE, this.FORMAT_ROW)
+        this.DBSmart = new DBRow("smart", this.ROW_SIZE, this.FORMAT_ROW, bReadOnly)
         this.InitHole()
         this.Start()
     }

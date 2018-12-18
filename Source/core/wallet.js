@@ -3,6 +3,7 @@
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
  * @license: Not for evil
+ * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
@@ -14,6 +15,7 @@ const crypto = require('crypto');
 const RBTree = require('bintrees').RBTree;
 require("./library");
 require("./crypto-library");
+ToLog("===WALLET===");
 const WalletPath = "WALLET";
 const DBRow = require("./db/db-row");
 const CONFIG_NAME = GetDataPath(WalletPath + "/config.lst");
@@ -22,7 +24,9 @@ class CApp
     constructor()
     {
         CheckCreateDir(GetDataPath(WalletPath))
-        this.DBHistory = new DBRow("../" + WalletPath + "/wallet-act", 4 * 6 + 1 + 200 + 10 + 6, "{BlockNum:uint, FromID:uint, FromOperationID:uint, ToID:uint, Direct:str1, Description:str200, SumCOIN:uint,SumCENT:uint32, Currency:uint}")
+        var bReadOnly = (global.PROCESS_NAME !== "TX");
+        this.DBHistory = new DBRow("../" + WalletPath + "/wallet-act", 4 * 6 + 1 + 200 + 10 + 6, "{BlockNum:uint, FromID:uint, FromOperationID:uint, ToID:uint, Direct:str1, Description:str200, SumCOIN:uint,SumCENT:uint32, Currency:uint}",
+        bReadOnly)
         this.Password = ""
         this.WalletOpen = undefined
         var Params = LoadParams(CONFIG_NAME, undefined);
@@ -46,6 +50,7 @@ class CApp
         this.KeyPair = crypto.createECDH('secp256k1')
         if(Params.Protect)
         {
+            ToLogClient("Wallet protect by password")
             this.KeyXOR = GetArrFromHex(Params.KeyXOR)
             this.WalletOpen = false
             this.SetPrivateKey(Params.PubKey)

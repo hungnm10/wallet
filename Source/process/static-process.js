@@ -3,6 +3,7 @@
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
  * @license: Not for evil
+ * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
@@ -157,7 +158,7 @@ function GETBLOCK(msg)
         var TreeHash = CalcTreeHashFromArrBody(BlockDB.arrContent);
         if(CompareArr(BlockDB.TreeHash, TreeHash) !== 0)
         {
-            ToLog("1. BAD CMP TreeHash block=" + BlockDB.BlockNum + " TO: " + Info.addrStr.substr(0, 8) + "  TreeHash=" + GetHexFromArr(TreeHash) + "  BlockTreeHash=" + GetHexFromArr(BlockDB.TreeHash));
+            ToLog("1. BAD CMP TreeHash block=" + BlockNum + " TO: " + msg.addrStr.substr(0, 8) + "  TreeHash=" + GetHexFromArr(TreeHash) + "  BlockTreeHash=" + GetHexFromArr(BlockDB.TreeHash));
             StrSend = "NO";
         }
     }

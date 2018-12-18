@@ -3,6 +3,7 @@
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
  * @license: Not for evil
+ * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
@@ -20,6 +21,9 @@ module.exports = class CDB extends require("../code")
     constructor(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
     {
         super(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
+        var bWriteMode = (global.PROCESS_NAME === "MAIN");
+        BlockDB.OpenDBFile(FILE_NAME_HEADER, bWriteMode)
+        BlockDB.OpenDBFile(FILE_NAME_BODY, bWriteMode)
         this.BlockNumDB = 0
         this.ClearBufMap()
     }

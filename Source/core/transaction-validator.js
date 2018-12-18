@@ -3,6 +3,7 @@
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
  * @license: Not for evil
+ * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
@@ -15,7 +16,8 @@ require("../dapp/smart");
 require("../dapp/file");
 require("../dapp/messager");
 require("../dapp/names");
-require("./wallet");
+if(global.PROCESS_NAME === "MAIN" || global.PROCESS_NAME === "TX")
+    require("./wallet");
 const RBTree = require('bintrees').RBTree;
 module.exports = class CSmartContract extends require("./block-exchange")
 {
