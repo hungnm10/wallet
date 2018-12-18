@@ -164,6 +164,8 @@ module.exports = class CSmartContract extends require("./block-exchange")
     }
     ReWriteDAppTransactions(Length)
     {
+        if(!TX_PROCESS.Worker)
+            return 0;
         if(!Length)
             return 0;
         var StartNum = this.BlockNumDB - Length + 1;
@@ -176,20 +178,7 @@ module.exports = class CSmartContract extends require("./block-exchange")
             ToLog("Cant rewrite transactions. Very long length of the rewriting chain. Max length=" + (this.BlockNumDB - MinBlock))
             return 0;
         }
-        var startTime = process.hrtime();
-        ToLog("Rewrite from: " + StartNum + " to " + EndNum)
-        for(var Num = StartNum; Num <= EndNum; Num++)
-        {
-            if(Num > BLOCK_PROCESSING_LENGTH2)
-            {
-                var Block = this.ReadBlockDB(Num);
-                if(Block)
-                    this.OnWriteBlock(Block)
-            }
-        }
-        var Time = process.hrtime(startTime);
-        var deltaTime = (Time[0] * 1000 + Time[1] / 1e6) / 1000;
-        ToLog("Rewriting complete: " + deltaTime + " sec")
+        TX_PROCESS.Worker.send({cmd:"ReWriteDAppTransactions", StartNum:StartNum, EndNum:EndNum})
         return 1;
     }
     AddDAppTransactions(BlockNum, Arr)

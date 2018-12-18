@@ -43,6 +43,12 @@ process.on('message', function (msg)
         case "RunTransaction":
             RunTransaction(msg);
             break;
+        case "RewriteAllTransactions":
+            RewriteAllTransactions(msg);
+            break;
+        case "ReWriteDAppTransactions":
+            ReWriteDAppTransactions(msg);
+            break;
         default:
             break;
     }
@@ -177,6 +183,30 @@ function InitTXProcess()
                 LastBlockNum = Item.BlockNum;
             }
         }
+        if(LastBlockNum > 100)
+            LastBlockNum = LastBlockNum - 100;
         ToLog("Start num = " + LastBlockNum);
     }
+};
+
+function RewriteAllTransactions()
+{
+    ToLog("*************RewriteAllTransactions");
+    for(var key in DApps)
+    {
+        DApps[key].ClearDataBase();
+    }
+    LastBlockNum = 0;
+    BlockList = {};
+    ToLog("Start num = " + LastBlockNum);
+};
+
+function ReWriteDAppTransactions(msg)
+{
+    var StartNum = msg.StartNum;
+    var EndNum = msg.EndNum;
+    BlockList = {};
+    if(LastBlockNum > StartNum)
+        LastBlockNum = StartNum;
+    ToLog("Start num = " + LastBlockNum);
 };

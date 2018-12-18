@@ -873,7 +873,7 @@ HTTPCaller.ClearStat = function ()
 };
 HTTPCaller.RewriteAllTransactions = function (Param)
 {
-    SERVER.RewriteAllTransactions();
+    RewriteAllTransactions();
     return {result:1, sessionid:sessionid};
 };
 HTTPCaller.RewriteTransactions = function (Param)

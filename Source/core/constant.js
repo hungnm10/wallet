@@ -8,7 +8,7 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 775;
+global.UPDATE_CODE_VERSION_NUM = 776;
 global.MIN_CODE_VERSION_NUM = 773;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "NET_WORK_MODE",
@@ -128,7 +128,7 @@ else
         var Num = (new Date) - 0 - 50 * 1000;
         console.log("CURRENT NUM: " + (Math.trunc(Num / 1000) * 1000));
         global.SMART_BLOCKNUM_START = 0;
-        global.START_NETWORK_DATE = 1544879533000;
+        global.START_NETWORK_DATE = 1544879533000 + 170000 * 1000;
         global.START_MINING = 1000;
         global.REF_PERIOD_MINING = 1000;
         global.MIN_POWER_POW_TR = 8;

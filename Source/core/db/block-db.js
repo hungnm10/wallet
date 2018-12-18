@@ -61,8 +61,6 @@ module.exports = class CDB extends require("../code")
         var Time = process.hrtime(startTime);
         var deltaTime = (Time[0] * 1000 + Time[1] / 1e6) / 1000;
         ToLog("********************TIME BUFFER: " + deltaTime + " s")
-        if(this.BlockNumDB > 100)
-            this.ReWriteDAppTransactions(100)
         ToLog("START_BLOCK_NUM:" + this.BlockNumDB)
     }
     CheckBlocksOnStartReverse(StartNum)
@@ -458,10 +456,7 @@ module.exports = class CDB extends require("../code")
         var FItem2 = BlockDB.OpenDBFile(FILE_NAME_BODY, 1);
         FItem2.size = 0
         fs.ftruncateSync(FItem2.fd, FItem2.size)
-        for(var key in DApps)
-        {
-            DApps[key].ClearDataBase()
-        }
+        this.RewriteAllTransactions()
         this.BlockNumDB = 0
         this.ClearBufMap()
         this.ClearStat()
@@ -473,22 +468,8 @@ module.exports = class CDB extends require("../code")
     }
     RewriteAllTransactions()
     {
-        for(var key in DApps)
-        {
-            DApps[key].ClearDataBase()
-        }
-        for(var Num = 0; Num <= this.BlockNumDB; Num++)
-        {
-            if(Num > BLOCK_PROCESSING_LENGTH2)
-            {
-                if(Num % 100000 === 0)
-                    ToLog("Write " + Num)
-                var Block = this.ReadBlockDB(Num);
-                if(Block)
-                    this.OnWriteBlock(Block)
-            }
-        }
-        return 1;
+        if(TX_PROCESS.Worker)
+            TX_PROCESS.Worker.send({cmd:"RewriteAllTransactions"})
     }
     BlockHeaderToBuf(BufWrite, Block)
     {
