@@ -66,6 +66,7 @@ module.exports = class CDB extends require("../code")
         var deltaTime = (Time[0] * 1000 + Time[1] / 1e6) / 1000;
         ToLog("********************TIME BUFFER: " + deltaTime + " s")
         ToLog("START_BLOCK_NUM:" + this.BlockNumDB)
+        this.CheckOnStartComplete = 1
     }
     CheckBlocksOnStartReverse(StartNum)
     {

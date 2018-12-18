@@ -14,7 +14,6 @@ const fs = require('fs');
 const DBRow = require("../core/db/db-row");
 const MAX_SUM_TER = 1e9;
 const MAX_SUM_CENT = 1e9;
-global.EventMap = {};
 const TYPE_TRANSACTION_CREATE = 100;
 const TYPE_TRANSACTION_TRANSFER = 105;
 const TYPE_TRANSACTION_TRANSFER2 = 110;
@@ -146,7 +145,8 @@ class AccountApp extends require("./dapp")
         bReadOnly)
         if(global.START_SERVER)
             return ;
-        this.Start()
+        if(!bReadOnly)
+            this.Start()
         setInterval(this.ControlActSize.bind(this), 60 * 1000)
     }
     Start(bClean)
@@ -1086,10 +1086,10 @@ class AccountApp extends require("./dapp")
         for(var i = 0; i < DBChanges.BlockEvent.length; i++)
         {
             var Data = DBChanges.BlockEvent[i];
-            var Arr = global.EventMap[Data.Smart];
-            if(Arr && Arr.length < 1000)
+            var Has = SERVER.TreeFindTX.LoadValue("Smart:" + Data.Smart, 1);
+            if(Has)
             {
-                Arr.push(Data)
+                process.send({cmd:"DappEvent", Data:Data})
             }
         }
         global.TickCounter = 0

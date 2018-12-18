@@ -15,7 +15,6 @@ const crypto = require('crypto');
 const RBTree = require('bintrees').RBTree;
 require("./library");
 require("./crypto-library");
-ToLog("===WALLET===");
 const WalletPath = "WALLET";
 const DBRow = require("./db/db-row");
 const CONFIG_NAME = GetDataPath(WalletPath + "/config.lst");

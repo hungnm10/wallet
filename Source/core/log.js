@@ -20,8 +20,8 @@ var StartStatTime, file_name_error = GetDataPath("err.log"), file_name_errorPrev
 
 function ToLogFile(t,e,r)
 {
-    e instanceof Error && (e = e.message + "\n" + e.stack), global.START_SERVER || (e = global.PROCESS_NAME + ": " + e), process.send ? process.send({cmd:"log",
-        message:e}) : console.log(START_PORT_NUMBER + ": " + GetStrOnlyTime() + ": " + e), r || SaveToLogFileSync(t, e);
+    e instanceof Error && (e = e.message + "\n" + e.stack), global.START_SERVER || (e = global.PROCESS_NAME + ": " + e), "MAIN" === global.PROCESS_NAME ? (console.log(START_PORT_NUMBER + ": " + GetStrOnlyTime() + ": " + e),
+    r || SaveToLogFileSync(t, e)) : process.send({cmd:"log", message:e});
 };
 
 function ToLogClient(t,e,r)
@@ -30,7 +30,7 @@ function ToLogClient(t,e,r)
 };
 CheckSizeLogFile(file_name_error, file_name_errorPrev), global.ToLog = function (t)
 {
-    global.SendLogToClient || global.ALL_LOG_TO_CLIENT ? ToLogClient(t, void 0, void 0) : ToLogFile(file_name_log, t);
+    global.ALL_LOG_TO_CLIENT ? ToLogClient(t, void 0, void 0) : ToLogFile(file_name_log, t);
 }, global.SmallAddr = function (t)
 {
     return t.substr(0, 5);
@@ -80,10 +80,10 @@ function GetDiagramData(t,e)
 {
     var r, o = 2 * MAX_STAT_PERIOD + 2;
     r = "MAX:" === e.substr(0, 4);
-    for(var n, a = MAX_STAT_PERIOD, l = (GetCurrentStatIndex() - a + o) % o, i = (t.Total, []), T = void 0, g = l; g < l + a; g++)
+    for(var n, a = MAX_STAT_PERIOD, l = (GetCurrentStatIndex() - a + o) % o, i = (t.Total, []), T = void 0, S = l; S < l + a; S++)
     {
-        var S = g % o;
-        if(n = t.Interval[S])
+        var g = S % o;
+        if(n = t.Interval[g])
         {
             var f = n[e];
             void 0 !== f ? r ? i.push(f) : (void 0 !== T ? i.push(f - T) : i.push(f), T = f) : i.push(0);
@@ -96,13 +96,13 @@ function CalcInterval(t,e,r)
 {
     for(var o, n = 2 * MAX_STAT_PERIOD + 2, a = {}, l = (e - r + n) % n, i = t.Total, T = l; T < l + r; T++)
     {
-        var g = T % n;
-        if(o = t.Interval[g])
+        var S = T % n;
+        if(o = t.Interval[S])
             break;
     }
     if(o)
-        for(var S in i)
-            "MAX:" === S.substr(0, 4) ? a[S] = 0 : void 0 === o[S] ? a[S] = i[S] : a[S] = i[S] - o[S];
+        for(var g in i)
+            "MAX:" === g.substr(0, 4) ? a[g] = 0 : void 0 === o[g] ? a[g] = i[g] : a[g] = i[g] - o[g];
     return a;
 };
 
@@ -210,9 +210,9 @@ global.PrepareStatEverySecond = function ()
         var i = r[o], T = i.arr;
         l && T.length > l && (T = T.slice(T.length - l)), l && 0 <= ",POWER_MY_WIN,POWER_BLOCKCHAIN,".indexOf("," + i.name + ",") && (T = SERVER.GetStatBlockchain(i.name,
         l));
-        for(var g = 0, S = 0; S < T.length; S++)
-            T[S] && (g += T[S]);
-        0 < T.length && (g /= T.length);
+        for(var S = 0, g = 0; g < T.length; g++)
+            T[g] && (S += T[g]);
+        0 < T.length && (S /= T.length);
         var f = 1;
         if("MAX:" === i.name.substr(0, 4))
             for(; 500 <= T.length; )
@@ -220,7 +220,7 @@ global.PrepareStatEverySecond = function ()
         else
             for(; 500 <= T.length; )
                 T = ResizeArrAvg(T), f *= 2;
-        i.AvgValue = g, i.steptime = f, i.arr = T.slice(1);
+        i.AvgValue = S, i.steptime = f, i.arr = T.slice(1);
     }
     return r;
 }, global.GET_STATS = function (t)

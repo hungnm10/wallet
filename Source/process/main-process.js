@@ -43,7 +43,7 @@ global.SERVER = undefined;
 global.NeedRestart = 0;
 process.on('uncaughtException', function (err)
 {
-    if(process.send)
+    if(global.PROCESS_NAME !== "MAIN")
     {
         process.send({cmd:"log", message:err});
     }
@@ -133,6 +133,7 @@ function OnMessageStatic(msg)
             }
     }
 };
+global.EventMap = {};
 global.TX_PROCESS = {Name:"TX PROCESS", idInterval:0, idInterval1:0, idInterval2:0, LastAlive:Date.now(), Worker:undefined,
     Path:"./process/tx-process.js", OnMessage:OnMessageWriter, PeriodAlive:100 * 1000 * 300};
 ArrChildProcess.push(TX_PROCESS);
@@ -141,8 +142,14 @@ function OnMessageWriter(msg)
 {
     switch(msg.cmd)
     {
-        case "RunOK":
+        case "DappEvent":
             {
+                var Data = msg.Data;
+                var Arr = global.EventMap[Data.Smart];
+                if(Arr && Arr.length < 1000)
+                {
+                    Arr.push(Data);
+                }
                 break;
             }
     }
@@ -558,7 +565,7 @@ function DoStartFindList()
 
 function RunOnce()
 {
-    if(global.SERVER)
+    if(global.SERVER && global.SERVER.CheckOnStartComplete)
     {
         clearInterval(idRunOnce);
         RunOnUpdate();
@@ -587,7 +594,6 @@ function RunOnUpdate()
     if(CurNum !== UPDATE_CODE_VERSION_NUM)
     {
         global.UPDATE_NUM_COMPLETE = UPDATE_CODE_VERSION_NUM;
-        global.SendLogToClient = 1;
         ToLog("UPDATER Start");
         SAVE_CONST(true);
         if(global.TEST_NETWORK)
@@ -597,11 +603,14 @@ function RunOnUpdate()
         {
             if(CurNum < 781)
             {
-                CheckRewriteAllTr(100000, "2502F4136C778545135E19A5DDCAFAE48BDC60707A8B8CC455E230BC1CC211E4", 14615000, "5F2D5096D1BFA1BE1161B0E8FA56FAA323220DB5B2262D240FF304007B7ADDA0");
+                CheckRewriteAllTr2(100000, "2502F4136C778545135E19A5DDCAFAE48BDC60707A8B8CC455E230BC1CC211E4", 14615000, "5F2D5096D1BFA1BE1161B0E8FA56FAA323220DB5B2262D240FF304007B7ADDA0");
+            }
+            if(CurNum < 785)
+            {
+                CheckRewriteAllTr(14710000, "388F5A6A9B3D7845A1E4CBFC674D9CDAB3AA90493703292D01A390CE1F319EF1");
             }
         }
         ToLog("UPDATER Finish");
-        global.SendLogToClient = 0;
     }
 };
 
@@ -622,7 +631,7 @@ function CheckRewriteTr(Num,StrHash,StartRewrite)
     }
 };
 
-function CheckRewriteAllTr(Num,StrHash,Num2,StrHash2)
+function CheckRewriteAllTr2(Num,StrHash,Num2,StrHash2)
 {
     if(global.LOCAL_RUN || global.TEST_NETWORK)
         return "NONE";
@@ -633,6 +642,31 @@ function CheckRewriteAllTr(Num,StrHash,Num2,StrHash2)
     var AccountsHash2 = DApps.Accounts.GetHashOrUndefined(Num2);
     if(AccountsHash2 && GetHexFromArr(AccountsHash2) === StrHash2)
         return "OK";
+    if(AccountsHash && GetHexFromArr(AccountsHash) !== StrHash)
+    {
+        ToLog("***************** START REWRITE ALL DAPPS");
+        global.UpdateMode = 1;
+        for(var key in DApps)
+        {
+            DApps[key].ClearDataBase();
+        }
+        global.UpdateMode = 0;
+        return "Rewrite";
+    }
+    else
+    {
+        return "OK";
+    }
+};
+
+function CheckRewriteAllTr(Num,StrHash,Num2,StrHash2)
+{
+    if(global.LOCAL_RUN || global.TEST_NETWORK)
+        return "NONE";
+    var MaxNum = SERVER.GetMaxNumBlockDB();
+    if(MaxNum < START_BLOCK_ACCOUNT_HASH)
+        return "NONE";
+    var AccountsHash = DApps.Accounts.GetHashOrUndefined(Num);
     if(AccountsHash && GetHexFromArr(AccountsHash) !== StrHash)
     {
         ToLog("***************** START REWRITE ALL DAPPS");

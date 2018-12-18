@@ -92,7 +92,8 @@ class SmartApp extends require("./dapp")
         this.ROW_SIZE = 2 * (1 << 13)
         this.DBSmart = new DBRow("smart", this.ROW_SIZE, this.FORMAT_ROW, bReadOnly)
         this.InitHole()
-        this.Start()
+        if(!bReadOnly)
+            this.Start()
     }
     Start()
     {

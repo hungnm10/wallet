@@ -318,6 +318,9 @@ HTTPCaller.DappTransactionList = function (Params)
 };
 HTTPCaller.LoopEvent = function (Params)
 {
+    if(!global.TX_PROCESS || !global.TX_PROCESS.Worker)
+        return {result:0};
+    global.TX_PROCESS.Worker.send({cmd:"SetSmartEvent", Smart:Params.Smart});
     var Arr = global.EventMap[Params.Smart];
     global.EventMap[Params.Smart] = [];
     if(!Arr || Arr.length === 0)

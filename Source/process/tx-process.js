@@ -41,6 +41,9 @@ process.on('message', function (msg)
         case "FindTX":
             SERVER.TreeFindTX.SaveValue(msg.TX, msg.TX);
             break;
+        case "SetSmartEvent":
+            SERVER.TreeFindTX.SaveValue("Smart:" + msg.Smart, 1);
+            break;
         case "RunTransaction":
             RunTransaction(msg);
             break;
@@ -179,17 +182,17 @@ function InitTXProcess()
         if(MaxNum >= 0)
         {
             var Item = DApps.Accounts.DBAccountsHash.Read(MaxNum);
-            if(Item)
+            if(Item && Item.BlockNum < LastBlockNum)
             {
                 LastBlockNum = Item.BlockNum;
             }
         }
-        if(LastBlockNum > 100)
-            LastBlockNum = LastBlockNum - 100;
+        if(LastBlockNum > 200)
+            LastBlockNum = LastBlockNum - 200;
         if(LastBlockNum <= 0)
             RewriteAllTransactions();
         else
-            ToLog("Start num = " + LastBlockNum);
+            ToLog("Start NUM = " + LastBlockNum);
     }
 };
 

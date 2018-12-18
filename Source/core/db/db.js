@@ -114,7 +114,7 @@ function CheckStartOneProcess(Name)
     catch(e)
     {
         ToLog("****** DETECT START ANOTHER PROCESS for: " + Name);
-        ToLog("EXIT");
+        ToLogTrace("EXIT");
         process.exit();
     }
 };
