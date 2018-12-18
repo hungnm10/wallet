@@ -104,7 +104,7 @@ function DoTXProcess()
     {
         return ;
     }
-    for(var Num = BlockMin.BlockNum; Num < BlockMin.BlockNum + 1000; Num++)
+    for(var Num = BlockMin.BlockNum; Num < BlockMin.BlockNum + 10000; Num++)
     {
         var Block = SERVER.ReadBlockDB(Num);
         if(!Block)
@@ -177,5 +177,6 @@ function InitTXProcess()
                 LastBlockNum = Item.BlockNum;
             }
         }
+        ToLog("Start num = " + LastBlockNum);
     }
 };

@@ -1005,8 +1005,6 @@ class AccountApp extends require("./dapp")
     {
         if(Block.BlockNum % PERIOD_ACCOUNT_HASH !== 0)
             return ;
-        if(Block.BlockNum < START_BLOCK_ACCOUNT_HASH)
-            return ;
         if(this.DBState.WasUpdate)
         {
             this.CalcMerkleTree()
