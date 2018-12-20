@@ -388,6 +388,7 @@ function GetCheckAccHash(Map,BlockNum,Hash)
 };
 global.GetCheckAccHash = GetCheckAccHash;
 global.ReadHashFromBufDB = ReadHashFromBufDB;
+global.STreeBuffer = STreeBuffer;
 global.TestCreateTr = TestCreateTr;
 
 function TestCreateTr()

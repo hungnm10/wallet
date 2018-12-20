@@ -44,9 +44,6 @@ process.on('message', function (msg)
         case "SetSmartEvent":
             SERVER.TreeFindTX.SaveValue("Smart:" + msg.Smart, 1);
             break;
-        case "RunTransaction":
-            RunTransaction(msg);
-            break;
         case "RewriteAllTransactions":
             RewriteAllTransactions(msg);
             break;
@@ -94,13 +91,8 @@ setInterval(function ()
     global.BlockDB.CloseDBFile("block-header");
     global.BlockDB.CloseDBFile("block-body");
     DoTXProcess();
-}, 1000);
-
-function RunTransaction(msg)
-{
-    process.send({cmd:"RunOK", BlockNum:msg.BlockNum, SumHash:msg.SumHash, });
-};
-var BlockList = {};
+}, 10);
+var BlockTree = new STreeBuffer(30 * 1000, CompareItemHashSimple, "number");
 var LastBlockNum = undefined;
 
 function DoTXProcess()
@@ -111,22 +103,26 @@ function DoTXProcess()
     {
         return ;
     }
-    for(var Num = BlockMin.BlockNum; Num < BlockMin.BlockNum + 20000; Num++)
+    for(var Num = BlockMin.BlockNum; Num < BlockMin.BlockNum + 200; Num++)
     {
         var Block = SERVER.ReadBlockDB(Num);
         if(!Block)
         {
             break;
         }
-        SERVER.BlockProcessTX(Block);
-        if(Num % 100000 === 0)
-            ToLog("BlockProcessTX: " + Num);
-        var Item = BlockList[Block.BlockNum];
+        if(!IsValidSumHash(Block))
+        {
+            break;
+        }
+        var Item = BlockTree.LoadValue(Block.BlockNum, 1);
         if(Item && CompareArr(Item.SumHash, Block.SumHash) === 0)
         {
             continue;
         }
-        BlockList[Block.BlockNum] = {BlockNum:Block.BlockNum, SumHash:Block.SumHash};
+        SERVER.BlockProcessTX(Block);
+        if(Num % 100000 === 0)
+            ToLog("CALC: " + Num);
+        BlockTree.SaveValue(Block.BlockNum, {BlockNum:Block.BlockNum, SumHash:Block.SumHash});
         LastBlockNum = Block.BlockNum;
     }
 };
@@ -134,13 +130,10 @@ function DoTXProcess()
 function FindMinimal()
 {
     var MaxNumBlockDB = SERVER.GetMaxNumBlockDB();
-    if(MaxNumBlockDB)
+    if(MaxNumBlockDB && MaxNumBlockDB < LastBlockNum)
     {
-        var Block = SERVER.ReadBlockHeaderDB(MaxNumBlockDB);
-        SERVER.BlockDeleteTX({BlockNum:Block.BlockNum + 1});
-        BlockList[Block.BlockNum + 1] = undefined;
-        if(MaxNumBlockDB < LastBlockNum)
-            LastBlockNum = MaxNumBlockDB;
+        LastBlockNum = MaxNumBlockDB - 1;
+        BlockTree.Clear();
     }
     for(var Num = LastBlockNum; Num--; Num > 0)
     {
@@ -149,50 +142,73 @@ function FindMinimal()
         {
             continue;
         }
+        if(!IsValidSumHash(Block))
+        {
+            continue;
+        }
         if(Block.BlockNum % PERIOD_ACCOUNT_HASH === 0)
         {
-            var Item = DApps.Accounts.DBAccountsHash.Read(Block.BlockNum / PERIOD_ACCOUNT_HASH);
+            var Item = DApps.Accounts.GetAccountHashItem(Block.BlockNum);
             if(Item)
             {
-                BlockList = {};
-                BlockList[Block.BlockNum] = Item;
+                BlockTree.SaveValue(Block.BlockNum, Item);
             }
         }
-        var Item = BlockList[Block.BlockNum];
+        var Item = BlockTree.LoadValue(Block.BlockNum, 1);
         if(Item && CompareArr(Item.SumHash, Block.SumHash) === 0)
             return Block;
-        if(Item && Item.BlockNum === 0)
-            break;
     }
+    RewriteAllTransactions();
     Block = SERVER.ReadBlockHeaderDB(0);
     return Block;
+};
+
+function IsValidSumHash(Block)
+{
+    if(Block.BlockNum < 16)
+        return 1;
+    if(IsZeroArr(Block.SumHash))
+        return 0;
+    var PrevBlock = SERVER.ReadBlockHeaderDB(Block.BlockNum - 1);
+    if(!PrevBlock)
+        return 0;
+    var SumHash2 = shaarr2(PrevBlock.SumHash, Block.Hash);
+    if(CompareArr(SumHash2, Block.SumHash) === 0)
+        return 1;
+    return 0;
 };
 
 function InitTXProcess()
 {
     if(LastBlockNum === undefined)
     {
-        ToLog("Start CalcMerkleTree");
-        DApps.Accounts.CalcMerkleTree();
-        ToLog("Finsih CalcMerkleTree");
-        LastBlockNum = SERVER.GetMaxNumBlockDB();
         var MaxNum = DApps.Accounts.DBAccountsHash.GetMaxNum();
         if(MaxNum < 1)
             LastBlockNum = 0;
-        if(MaxNum >= 0)
+        var StateTX = DApps.Accounts.DBStateTX.Read(0);
+        if(!StateTX)
         {
+            LastBlockNum = 0;
             var Item = DApps.Accounts.DBAccountsHash.Read(MaxNum);
-            if(Item && Item.BlockNum < LastBlockNum)
+            if(Item)
             {
                 LastBlockNum = Item.BlockNum;
             }
+            ToLog("DETECT NEW VER on BlockNum=" + LastBlockNum);
+            DApps.Accounts.DBStateTX.Write({Num:0, BlockNum:LastBlockNum});
         }
-        if(LastBlockNum > 200)
-            LastBlockNum = LastBlockNum - 200;
+        StateTX = DApps.Accounts.DBStateTX.Read(0);
+        LastBlockNum = StateTX.BlockNum;
+        LastBlockNum = PERIOD_ACCOUNT_HASH * Math.trunc(LastBlockNum / PERIOD_ACCOUNT_HASH);
+        if(LastBlockNum > 100)
+        {
+            LastBlockNum = 1 + LastBlockNum - 100;
+        }
         if(LastBlockNum <= 0)
             RewriteAllTransactions();
         else
             ToLog("Start NUM = " + LastBlockNum);
+        DApps.Accounts.CalcMerkleTree();
     }
 };
 
@@ -204,7 +220,7 @@ function RewriteAllTransactions()
         DApps[key].ClearDataBase();
     }
     LastBlockNum = 0;
-    BlockList = {};
+    BlockTree.Clear();
     ToLog("Start num = " + LastBlockNum);
 };
 
@@ -212,8 +228,9 @@ function ReWriteDAppTransactions(msg)
 {
     var StartNum = msg.StartNum;
     var EndNum = msg.EndNum;
-    BlockList = {};
-    if(LastBlockNum > StartNum)
+    ToLog("ReWriteDAppTransactions: " + StartNum + " - " + EndNum);
+    BlockTree.Clear();
+    if(StartNum < LastBlockNum)
         LastBlockNum = StartNum;
     ToLog("Start num = " + LastBlockNum);
 };

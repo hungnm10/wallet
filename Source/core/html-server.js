@@ -421,6 +421,10 @@ HTTPCaller.GetWalletInfo = function ()
         LastHashRate = global.HASH_RATE;
         LastTimeGetHashRate = (new Date) - 0;
     }
+    var StateTX = DApps.Accounts.DBStateTX.Read(0);
+    var TXBlockNum = 0;
+    if(StateTX)
+        TXBlockNum = StateTX.BlockNum;
     var Ret = {result:1, WalletOpen:WALLET.WalletOpen, WalletIsOpen:(WALLET.WalletOpen !== false), WalletCanSign:(WALLET.WalletOpen !== false && WALLET.KeyPair.WasInit),
         CODE_VERSION:CODE_VERSION, VersionNum:global.UPDATE_CODE_VERSION_NUM, RelayMode:SERVER.RelayMode, BlockNumDB:SERVER.BlockNumDB,
         CurBlockNum:GetCurrentBlockNumByTime(), CurTime:Date.now(), IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr), AccountMap:WALLET.AccountMap,
@@ -432,7 +436,7 @@ HTTPCaller.GetWalletInfo = function ()
         CONSTANTS:Constants, CheckPointBlockNum:CHECK_POINT.BlockNum, MiningAccount:global.GENERATE_BLOCK_ACCOUNT, CountMiningCPU:GetCountMiningCPU(),
         CountRunCPU:global.ArrMiningWrk.length, MiningPaused:global.MiningPaused, HashRate:HashRateOneSec, MIN_POWER_POW_TR:MIN_POWER_POW_TR,
         PRICE_DAO:PRICE_DAO(SERVER.BlockNumDB), NWMODE:global.NWMODE, PERIOD_ACCOUNT_HASH:PERIOD_ACCOUNT_HASH, MAX_ACCOUNT_HASH:DApps.Accounts.DBAccountsHash.GetMaxNum(),
-    };
+        TXBlockNum:TXBlockNum, };
     Ret.PrivateKey = WALLET.KeyPair.PrivKeyStr;
     Ret.PublicKey = WALLET.KeyPair.PubKeyStr;
     return Ret;

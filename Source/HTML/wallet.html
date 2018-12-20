@@ -506,7 +506,9 @@
         HistoryMaxNum=Data.HistoryMaxNum;
 
         DeltaTime=DeltaTime.toFixed(3);
-        var Str="Blockchain: <B>"+Data.BlockNumDB+"</B>  Current: <B>"+Data.CurBlockNum+"</B> Time delta:<B>"+DeltaTime+" sec</B> Wallet ver:"+"<B>"+StrVersion+"</B>";
+        //var Str="DB: <B>"+Data.BlockNumDB+ "</B>  TX: <B>"+Data.TXBlockNum + "</B>  New: <B>"+Data.CurBlockNum+"</B> Time delta:<B>"+DeltaTime+" sec</B> Wallet ver:"+"<B>"+StrVersion+"</B>";
+        var Str="Block: <B>"+Data.CurBlockNum+"</B>  DB delta: <B>"+(Data.CurBlockNum-Data.BlockNumDB)+"</B>  TX delta: <B>"+(Data.CurBlockNum-Data.TXBlockNum) + "</B> Time delta: <B>"+DeltaTime+" sec</B> Wallet ver:"+"<B>"+StrVersion+"</B>";
+
         document.getElementById("idCurrentBlockNum").innerHTML=Str;
 
 
@@ -846,7 +848,7 @@
 
         if(!Select.value)
             Select.value=Select.options[0].value;
-        //document.body.className=Select.value;
+
         document.body.className="univers "+Select.value;
     }
     window.onload=function()
@@ -1147,7 +1149,7 @@
 
     <INPUT id="idOpenWallet" style="display: none" type="button" onclick="OnClickOpenCloseWallet()" value="Wallet closed">
 
-    <DIV id="idStatus">&nbsp;</DIV>
+    <DIV id="idStatus" style="height: 40px">&nbsp;</DIV>
     <BR><BR><BR>
 
     <DIV id="TabAccounts" style="display: block">
@@ -1629,6 +1631,7 @@
                     <th id="GetHexFromArr(Item.TreeHash)" class="hash">Data Hash</th>
                     <th id="GetHexFromArr(Item.PowHash)" class="hash">PowHash</th>
                     <th id="GetHexFromArr(Item.Hash)" class="hash">Block Hash</th>
+                    <!--<th id="GetHexFromArr(Item.SumHash)" class="hash">SumHash</th>-->
                     <th id="Item.TrDataLen" class="num">Bytes</th>
                     <th id="Item.Power" class="num">Pow</th>
                     <th id="Item.Miner" class="num">Miner</th>
@@ -1698,7 +1701,7 @@
                 </tr>
             </table>
             <INPUT type="button" onclick="ViewPrev(DefHash)" class="btdoit bt" value="<< Prev">
-            <INPUT type="button" onclick="ViewNext(DefHash,ServerBlockNumDB)" class="btdoit bt" value="Next >>">
+            <INPUT type="button" onclick="ViewNext(DefHash,CONFIG_DATA.MAX_ACCOUNT_HASH)" class="btdoit bt" value="Next >>">
         </DIV>
 
         <DIV id="idUtilView" style="display: none">

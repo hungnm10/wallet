@@ -261,6 +261,9 @@ module.exports = class CDB extends require("../code")
     {
         if(Block.BlockNum > 0)
         {
+            if(USE_CHECK_SAVE_DB)
+                if(!this.CheckSeqHashDB(Block, "WriteBlockHeaderDB"))
+                    return false;
             this.TruncateBlockDBInner(Block)
             this.BlockNumDB = Block.BlockNum - 1
             var PrevBlock = this.ReadBlockHeaderDB(Block.BlockNum - 1);
@@ -272,9 +275,6 @@ module.exports = class CDB extends require("../code")
             }
             Block.SumHash = shaarr2(PrevBlock.SumHash, Block.Hash)
             Block.SumPow = PrevBlock.SumPow + GetPowPower(Block.PowHash)
-            if(USE_CHECK_SAVE_DB)
-                if(!this.CheckSeqHashDB(Block, "WriteBlockHeaderDB"))
-                    return false;
         }
         var BufWrite = BufLib.GetNewBuffer(BLOCK_HEADER_SIZE);
         this.BlockHeaderToBuf(BufWrite, Block)

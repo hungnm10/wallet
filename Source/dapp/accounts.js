@@ -141,8 +141,9 @@ class AccountApp extends require("./dapp")
         this.DBActPrev = new DBRow("accounts-act-prev", this.DBAct.DataSize, this.DBAct.Format, bReadOnly)
         if(global.READ_ONLY_DB)
             return ;
-        this.DBAccountsHash = new DBRow("accounts-hash2", 6 + 32 + 32 + 10, "{BlockNum:uint,Hash:hash, SumHash:hash, Reserve: arr10}",
+        this.DBAccountsHash = new DBRow("accounts-hash2", 6 + 32 + 32 + 10, "{BlockNum:uint, Hash:hash, SumHash:hash, Reserve: arr10}",
         bReadOnly)
+        this.DBStateTX = new DBRow("accounts-tx", 6 + 94, "{BlockNum:uint, Reserve: arr94}", bReadOnly)
         if(global.START_SERVER)
             return ;
         if(!bReadOnly)
@@ -158,6 +159,7 @@ class AccountApp extends require("./dapp")
         this.DBAct.Truncate( - 1)
         this.DBActPrev.Truncate( - 1)
         this.DBAccountsHash.Truncate( - 1)
+        this.DBStateTX.Truncate( - 1)
         this.DBState.Write({Num:0, PubKey:[], Value:{BlockNum:1, SumCOIN:0.95 * TOTAL_TER_MONEY}, Name:"System account"})
         for(var i = 1; i < 8; i++)
             this.DBState.Write({Num:i, PubKey:[], Value:{BlockNum:1}, Name:""})
@@ -165,6 +167,7 @@ class AccountApp extends require("./dapp")
         this.DBState.Write({Num:9, PubKey:GetArrFromHex(ARR_PUB_KEY[1]), Value:{BlockNum:1, SumCOIN:0}, Name:"Developer account"})
         for(var i = 10; i < BLOCK_PROCESSING_LENGTH2; i++)
             this.DBState.Write({Num:i, PubKey:GetArrFromHex(ARR_PUB_KEY[i - 8]), Value:{BlockNum:1}, Name:""})
+        this.DBStateTX.Write({Num:0, BlockNum:0})
         this.CalcMerkleTree(1)
         ToLog("MAX_NUM:" + this.DBState.GetMaxNum())
     }
@@ -175,6 +178,8 @@ class AccountApp extends require("./dapp")
         this.DBAct.Close()
         if(this.DBAccountsHash)
             this.DBAccountsHash.Close()
+        if(this.DBStateTX)
+            this.DBStateTX.Close()
     }
     ClearDataBase()
     {
@@ -477,7 +482,7 @@ class AccountApp extends require("./dapp")
         }
         if(BlockNum < START_BLOCK_ACCOUNT_HASH + 200000)
             return 1;
-        var Item = this.DBAccountsHash.Read(TR.BlockNum / PERIOD_ACCOUNT_HASH);
+        var Item = this.GetAccountHashItem(TR.BlockNum);
         if(Item)
         {
             if(CompareArr(Item.Hash, TR.Hash) === 0)
@@ -739,6 +744,8 @@ class AccountApp extends require("./dapp")
     {
         if(global.START_SERVER)
             throw "DeleteAct START_SERVER";
+        if(BlockNumFrom > 0)
+            this.DBStateTX.Write({Num:0, BlockNum:BlockNumFrom - 1})
         this.DeleteActOneDB(this.DBAct, BlockNumFrom)
         this.DeleteActOneDB(this.DBActPrev, BlockNumFrom)
         this.DBAccountsHash.Truncate(Math.trunc(BlockNumFrom / PERIOD_ACCOUNT_HASH))
@@ -990,11 +997,16 @@ class AccountApp extends require("./dapp")
     {
         if(BlockNum % PERIOD_ACCOUNT_HASH !== 0)
             return undefined;
-        var Item = this.DBAccountsHash.Read(BlockNum / PERIOD_ACCOUNT_HASH);
+        var Item = this.GetAccountHashItem(BlockNum);
         if(Item)
             return Item.Hash;
         else
             return undefined;
+    }
+    GetAccountHashItem(BlockNum)
+    {
+        var Item = this.DBAccountsHash.Read(Math.trunc(BlockNum / PERIOD_ACCOUNT_HASH));
+        return Item;
     }
     GetHashedMaxBlockNum()
     {
@@ -1094,6 +1106,13 @@ class AccountApp extends require("./dapp")
         }
         global.TickCounter = 0
         this.DBChanges = undefined
+        if(BlockNum > 100)
+        {
+            var StateTX = this.DBStateTX.Read(0);
+            if(StateTX.BlockNum !== BlockNum - 1)
+                throw "ERROR SEQ STATETX";
+        }
+        this.DBStateTX.Write({Num:0, BlockNum:BlockNum})
     }
     CommitTransaction(BlockNum, TrNum)
     {

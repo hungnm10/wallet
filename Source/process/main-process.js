@@ -9,11 +9,11 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
+global.PROCESS_NAME = "MAIN";
 const fs = require('fs');
 require("../core/constant");
 const crypto = require('crypto');
 global.START_SERVER = 1;
-global.PROCESS_NAME = "MAIN";
 global.DATA_PATH = GetNormalPathString(global.DATA_PATH);
 global.CODE_PATH = GetNormalPathString(global.CODE_PATH);
 console.log("DATA DIR: " + global.DATA_PATH);
@@ -135,7 +135,7 @@ function OnMessageStatic(msg)
 };
 global.EventMap = {};
 global.TX_PROCESS = {Name:"TX PROCESS", idInterval:0, idInterval1:0, idInterval2:0, LastAlive:Date.now(), Worker:undefined,
-    Path:"./process/tx-process.js", OnMessage:OnMessageWriter, PeriodAlive:100 * 1000 * 300};
+    Path:"./process/tx-process.js", OnMessage:OnMessageWriter, PeriodAlive:100 * 1000};
 ArrChildProcess.push(TX_PROCESS);
 
 function OnMessageWriter(msg)
@@ -540,7 +540,27 @@ function RunServer()
         global.SERVER_PRIVATE_KEY_HEX = GetHexFromArr(Arr);
         SAVE_CONST(true);
     }
-    KeyPair.setPrivateKey(Buffer.from(GetArrFromHex(global.SERVER_PRIVATE_KEY_HEX)));
+    var ServerPrivKey = GetArrFromHex(global.SERVER_PRIVATE_KEY_HEX);
+    if(global.USE_NET_FOR_SERVER_ADDRES)
+    {
+        const os = require('os');
+        var map = os.networkInterfaces();
+        main:
+        for(var key in map)
+        {
+            var arr = map[key];
+            for(var i = 0; i < arr.length; i++)
+            {
+                var item = arr[i];
+                if(!item.internal && item.mac !== "00:00:00:00:00:00")
+                {
+                    ServerPrivKey = sha3(global.SERVER_PRIVATE_KEY_HEX + ":" + item.mac);
+                    break main;
+                }
+            }
+        }
+    }
+    KeyPair.setPrivateKey(Buffer.from(ServerPrivKey));
     new CServer(KeyPair, START_IP, START_PORT_NUMBER, false, false);
     DoStartFindList();
 };
@@ -684,6 +704,7 @@ function CheckRewriteAllTr(Num,StrHash,Num2,StrHash2)
     }
 };
 global.CheckRewriteTr = CheckRewriteTr;
+var glPortDebug = 49800;
 
 function Fork(Path,ArrArgs)
 {
@@ -698,7 +719,9 @@ function Fork(Path,ArrArgs)
     ArrArgs.push("HOSTING:" + global.HTTP_HOSTING_PORT);
     if(!global.USE_PARAM_JS)
         ArrArgs.push("NOPARAMJS");
-    var Worker = child_process.fork(Path, ArrArgs);
+    glPortDebug++;
+    var execArgv = [];
+    var Worker = child_process.fork(Path, ArrArgs, {execArgv:execArgv});
     return Worker;
 };
 

@@ -276,6 +276,24 @@
     {
         $("result").value=Str;
     }
+    //***********************************************
+    var idSendServer=undefined;
+    function StartSendServerPeriod(Period)
+    {
+        if(idSendServer)
+            clearInterval(idSendServer);
+        idSendServer=0;
+        if(Period)
+        {
+            idSendServer=setInterval(function ()
+            {
+                var Value = $("idConsoleText").value;
+                SendServerCode(Value);
+            },Period);
+            return "Set period="+Period;
+        }
+        return "Clear";
+    }
 
     //***********************************************
     var idSendRandom=undefined;
@@ -454,6 +472,8 @@
 
             <INPUT type="button" onclick="SendToServer()" class="bt btdoit" id="idBtRun" value="Send">
             All<input type="checkbox" id="idSendAll" onchange = "SaveValues()"/>
+            <INPUT type="button" onclick="StartSendServerPeriod(1000)" class="bt btdoit" id="idBtRun2" value="Run every 1 sec">
+
             <BR>
 
             <BR>

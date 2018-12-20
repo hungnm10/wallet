@@ -128,6 +128,24 @@ module.exports = class CBlock extends require("./db/block-db")
         var PrevHash = CalcHashFromArray(arr, true);
         return PrevHash;
     }
+    GetPrevHashDB(Block)
+    {
+        var startPrev = Block.BlockNum - BLOCK_PROCESSING_LENGTH2;
+        var arr = [];
+        for(var i = 0; i < BLOCK_PROCESSING_LENGTH; i++)
+        {
+            var num = startPrev + i;
+            var PrevBlock = this.ReadBlockHeaderDB(num);
+            if(!PrevBlock || !PrevBlock.bSave)
+            {
+                ToError(" ERROR CALC BLOCK: " + Block.BlockNum + " - prev block not found: " + num)
+                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            }
+            arr.push(PrevBlock.Hash)
+        }
+        var PrevHash = CalcHashFromArray(arr, true);
+        return PrevHash;
+    }
     StartLoadHistory(Node, bSilent)
     {
         this.FREE_ALL_MEM_CHAINS()
@@ -630,7 +648,6 @@ module.exports = class CBlock extends require("./db/block-db")
                         var Str = "ERR LOADED SUM POW chains: SumDB > Sum loaded from: " + NodeInfo(Info.Node);
                         chain.StopSend = true
                         chain.AddInfo(Str)
-                        ToLog("======================================================" + Str)
                     }
                 }
                 if(!chain.StopSend)
@@ -698,27 +715,22 @@ module.exports = class CBlock extends require("./db/block-db")
     }
     CopyBlockToMem(Block, chain)
     {
-        var BlockMem = this.BlockChain[Block.BlockNum];
+        var BlockMem0 = this.BlockChain[Block.BlockNum];
         this.BlockChain[Block.BlockNum] = Block
-        if(BlockMem)
+        if(BlockMem0)
         {
-            Block.MaxPOW = BlockMem.MaxPOW
-            Block.MaxSum = BlockMem.MaxSum
-            Block.Info = BlockMem.Info
+            Block.Active = BlockMem0.Active
+            Block.EndExchange = BlockMem0.EndExchange
+            Block.HasErr = BlockMem0.HasErr
+            Block.MaxPOW = BlockMem0.MaxPOW
+            Block.MaxSum = BlockMem0.MaxSum
+            Block.Info = BlockMem0.Info
             AddInfoBlock(Block, "--copy mem--")
         }
         else
         {
             this.ClearMaxInBlock(Block)
-            if(BlockMem)
-            {
-                Block.Info = BlockMem.Info
-                AddInfoBlock(Block, "--clear max--")
-            }
-            else
-            {
-                AddInfoBlock(Block, "--create mem--")
-            }
+            AddInfoBlock(Block, "--create mem--")
         }
         Block.Prepared = true
         Block.MinTrPow = undefined
@@ -737,7 +749,6 @@ module.exports = class CBlock extends require("./db/block-db")
         POW.Hash = Block.Hash
         POW.PowHash = Block.PowHash
         POW.SumPow = Block.SumPow
-        POW.port = 0
         Block.MaxSum = {}
         POW = Block.MaxSum
         POW.SeqHash = Block.SeqHash
@@ -748,7 +759,6 @@ module.exports = class CBlock extends require("./db/block-db")
         POW.PowHash = Block.PowHash
         POW.SumHash = Block.SumHash
         POW.SumPow = Block.SumPow
-        POW.port = 0
     }
     AddToStatBlockConfirmation(Block)
     {
@@ -873,6 +883,12 @@ module.exports = class CBlock extends require("./db/block-db")
     {
         if(!arr.length)
             return ;
+        var PrevHash = this.GetPrevHashDB(arr[0]);
+        if(CompareArr(PrevHash, arr[0].PrevHash) !== 0)
+        {
+            this.FREE_ALL_MEM_CHAINS()
+            return ;
+        }
         var startTime = process.hrtime();
         if(this.LoadHistoryMessage)
             ToLog("WRITE DATA Count:" + arr.length + "  " + arr[0].BlockNum + "-" + arr[arr.length - 1].BlockNum)
@@ -922,40 +938,11 @@ module.exports = class CBlock extends require("./db/block-db")
                     Block.arrContent.length = 0
                 Block.arrContent = undefined
             }
+            AddInfoBlock(Block, "-Load-")
         }
-        if(Block && FirstBlock)
+        if(Block)
         {
-            var CurNumStart = FirstBlock.BlockNum + 8;
-            var CurNum = Block.BlockNum + 1;
-            while(true)
-            {
-                var BlockMem = this.BlockChain[CurNum];
-                if(BlockMem)
-                {
-                    BlockMem.bSave = false
-                    if(USE_FAST_CALC_BLOCK)
-                    {
-                        if(CurNum >= CurNumStart)
-                        {
-                            this.ReloadTrTable(BlockMem)
-                            AddInfoBlock(BlockMem, "--reload old table--")
-                        }
-                        else
-                        {
-                            AddInfoBlock(BlockMem, "--skip reload old--")
-                        }
-                    }
-                    else
-                    {
-                        this.ReloadTrTable(BlockMem)
-                        AddInfoBlock(BlockMem, "--reload old table--")
-                    }
-                }
-                if(!BlockMem)
-                    break;
-                CurNum++
-            }
-            ADD_TO_STAT("WRITECHAIN_TO_DB_COUNT", arr.length)
+            this.SetNoPOW(Block.BlockNum + 1, 1)
         }
         this.FREE_ALL_MEM_CHAINS()
         ADD_TO_STAT_TIME("WRITECHAIN_TO_DB_TIME", startTime)
@@ -1201,20 +1188,7 @@ module.exports = class CBlock extends require("./db/block-db")
     {
         if(Block.BlockNum < BLOCK_PROCESSING_LENGTH2)
             return true;
-        var startPrev = Block.BlockNum - BLOCK_PROCESSING_LENGTH2;
-        var arr = [];
-        for(var i = 0; i < BLOCK_PROCESSING_LENGTH; i++)
-        {
-            var num = startPrev + i;
-            var PrevBlock = this.ReadBlockHeaderDB(num);
-            if(!PrevBlock || !PrevBlock.bSave)
-            {
-                ToError(StrError + " ERROR CALC BLOCK: " + Block.BlockNum + " - prev block not found: " + num)
-                return false;
-            }
-            arr.push(PrevBlock.Hash)
-        }
-        var PrevHash = CalcHashFromArray(arr, true);
+        var PrevHash = this.GetPrevHashDB(Block);
         var testSeqHash = this.GetSeqHash(Block.BlockNum, PrevHash, Block.TreeHash);
         var TestValue = GetHashFromSeqAddr(testSeqHash, Block.AddrHash, Block.BlockNum, PrevHash);
         if(CompareArr(TestValue.Hash, Block.Hash) !== 0)
@@ -1243,7 +1217,8 @@ module.exports = class CBlock extends require("./db/block-db")
     }
     GetBlock(num, bToMem, bReadBody)
     {
-        bToMem = bToMem | true
+        if(bToMem === undefined)
+            bToMem = true
         if(num < this.CurrentBlockNum - BLOCK_COUNT_IN_MEMORY)
             bToMem = false
         var Block = this.BlockChain[num];

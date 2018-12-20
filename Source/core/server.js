@@ -562,7 +562,7 @@ module.exports = class CTransport extends require("./connect")
                 this.OnPacketTCP(Buf)
             }
         }
-        ADD_TO_STAT_TIME("TIMEDOGETDATA", startTime)
+        ADD_TO_STAT_TIME("MAX:TIMEDOGETDATA", startTime)
         return 1;
     }
     StopDoSendPacket(Param, Node, Name)
