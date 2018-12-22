@@ -786,7 +786,7 @@ HTTPCaller.GetHotArray = function (Param)
             }
     }
     var BlockCounts = 0;
-    if(Param)
+    if(Param && Param.CountBlock)
         for(var i = SERVER.CurrentBlockNum - Param.CountBlock; i <= SERVER.CurrentBlockNum - Param.CountBlock; i++)
         {
             var Block = SERVER.GetBlock(i);
@@ -847,9 +847,10 @@ function GetCopyNode(Node,BlockCounts)
     var Item = {VersionNum:Node.VersionNum, DirectMAccount:Node.DirectMAccount, id:Node.id, ip:Node.ip, portweb:Node.portweb, port:Node.port,
         TransferCount:Node.TransferCount, GetTiming:GetTiming, ErrCountAll:Node.ErrCountAll, LevelCount:Node.LevelCount, LevelEnum:Node.LevelEnum,
         TimeTransfer:GetStrOnlyTimeUTC(new Date(Node.LastTimeTransfer)), BlockProcessCount:Node.BlockProcessCount, DeltaTime:Node.DeltaTime,
-        DeltaGlobTime:Node.DeltaGlobTime, PingNumber:Node.PingNumber, NextConnectDelta:Node.NextConnectDelta, NextGetNodesDelta:Node.NextGetNodesDelta,
-        NextHotDelta:Node.NextHotDelta, Name:Node.Name, addrStr:Node.addrStr, CanHot:Node.CanHot, Active:Node.Active, Hot:Node.Hot,
-        Info:Node.PrevInfo + Node.Info, InConnectArr:Node.WasAddToConnect, Level:Node.Level, };
+        DeltaTimeM:Node.DeltaTimeM, DeltaGlobTime:Node.DeltaGlobTime, PingNumber:Node.PingNumber, NextConnectDelta:Node.NextConnectDelta,
+        NextGetNodesDelta:Node.NextGetNodesDelta, NextHotDelta:Node.NextHotDelta, Name:Node.Name, addrStr:Node.addrStr, CanHot:Node.CanHot,
+        Active:Node.Active, Hot:Node.Hot, Info:Node.PrevInfo + Node.Info, InConnectArr:Node.WasAddToConnect, Level:Node.Level, TransferBlockNum:Node.TransferBlockNum,
+        TransferBlockNumFix:Node.TransferBlockNumFix, CurBlockNum:Node.CurBlockNum, };
     return Item;
 };
 HTTPCaller.GetBlockchainStat = function (Param)
@@ -917,18 +918,6 @@ HTTPCaller.CleanChain = function (Param)
     }
     return {result:0, sessionid:sessionid};
 };
-HTTPCaller.GetNodes = function ()
-{
-    var ArrNodes = SERVER.GetActualNodes();
-    var res = [];
-    for(var Node of ArrNodes)
-    {
-        res.push({ip:Node.ip, port:Node.port, webport:80, addr:Node.addrStr, Hot:Node.Hot, Active:Node.Active});
-    }
-    var Result = {result:1, sessionid:sessionid, Nodes:res, DEF_NETWORK:GetNetworkName(), DEF_VERSION:DEF_VERSION, port:SERVER.port,
-        webport:global.HTTP_PORT_NUMBER, };
-    return Result;
-};
 HTTPCaller.GetArrStats = function (Keys)
 {
     var arr = GET_STATDIAGRAMS(Keys);
@@ -960,21 +949,24 @@ HTTPCaller.GetBlockChain = function (type)
     }
     AddChainList(arrLoadedChainList, SERVER.LoadedChainList, true);
     AddMapList(arrLoadedBlocks, type, SERVER.MapMapLoaded, MainChains);
-    var ArrLoadedChainList = SERVER.HistoryBlockBuf.LoadValue("LoadedChainList", 1);
+    var ArrLoadedChainList = global.HistoryBlockBuf.LoadValue("LoadedChainList", 1);
     if(ArrLoadedChainList)
         for(var List of ArrLoadedChainList)
         {
             AddChainList(arrLoadedChainList, List);
         }
-    var ArrMapMapLoaded = SERVER.HistoryBlockBuf.LoadValue("MapMapLoaded", 1);
+    var ArrMapMapLoaded = global.HistoryBlockBuf.LoadValue("MapMapLoaded", 1);
     if(ArrMapMapLoaded)
         for(var List of ArrMapMapLoaded)
         {
             AddMapList(arrLoadedBlocks, type, List);
         }
-    var obj = {CurrentBlockNum:SERVER.CurrentBlockNum, LoadedChainList:arrLoadedChainList, LoadedBlocks:arrLoadedBlocks, BlockChain:arrBlocks,
-        port:SERVER.port, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, memoryUsage:process.memoryUsage(), IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr),
-        LoadedChainCount:SERVER.LoadedChainList.length, StartLoadBlockTime:SERVER.StartLoadBlockTime, sessionid:sessionid, result:1};
+    var obj = {LastCurrentBlockNum:SERVER.GetLastCorrectBlockNum(), CurrentBlockNum:SERVER.CurrentBlockNum, LoadedChainList:arrLoadedChainList,
+        LoadedBlocks:arrLoadedBlocks, BlockChain:arrBlocks, port:SERVER.port, DELTA_CURRENT_TIME:DELTA_CURRENT_TIME, memoryUsage:process.memoryUsage(),
+        IsDevelopAccount:IsDeveloperAccount(WALLET.PubKeyArr), LoadedChainCount:SERVER.LoadedChainList.length, StartLoadBlockTime:SERVER.StartLoadBlockTime,
+        sessionid:sessionid, result:1};
+    var obj2 = HTTPCaller.GetHotArray();
+    obj.ArrTree = obj2.ArrTree;
     arrBlocks = [];
     arrLoadedChainList = [];
     arrLoadedBlocks = [];

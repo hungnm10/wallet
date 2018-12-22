@@ -27,6 +27,7 @@ function CreateHashMinimal(Block,MinerID)
 {
     if(Block.BlockNum < BLOCKNUM_ALGO2)
     {
+        throw "BlockNum<BLOCKNUM_ALGO2";
         return false;
     }
     var PrevHashNum = ReadUint32FromArr(Block.PrevHash, 28);

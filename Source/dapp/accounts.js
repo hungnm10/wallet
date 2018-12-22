@@ -216,8 +216,6 @@ class AccountApp extends require("./dapp")
                 ToLog("Can-t rename act-file!")
                 return ;
             }
-            ToLog("MAX_NUM PREV:" + this.DBActPrev.GetMaxNum())
-            ToLog("MAX_NUM CURR:" + this.DBAct.GetMaxNum())
         }
     }
     OnDeleteBlock(Block)
@@ -1098,7 +1096,7 @@ class AccountApp extends require("./dapp")
         for(var i = 0; i < DBChanges.BlockEvent.length; i++)
         {
             var Data = DBChanges.BlockEvent[i];
-            var Has = SERVER.TreeFindTX.LoadValue("Smart:" + Data.Smart, 1);
+            var Has = global.TreeFindTX.LoadValue("Smart:" + Data.Smart, 1);
             if(Has)
             {
                 process.send({cmd:"DappEvent", Data:Data})

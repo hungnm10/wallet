@@ -713,65 +713,6 @@ module.exports = class CBlock extends require("./db/block-db")
         }
         return arr;
     }
-    CopyBlockToMem(Block, chain)
-    {
-        var BlockMem0 = this.BlockChain[Block.BlockNum];
-        this.BlockChain[Block.BlockNum] = Block
-        if(BlockMem0)
-        {
-            Block.Active = BlockMem0.Active
-            Block.EndExchange = BlockMem0.EndExchange
-            Block.HasErr = BlockMem0.HasErr
-            Block.MaxPOW = BlockMem0.MaxPOW
-            Block.MaxSum = BlockMem0.MaxSum
-            Block.Info = BlockMem0.Info
-            AddInfoBlock(Block, "--copy mem--")
-        }
-        else
-        {
-            this.ClearMaxInBlock(Block)
-            AddInfoBlock(Block, "--create mem--")
-        }
-        Block.Prepared = true
-        Block.MinTrPow = undefined
-        if(chain)
-            chain.AddInfo("LOAD:" + this.GetStrFromHashShort(Block.SumHash) + "  id:" + chain.id)
-        this.AddToStatBlockConfirmation(Block)
-    }
-    ClearMaxInBlock(Block)
-    {
-        Block.MaxPOW = {}
-        var POW = Block.MaxPOW;
-        POW.SeqHash = Block.SeqHash
-        POW.AddrHash = Block.AddrHash
-        POW.PrevHash = Block.PrevHash
-        POW.TreeHash = Block.TreeHash
-        POW.Hash = Block.Hash
-        POW.PowHash = Block.PowHash
-        POW.SumPow = Block.SumPow
-        Block.MaxSum = {}
-        POW = Block.MaxSum
-        POW.SeqHash = Block.SeqHash
-        POW.AddrHash = Block.AddrHash
-        POW.PrevHash = Block.PrevHash
-        POW.TreeHash = Block.TreeHash
-        POW.Hash = Block.Hash
-        POW.PowHash = Block.PowHash
-        POW.SumHash = Block.SumHash
-        POW.SumPow = Block.SumPow
-    }
-    AddToStatBlockConfirmation(Block)
-    {
-        if(Block.BlockNum > START_BLOCK_RUN + BLOCK_PROCESSING_LENGTH2)
-        {
-            var TimeDelta = this.CurrentBlockNum - Block.BlockNum;
-            ADD_TO_STAT("MAX:BlockConfirmation", TimeDelta)
-        }
-        else
-        {
-            ADD_TO_STAT("MAX:BlockConfirmation", BLOCK_PROCESSING_LENGTH)
-        }
-    }
     PrepareTransactionsForLoad(chain, arr, bNoSlice)
     {
         if(!bNoSlice)
@@ -938,14 +879,80 @@ module.exports = class CBlock extends require("./db/block-db")
                     Block.arrContent.length = 0
                 Block.arrContent = undefined
             }
-            AddInfoBlock(Block, "-Load-")
+            var BlockMem = this.BlockChain[Block.BlockNum];
+            if(BlockMem)
+                AddInfoBlock(BlockMem, "Load:" + GetPowPower(Block.PowHash))
         }
-        if(Block)
+        if(Block && FirstBlock)
         {
-            this.SetNoPOW(Block.BlockNum + 1, 1)
+            var CurNumStart = Math.max(FirstBlock.BlockNum + 8, Block.BlockNum + 1);
+            this.SetNoPOW(CurNumStart, 1, FirstBlock.BlockNum)
         }
         this.FREE_ALL_MEM_CHAINS()
         ADD_TO_STAT_TIME("WRITECHAIN_TO_DB_TIME", startTime)
+    }
+    CopyBlock(Block, BlockDst)
+    {
+        BlockDst.BlockNum = Block.BlockNum
+        BlockDst.TreeHash = Block.TreeHash
+        BlockDst.AddrHash = Block.AddrHash
+        BlockDst.PrevHash = Block.PrevHash
+        BlockDst.SumHash = Block.SumHash
+        BlockDst.SumPow = Block.SumPow
+        BlockDst.TrDataPos = Block.TrDataPos
+        BlockDst.TrDataLen = Block.TrDataLen
+        BlockDst.SeqHash = Block.SeqHash
+        BlockDst.Hash = Block.Hash
+        BlockDst.PowHash = Block.PowHash
+        BlockDst.TrCount = Block.TrCount
+        BlockDst.arrContent = Block.arrContent
+        BlockDst.bSave = Block.bSave
+    }
+    CopyBlockToMem(Block)
+    {
+        var BlockMem = this.BlockChain[Block.BlockNum];
+        if(BlockMem)
+        {
+            this.CopyBlock(Block, BlockMem)
+            BlockMem.Prepared = true
+            BlockMem.MinTrPow = undefined
+            this.RecreateMaxPOW(BlockMem)
+        }
+        this.AddToStatBlockConfirmation(Block)
+    }
+    ClearMaxInBlock(Block)
+    {
+        Block.MaxPOW = {}
+        var POW = Block.MaxPOW;
+        POW.SeqHash = Block.SeqHash
+        POW.AddrHash = Block.AddrHash
+        POW.PrevHash = Block.PrevHash
+        POW.TreeHash = Block.TreeHash
+        POW.Hash = Block.Hash
+        POW.PowHash = Block.PowHash
+        POW.SumPow = Block.SumPow
+        Block.MaxSum = {}
+        POW = Block.MaxSum
+        POW.SeqHash = Block.SeqHash
+        POW.AddrHash = Block.AddrHash
+        POW.PrevHash = Block.PrevHash
+        POW.TreeHash = Block.TreeHash
+        POW.Hash = Block.Hash
+        POW.PowHash = Block.PowHash
+        POW.SumHash = Block.SumHash
+        POW.SumPow = Block.SumPow
+    }
+    AddToStatBlockConfirmation(Block)
+    {
+        if(Block.BlockNum > START_BLOCK_RUN + BLOCK_PROCESSING_LENGTH2)
+        {
+            var TimeDelta = this.CurrentBlockNum - Block.BlockNum;
+            ADD_TO_STAT("MAX:BlockConfirmation", TimeDelta)
+        }
+        else
+        {
+            ADD_TO_STAT("MAX:BlockConfirmation", BLOCK_PROCESSING_LENGTH)
+        }
     }
     SendBlockNext(Block)
     {
@@ -1302,21 +1309,21 @@ module.exports = class CBlock extends require("./db/block-db")
     }
     AddValueToHistory(typedata, val)
     {
-        var Arr = this.HistoryBlockBuf.LoadValue(typedata, 1);
+        var Arr = global.HistoryBlockBuf.LoadValue(typedata, 1);
         if(!Arr)
         {
             Arr = []
-            this.HistoryBlockBuf.SaveValue(typedata, Arr)
+            global.HistoryBlockBuf.SaveValue(typedata, Arr)
         }
         Arr.push(val)
     }
     GetHistoryTree(typedata)
     {
-        var Tree = this.HistoryBlockBuf.LoadValue(typedata, 1);
+        var Tree = global.HistoryBlockBuf.LoadValue(typedata, 1);
         if(!Tree)
         {
             Tree = new RBTree(CompareItemHash)
-            this.HistoryBlockBuf.SaveValue(typedata, Tree)
+            global.HistoryBlockBuf.SaveValue(typedata, Tree)
         }
         return Tree;
     }
@@ -1399,3 +1406,4 @@ function GetFindDB()
         this.PrepareTransactionsForLoad(chain, arr, 1)
     }
 };
+global.HistoryBlockBuf = new STreeBuffer(HISTORY_BLOCK_COUNT * 1000, CompareItemHashSimple, "string");

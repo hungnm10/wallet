@@ -35,13 +35,6 @@ module.exports = class CCommon
         this.addrStr = GetHexFromArr(this.addrArr)
         this.HashDBArr = shaarr2(this.KeyPair.getPrivateKey(), [0, 0, 0, 0, 0, 0, 0, 1])
         this.ServerSign = []
-        this.HistoryBlockBuf = new STreeBuffer(HISTORY_BLOCK_COUNT * 1000, CompareItemHashSimple, "string")
-        this.TreeKeyBufer = new STreeBuffer(30 * 1000, CompareItemHash33, "object")
-        this.PacketTree = new STreeBuffer(MAX_TIME_NETWORK_TRANSPORT, CompareItemHash32, "object")
-        this.LoadedNodes = new STreeBuffer(MAX_TIME_NETWORK_TRANSPORT, CompareItemHash32, "object")
-        this.ContextPackets = new STreeBuffer(10 * 1000, CompareItemHash32, "object")
-        this.TreeBlockBuf = new STreeBuffer(10 * 1000, CompareItemHashSimple, "string")
-        this.TreeFindTX = new STreeBuffer(30 * 1000, CompareItemHashSimple, "string")
     }
     AddStatOnTimer()
     {
@@ -73,6 +66,7 @@ module.exports = class CCommon
         var arr = this.GetActualNodes();
         var Count = 0, CountHot = 0, CountHotOK = 0, CountActualOK = 0, SumDeltaHot = 0, SumDeltaActual = 0, CountCP = 0, CountLH = 0,
         CountHash = 0, CountVer = 0, CountStop = 0;
+        var CountAutoCorrectTime = 0;
         var SumAvgDeltaTime = 0;
         for(var i = 0; i < arr.length; i++)
         {
@@ -117,6 +111,8 @@ module.exports = class CCommon
                 CountHotOK += Chck
                 SumDeltaHot += DeltaTime
             }
+            if(INFO.AutoCorrectTime)
+                CountAutoCorrectTime++
         }
         ADD_TO_STAT("MAX:ALL_NODES", CountAll)
         ADD_TO_STAT("MAX:CONNECTED_NODES", Count)
@@ -128,6 +124,7 @@ module.exports = class CCommon
         ADD_TO_STAT("MAX:HASH_OK", CountHash)
         ADD_TO_STAT("MAX:MIN_VERSION", CountVer)
         ADD_TO_STAT("MAX:STOP_GET", CountStop)
+        ADD_TO_STAT("MAX:AUTOCORRECT", CountAutoCorrectTime)
         ADD_TO_STAT("MAX:TIME_DELTA", DELTA_CURRENT_TIME)
         if(!Count)
             Count = 1

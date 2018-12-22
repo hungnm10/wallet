@@ -39,10 +39,10 @@ process.on('message', function (msg)
         case "ALive":
             break;
         case "FindTX":
-            SERVER.TreeFindTX.SaveValue(msg.TX, msg.TX);
+            global.TreeFindTX.SaveValue(msg.TX, msg.TX);
             break;
         case "SetSmartEvent":
-            SERVER.TreeFindTX.SaveValue("Smart:" + msg.Smart, 1);
+            global.TreeFindTX.SaveValue("Smart:" + msg.Smart, 1);
             break;
         case "RewriteAllTransactions":
             RewriteAllTransactions(msg);
@@ -84,6 +84,7 @@ var KeyPair = crypto.createECDH('secp256k1');
 KeyPair.setPrivateKey(Buffer.from([77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
 77, 77, 77, 77, 77, 77, 77, 77, 77, 77]));
 global.SERVER = new CServerDB(KeyPair, undefined, undefined, false, true);
+global.TreeFindTX = new STreeBuffer(30 * 1000, CompareItemHashSimple, "string");
 setInterval(function ()
 {
     if(SERVER)

@@ -526,7 +526,7 @@ module.exports = class CTransport extends require("./connect")
         }
         if(!IsZeroArr(Buf.ContextID))
         {
-            Buf.Context = this.ContextPackets.LoadValue(Buf.ContextID)
+            Buf.Context = global.ContextPackets.LoadValue(Buf.ContextID)
         }
         if(!Buf.Context)
         {
@@ -718,7 +718,7 @@ module.exports = class CTransport extends require("./connect")
                 Info.ContextID = crypto.randomBytes(32)
                 Info.Context.ContextID = Info.ContextID
             }
-            this.ContextPackets.SaveValue(Info.ContextID, Info.Context)
+            global.ContextPackets.SaveValue(Info.ContextID, Info.Context)
         }
         else
         {
@@ -1167,6 +1167,7 @@ module.exports = class CTransport extends require("./connect")
         }
     }
 };
+global.ContextPackets = new STreeBuffer(10 * 1000, CompareItemHash32, "object");
 
 function CalcStatArr(arr,arrAvg,arrNext,Period)
 {

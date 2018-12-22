@@ -9,8 +9,8 @@
  * Telegram: https://web.telegram.org/#/im?p=@terafoundation
 */
 
-global.UPDATE_CODE_VERSION_NUM = 803;
-global.MIN_CODE_VERSION_NUM = 773;
+global.UPDATE_CODE_VERSION_NUM = 810;
+global.MIN_CODE_VERSION_NUM = 801;
 global.InitParamsArg = InitParamsArg;
 global.CONST_NAME_ARR = ["AUTO_COORECT_TIME", "DELTA_CURRENT_TIME", "COMMON_KEY", "NODES_NAME", "SERVER_PRIVATE_KEY_HEX", "USE_NET_FOR_SERVER_ADDRES",
 "NET_WORK_MODE", "STAT_MODE", "UPDATE_NUM_COMPLETE", "HTTP_IP_CONNECT", "HTTP_PORT_NUMBER", "HTTP_PORT_PASSWORD", "WALLET_NAME",
@@ -28,7 +28,7 @@ global.DELTA_CURRENT_TIME = 0;
 global.NODES_NAME = "";
 global.COMMON_KEY = "";
 global.SERVER_PRIVATE_KEY_HEX = undefined;
-global.USE_NET_FOR_SERVER_ADDRES = 0;
+global.USE_NET_FOR_SERVER_ADDRES = 1;
 global.NET_WORK_MODE = undefined;
 global.STAT_MODE = 0;
 global.UPDATE_NUM_COMPLETE = 0;

@@ -305,6 +305,7 @@ module.exports = class CConnect extends require("./transfer-msg")
             return ;
         this.DoPingData(Info, 0)
         var DeltaTime = GetCurrentTime(0) - Info.Context.StartTime;
+        Node.DeltaTimeM = DeltaTime
         Node.SumDeltaTime += DeltaTime
         Node.CountDeltaTime++
         Node.DeltaTime = Math.trunc(Node.SumDeltaTime / Node.CountDeltaTime)
