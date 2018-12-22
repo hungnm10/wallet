@@ -1101,11 +1101,18 @@ module.exports = class CBlock extends require("./db/block-db")
                 {
                     if(!DApps.Accounts.TRCheckAccountHash(TR, Data.BlockNum))
                     {
+                        if(!this.BADHashCount)
+                            this.BADHashCount = 0
+                        this.BADHashCount++
                         ToLog("**** BAD ACCOUNT Hash in block=" + Block.BlockNum + " from:" + NodeName(Info.Node) + " ****")
                         ToLog("May be need to Rewrite transactions from: " + (Block.BlockNum - 2 * DELTA_BLOCK_ACCOUNT_HASH))
                         this.SetBlockNOSendToNode(Block, Info.Node, "BAD CMP ACC HASH")
-                        if(CHECK_POINT.BlockNum > Data.BlockNum)
+                        if(global.WATCHDOG_BADACCOUNT && this.BADHashCount > 60)
                         {
+                            ToLog("Run WATCHDOG!")
+                            this.BADHashCount = 0
+                            this.FREE_ALL_MEM_CHAINS()
+                            this.SetTruncateBlockDB(Block.BlockNum - 5 * DELTA_BLOCK_ACCOUNT_HASH)
                         }
                         else
                         {

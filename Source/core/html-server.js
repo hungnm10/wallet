@@ -1012,14 +1012,14 @@ function GetGUID(Block)
 function CopyBlockDraw(Block,MainChains)
 {
     var MinerID = 0;
+    var MinerName = "";
     if(Block.AddrHash)
     {
         var Num = ReadUintFromArr(Block.AddrHash, 0);
+        MinerID = Num;
         var Item = DApps.Accounts.ReadState(Num);
         if(Item && Item.Name)
-            MinerID = Item.Name.substr(0, 8);
-        else
-            MinerID = Num;
+            MinerName = Item.Name.substr(0, 8);
     }
     var CheckPoint = 0;
     if(Block.BlockNum === CHECK_POINT.BlockNum)
@@ -1032,10 +1032,10 @@ function CopyBlockDraw(Block,MainChains)
     GetGUID(Block);
     var Item = {guid:Block.guid, Active:Block.Active, bSave:Block.bSave, Prepared:Block.Prepared, BlockNum:Block.BlockNum, Hash:GetHexFromAddresShort(Block.Hash),
         SumHash:GetHexFromAddresShort(Block.SumHash), SeqHash:GetHexFromAddresShort(Block.SeqHash), TreeHash:GetHexFromAddresShort(Block.TreeHash),
-        AddrHash:GetHexFromAddresShort(Block.AddrHash), Miner1:MinerID, Comment1:Block.Comment1, Comment2:Block.Comment2, SumPow:Block.SumPow,
-        Info:Block.Info, TreeLoaded:Block.TreeEq, AddToLoad:Block.AddToLoad, LoadDB:Block.LoadDB, FindBlockDB:Block.FindBlockDB, TrCount:Block.TrCount,
-        ArrLength:0, TrDataLen:Block.TrDataLen, Power:GetPowPower(Block.PowHash), CheckPoint:CheckPoint, Mining:Mining, HasErr:Block.HasErr,
-    };
+        AddrHash:GetHexFromAddresShort(Block.AddrHash), MinerID:MinerID, MinerName:MinerName, Comment1:Block.Comment1, Comment2:Block.Comment2,
+        SumPow:Block.SumPow, Info:Block.Info, TreeLoaded:Block.TreeEq, AddToLoad:Block.AddToLoad, LoadDB:Block.LoadDB, FindBlockDB:Block.FindBlockDB,
+        TrCount:Block.TrCount, ArrLength:0, TrDataLen:Block.TrDataLen, Power:GetPowPower(Block.PowHash), CheckPoint:CheckPoint, Mining:Mining,
+        HasErr:Block.HasErr, };
     if(Block.chain)
         Item.chainid = Block.chain.id;
     if(Block.LoadDB !== undefined)

@@ -938,7 +938,7 @@ module.exports = class CConsensus extends require("./block-loader")
             AddInfoBlock(Block, "Prev Not End Exchange")
             return ;
         }
-        AddInfoBlock(Block, "End Exchange,TC=" + Block.TransferCount)
+        AddInfoBlock(Block, "End Exchange,N=" + Block.TransferCount)
         var arrContent = [];
         var arrHASH = [];
         var arrTr = this.GetArrayFromTree(Block);
