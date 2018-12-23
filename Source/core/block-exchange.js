@@ -214,6 +214,7 @@ module.exports = class CConsensus extends require("./block-loader")
         var Data = this.DataFromF(Info);
         var Node = Info.Node;
         Node.TransferBlockNum = Data.BlockNum
+        Node.TransferSize = Info.Data.length
         Node.TransferBlockNumFix = this.CurrentBlockNum
         Node.CurBlockNum = Data.BaseBlockNum + Data.BlockNum
         var Block = this.GetBlockContext(Data.BlockNum);
@@ -260,9 +261,12 @@ module.exports = class CConsensus extends require("./block-loader")
         Node.LastTimeTransfer = GetCurrentTime() - 0
         var Item = Transfer.TransferNodes[Key];
         Item.GetTiming = GetCurrentTime(Block.DELTA_CURRENT_TIME) - Block.StartTimeNum
-        if(!Block.TransferCount)
-            Block.TransferCount = 0
-        Block.TransferCount++
+        if(!Block.TransferNodes)
+            Block.TransferNodes = 0
+        if(!Block.TransferSize)
+            Block.TransferSize = 0
+        Block.TransferNodes++
+        Block.TransferSize += Info.Data.length
     }
     DoTransfer()
     {
@@ -938,7 +942,7 @@ module.exports = class CConsensus extends require("./block-loader")
             AddInfoBlock(Block, "Prev Not End Exchange")
             return ;
         }
-        AddInfoBlock(Block, "End Exchange,N=" + Block.TransferCount)
+        AddInfoBlock(Block, "End Exchange,N=" + Block.TransferNodes)
         var arrContent = [];
         var arrHASH = [];
         var arrTr = this.GetArrayFromTree(Block);
@@ -1051,7 +1055,8 @@ module.exports = class CConsensus extends require("./block-loader")
                     Block.bSave = false
                 }
             }
-            this.WatchdogSaved(Block.BlockNum)
+            if(global.WATCHDOG_DEV)
+                this.WatchdogSaved(Block.BlockNum)
             if(Block.bSave)
             {
                 bWasSave = true

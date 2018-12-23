@@ -850,7 +850,7 @@ function GetCopyNode(Node,BlockCounts)
         DeltaTimeM:Node.DeltaTimeM, DeltaGlobTime:Node.DeltaGlobTime, PingNumber:Node.PingNumber, NextConnectDelta:Node.NextConnectDelta,
         NextGetNodesDelta:Node.NextGetNodesDelta, NextHotDelta:Node.NextHotDelta, Name:Node.Name, addrStr:Node.addrStr, CanHot:Node.CanHot,
         Active:Node.Active, Hot:Node.Hot, Info:Node.PrevInfo + Node.Info, InConnectArr:Node.WasAddToConnect, Level:Node.Level, TransferBlockNum:Node.TransferBlockNum,
-        TransferBlockNumFix:Node.TransferBlockNumFix, CurBlockNum:Node.CurBlockNum, };
+        TransferSize:Node.TransferSize, TransferBlockNumFix:Node.TransferBlockNumFix, CurBlockNum:Node.CurBlockNum, };
     return Item;
 };
 HTTPCaller.GetBlockchainStat = function (Param)
@@ -1035,7 +1035,7 @@ function CopyBlockDraw(Block,MainChains)
         AddrHash:GetHexFromAddresShort(Block.AddrHash), MinerID:MinerID, MinerName:MinerName, Comment1:Block.Comment1, Comment2:Block.Comment2,
         SumPow:Block.SumPow, Info:Block.Info, TreeLoaded:Block.TreeEq, AddToLoad:Block.AddToLoad, LoadDB:Block.LoadDB, FindBlockDB:Block.FindBlockDB,
         TrCount:Block.TrCount, ArrLength:0, TrDataLen:Block.TrDataLen, Power:GetPowPower(Block.PowHash), CheckPoint:CheckPoint, Mining:Mining,
-        HasErr:Block.HasErr, };
+        TransferSize:Block.TransferSize, HasErr:Block.HasErr, };
     if(Block.chain)
         Item.chainid = Block.chain.id;
     if(Block.LoadDB !== undefined)

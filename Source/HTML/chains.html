@@ -380,7 +380,10 @@
 
                 //линии
                 ctx.strokeStyle = Node.Color.color1;//color;
-                ctx.lineWidth=1;
+                ctx.lineWidth=Math.log(1+Node.TransferSize/10000);
+                if(ctx.lineWidth<2)
+                    ctx.lineWidth=1;
+
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2,y2);
@@ -680,6 +683,10 @@
         {
             y+=40;
             ctx.fillText("T:"+Block.TransferCount,x+2,y);
+
+            y+=16;
+            ctx.fillText("Kb:"+Math.trunc(10*Block.TransferSize/1024)/10,x+2,y);
+
 //            y+=20;
 //            if(Block.TransferBlockNum)
 //                ctx.fillText("B:"+Block.TransferBlockNum,x+2,y);
