@@ -2,7 +2,7 @@
  * @project: TERA
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
- * @license: Not for evil
+ * @license: MIT (not for evil)
  * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
@@ -19,7 +19,7 @@ if(global.LOCAL_RUN || global.TEST_NETWORK)
 {
     global.COUNT_BLOCKS_FOR_LOAD = global.DELTA_BLOCK_ACCOUNT_HASH / 2;
 }
-global.COUNT_HISTORY_BLOCKS_FOR_LOAD = 3000;
+global.COUNT_HISTORY_BLOCKS_FOR_LOAD = 100;
 global.COUNT_BLOCKS_FOR_CHECK_POW = 100;
 global.MAX_COUNT_CHAIN_LOAD = 120;
 global.PACKET_ALIVE_PERIOD = 4 * CONSENSUS_PERIOD_TIME;

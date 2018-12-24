@@ -2,7 +2,7 @@
  * @project: TERA
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
- * @license: Not for evil
+ * @license: MIT (not for evil)
  * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
@@ -105,6 +105,7 @@ module.exports = class CTransport extends require("./connect")
         MethodTiming:
         {
             Map["TRANSFER"] = {Period:700, Hot:1}
+            Map["RETTRANSFER"] = {Period:0, Hot:1}
             Map["TIME"] = {Period:2000, LowVersion:1, Hard:1, Immediately:1}
             Map["PING"] = {Period:4000, LowVersion:1, Hard:1, Immediately:1}
             Map["PONG"] = {Period:0, LowVersion:1, Immediately:1}

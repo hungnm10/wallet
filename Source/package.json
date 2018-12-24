@@ -14,7 +14,7 @@
     "cryptomessenger"
   ],
   "author": "progr76@gmail.com",
-  "license": "TERA",
+  "license": "MIT",
   "dependencies": {
     "bintrees": "^1.0.2",
     "minify": "^3.0.5",

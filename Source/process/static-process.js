@@ -2,7 +2,7 @@
  * @project: TERA
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
- * @license: Not for evil
+ * @license: MIT (not for evil)
  * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
@@ -33,6 +33,9 @@ process.on('message', function (msg)
     switch(msg.cmd)
     {
         case "ALive":
+            break;
+        case "Exit":
+            process.exit(0);
             break;
         case "GETBLOCKHEADER":
             GETBLOCKHEADER(msg);

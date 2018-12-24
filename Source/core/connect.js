@@ -2,7 +2,7 @@
  * @project: TERA
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
- * @license: Not for evil
+ * @license: MIT (not for evil)
  * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
@@ -965,6 +965,22 @@ module.exports = class CConnect extends require("./transfer-msg")
                 Node.NextConnectDelta = 1000
                 Node.WasAddToConnect = 1
                 ArrConnect.push(Node)
+                Count++
+            }
+        }
+        return Count;
+    }
+    DisconnectAll()
+    {
+        var Count = 0;
+        for(var i = 0; i < this.NodesArr.length; i++)
+        {
+            var Node = this.NodesArr[i];
+            if(Node.Active)
+            {
+                AddNodeInfo(Node, "Disconnect hot all")
+                Node.NextConnectDelta = 10000
+                this.DeleteNodeFromActive(Node)
                 Count++
             }
         }

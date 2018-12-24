@@ -2,7 +2,7 @@
  * @project: TERA
  * @version: Development (beta)
  * @copyright: Yuriy Ivanov 2017-2018 [progr76@gmail.com]
- * @license: Not for evil
+ * @license: MIT (not for evil)
  * Web: http://terafoundation.org
  * GitHub: https://github.com/terafoundation/wallet
  * Twitter: https://twitter.com/terafoundation
@@ -24,7 +24,7 @@ global.TIME_END_EXCHANGE =  - 3;
 global.TIME_START_POW =  - 4;
 global.TIME_START_SAVE =  - 4;
 global.TIME_START_LOAD = global.TIME_START_SAVE - 4;
-const FORMAT_DATA_TRANSFER = "{\
+var FORMAT_DATA_TRANSFER = "{\
     Version:uint16,\
     BlockNum:uint,\
     Array:[{body:tr}],\
@@ -32,6 +32,19 @@ const FORMAT_DATA_TRANSFER = "{\
     MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,SeqHash:hash}]}],\
     BaseBlockNum:uint,\
     }";
+if(global.USE_NEW_SEND_ALGO)
+{
+    FORMAT_DATA_TRANSFER = "{\
+        Version:uint16,\
+        BlockNum:uint,\
+        Array:[{body:tr}],\
+        MaxPOW:[{BlockNum:uint,AddrHash:hash,SeqHash:hash}],\
+        MaxSum:[{BlockNum:uint,SumHash:hash,SumList:[{AddrHash:hash,SeqHash:hash}]}],\
+        BaseBlockNum:uint,\
+        MaxSumID:[{BlockNum:uint,SumHash:hash,SumListID:[uint16]}],\
+        BlockList:[{ID:uint16, AddrHash:hash,SeqHash:hash}],\
+        }";
+}
 const WorkStructSend = {};
 module.exports = class CConsensus extends require("./block-loader")
 {
@@ -39,6 +52,7 @@ module.exports = class CConsensus extends require("./block-loader")
     {
         super(SetKeyPair, RunIP, RunPort, UseRNDHeader, bVirtual)
         this.CurrentBlockNum = 0
+        this.SendBlockID = 0
         this.RelayMode = false
         this.SendCount = 0
         this.TreeSendPacket = new RBTree(CompareItemHash)
@@ -240,7 +254,10 @@ module.exports = class CConsensus extends require("./block-loader")
             this.AddTrToBlockQuote(Block, Data.Array[i])
         }
         this.ToMaxPOWList(Data.MaxPOW)
-        this.ToMaxSumList(Data.MaxSum)
+        if(Data.Version === 2)
+            this.ToMaxSumList(Data.MaxSum)
+        else
+            this.ToMaxSumList(this.GetMaxSumListFromID(Node, Data.MaxSumID, Data.BlockList))
         var MinNumber;
         for(var i = 0; i < Data.MaxPOW.length; i++)
         {
@@ -267,6 +284,14 @@ module.exports = class CConsensus extends require("./block-loader")
             Block.TransferSize = 0
         Block.TransferNodes++
         Block.TransferSize += Info.Data.length
+    }
+    static
+    RETTRANSFER_F()
+    {
+        return "{BlockNum:uint, Array:[{body:tr}]}";
+    }
+    RETTRANSFER(Info, CurTime)
+    {
     }
     DoTransfer()
     {
@@ -337,7 +362,7 @@ module.exports = class CConsensus extends require("./block-loader")
             for(var i = 0; i < MaxPOWList.length; i++)
             {
                 var elem = MaxPOWList[i];
-                var Str = Addr + elem.BlockNum + "-" + GetHexFromArr(elem.AddrHash);
+                var Str = "POW:" + Item.Node.id + elem.BlockNum + "-" + GetHexFromArr(elem.AddrHash);
                 var bWasSend = global.TreeBlockBuf.LoadValue(Str, 1);
                 if(!bWasSend)
                 {
@@ -349,7 +374,7 @@ module.exports = class CConsensus extends require("./block-loader")
             for(var i = 0; i < MaxSumList.length; i++)
             {
                 var elem = MaxSumList[i];
-                var Str = Addr + elem.BlockNum + "-" + GetHexFromArr(elem.SumHash);
+                var Str = "MAX:" + Item.Node.id + elem.BlockNum + "-" + GetHexFromArr(elem.SumHash);
                 var bWasSend = global.TreeBlockBuf.LoadValue(Str, 1);
                 if(!bWasSend)
                 {
@@ -357,20 +382,83 @@ module.exports = class CConsensus extends require("./block-loader")
                     arrSum.push(elem)
                 }
             }
-            var BufData = this.CreateTransferBuffer(arrTr, arrPow, arrSum, Block);
+            var BufData = this.CreateTransferBuffer(arrTr, arrPow, arrSum, Block, Item.Node);
             this.Send(Item.Node, {"Method":"TRANSFER", "Data":BufData}, 1)
         }
     }
-    SendData0(Transfer, BufData, typedata)
+    GetMaxSumListFromID(Node, MaxSumID, BlockList)
     {
-        for(var Addr in Transfer.TransferNodes)
+        var Str0 = "GETBL:" + Node.id;
+        for(var i = 0; i < BlockList.length; i++)
         {
-            var Item = Transfer.TransferNodes[Addr];
-            Transfer.SendCount++
-            this.SendCount++
-            var SendData = {"Method":"TRANSFER", "Data":BufData};
-            this.Send(Item.Node, SendData, typedata)
+            var elemBlockList = BlockList[i];
+            global.TreeBlockBuf.SaveValue(Str0 + elemBlockList.ID, elemBlockList)
         }
+        var MaxSum = [];
+        MaxSum:
+        for(var i = 0; i < MaxSumID.length; i++)
+        {
+            var elem = MaxSumID[i];
+            var Arr = [];
+            for(var n = 0; n < elem.SumListID.length; n++)
+            {
+                var elemBlockList = global.TreeBlockBuf.LoadValue(Str0 + elem.SumListID[n], 1);
+                if(elemBlockList === undefined)
+                {
+                    continue MaxSum;
+                }
+                Arr.push(elemBlockList)
+            }
+            elem.SumList = Arr
+            MaxSum.push(elem)
+        }
+        return MaxSum;
+    }
+    CreateTransferBuffer(arrTr, MaxPOWList, MaxSumList, Block, Node)
+    {
+        var Data;
+        if(global.USE_NEW_SEND_ALGO)
+        {
+            var MaxSumID = [];
+            var BlockList = [];
+            for(var i = 0; i < MaxSumList.length; i++)
+            {
+                var elem0 = MaxSumList[i];
+                var ArrID = [];
+                for(var n = 0; n < elem0.SumList.length; n++)
+                {
+                    var elemBlockList = elem0.SumList[n];
+                    if(!elemBlockList.Hash3)
+                        ToLog("Error elemBlockList.Hash3")
+                    var Str = "BL:" + Node.id + GetHexFromArr(elemBlockList.Hash3);
+                    var ID = global.TreeBlockBuf.LoadValue(Str, 1);
+                    if(ID === undefined)
+                    {
+                        this.SendBlockID++
+                        ID = this.SendBlockID % 65535
+                        global.TreeBlockBuf.SaveValue(Str, ID)
+                        elemBlockList.ID = ID
+                        BlockList.push(elemBlockList)
+                    }
+                    ArrID.push(ID)
+                }
+                MaxSumID.push({BlockNum:elem0.BlockNum, SumHash:elem0.SumHash, SumListID:ArrID})
+            }
+            Data = {"Version":3, "BlockNum":Block.BlockNum, "Array":arrTr, "MaxPOW":MaxPOWList, "MaxSum":[], "BaseBlockNum":this.CurrentBlockNum - Block.BlockNum,
+                "MaxSumID":MaxSumID, "BlockList":BlockList, }
+        }
+        else
+        {
+            Data = {"Version":2, "BlockNum":Block.BlockNum, "Array":arrTr, "MaxPOW":MaxPOWList, "MaxSum":MaxSumList, "BaseBlockNum":this.CurrentBlockNum - Block.BlockNum,
+            }
+        }
+        var BufWrite = BufLib.GetBufferFromObject(Data, FORMAT_DATA_TRANSFER, MAX_BLOCK_SIZE + 30000, WorkStructSend);
+        return BufWrite;
+    }
+    static
+    TRANSFER_F()
+    {
+        return FORMAT_DATA_TRANSFER;
     }
     SendControlData(Transfer, BufData, BlockNum, TreeHash, typedata)
     {
@@ -414,32 +502,6 @@ module.exports = class CConsensus extends require("./block-loader")
     GETTRANSFER(Info, CurTime)
     {
         return ;
-        var Data = this.DataFromF(Info);
-        var Block = this.GetBlockContext(Data.BlockNum);
-        if(!Block || Block.StartLevel === undefined)
-            return ;
-        var MaxPOWList = this.GetMaxPOWList();
-        var MaxSumList = this.GetMaxSumList();
-        var arrTr = this.GetArrayFromTree(Block);
-        var BufData = this.CreateTransferBuffer(arrTr, MaxPOWList, MaxSumList, Block);
-        var SendData = {"Method":"TRANSFER", "Data":BufData};
-        this.Send(Info.Node, SendData, 1)
-    }
-    CreateTransferBuffer(arrTr, MaxPOWList, MaxSumList, Block)
-    {
-        if(!Block.PrevHash || IsZeroArr(Block.PrevHash))
-        {
-            Block.PrevHash = this.GetPrevHash(Block)
-        }
-        var Data = {"Version":2, "BlockNum":Block.BlockNum, "Array":arrTr, "MaxPOW":MaxPOWList, "MaxSum":MaxSumList, "BaseBlockNum":this.CurrentBlockNum - Block.BlockNum,
-        };
-        var BufWrite = BufLib.GetBufferFromObject(Data, FORMAT_DATA_TRANSFER, MAX_BLOCK_SIZE + 30000, WorkStructSend);
-        return BufWrite;
-    }
-    static
-    TRANSFER_F()
-    {
-        return FORMAT_DATA_TRANSFER;
     }
     CheckingMaxPowOther(Block)
     {
@@ -523,16 +585,8 @@ module.exports = class CConsensus extends require("./block-loader")
     {
         var arr = [];
         var start, finish;
-        if(USE_FAST_CALC_BLOCK)
-        {
-            start = this.CurrentBlockNum + TIME_START_SAVE - 2
-            finish = this.CurrentBlockNum
-        }
-        else
-        {
-            start = this.CurrentBlockNum + TIME_START_POW - 2
-            finish = this.CurrentBlockNum + TIME_START_POW - 0
-        }
+        start = this.CurrentBlockNum + TIME_START_SAVE - 2
+        finish = this.CurrentBlockNum
         for(var b = start; b < finish; b++)
         {
             var Block = this.GetBlock(b);
@@ -615,7 +669,7 @@ module.exports = class CConsensus extends require("./block-loader")
     GetMaxSumList()
     {
         var arr = [];
-        var start = this.CurrentBlockNum + TIME_START_SAVE - 2;
+        var start = this.CurrentBlockNum + TIME_START_LOAD + 2;
         var finish = this.CurrentBlockNum + TIME_START_SAVE;
         for(var b = start; b <= finish; b++)
         {
@@ -631,7 +685,7 @@ module.exports = class CConsensus extends require("./block-loader")
     }
     ToMaxSumList(Arr)
     {
-        var start = this.CurrentBlockNum + TIME_START_SAVE - 4;
+        var start = this.CurrentBlockNum + TIME_START_LOAD;
         var finish = this.CurrentBlockNum + TIME_START_SAVE;
         for(var i = 0; i < Arr.length; i++)
         {
@@ -670,11 +724,13 @@ module.exports = class CConsensus extends require("./block-loader")
         var BlockNumStart = CurBlockNum - arr.length + 1;
         for(var i = 0; i < arr.length; i++)
         {
-            var Block = arr[i];
-            if(Block)
+            var Item = arr[i];
+            if(Item)
             {
-                Block.BlockNum = BlockNumStart + i
-                SumPow += this.GetBlockPowerWithPoolFactor(Block)
+                Item.BlockNum = BlockNumStart + i
+                var Value = GetHashFromSeqAddr(Item.SeqHash, Item.AddrHash, Item.BlockNum);
+                SumPow += GetPowPower(Value.PowHash)
+                Item.Hash3 = Value.Hash
             }
             else
             {
@@ -682,13 +738,6 @@ module.exports = class CConsensus extends require("./block-loader")
             }
         }
         return SumPow;
-    }
-    GetBlockPowerWithPoolFactor(Item)
-    {
-        var MinerID = ReadUintFromArr(Item.AddrHash, 0);
-        var Value = GetHashFromSeqAddr(Item.SeqHash, Item.AddrHash, Item.BlockNum);
-        var Sum = GetPowPower(Value.PowHash);
-        return Sum;
     }
     GetArrayFromTree(Block)
     {
@@ -1281,20 +1330,17 @@ module.exports = class CConsensus extends require("./block-loader")
             BlockMining.PowHash = ValueNew.PowHash
             BlockMining.Power = GetPowPower(BlockMining.PowHash)
             ADD_TO_STAT("MAX:POWER", BlockMining.Power)
+            var Power = GetPowPower(BlockMining.PowHash);
+            var HashCount = (1 << Power) >>> 0;
+            ADD_HASH_RATE(HashCount)
+            AddInfoBlock(BlockMining, "Set POW: " + Power)
+            this.SetNoPOW(BlockMining.BlockNum + 8, 0, BlockMining.BlockNum)
             this.AddToMaxPOW(BlockMining, {SeqHash:BlockMining.SeqHash, AddrHash:BlockMining.AddrHash, PrevHash:BlockMining.PrevHash, TreeHash:BlockMining.TreeHash,
             })
-            AddInfoBlock(BlockMining, "Set POW")
-            this.SetNoPOW(BlockMining.BlockNum + 8, 0, BlockMining.BlockNum)
-            if(USE_FAST_CALC_BLOCK)
-            {
-                var Power = GetPowPower(BlockMining.PowHash);
-                var HashCount = (1 << Power) >>> 0;
-                ADD_HASH_RATE(HashCount)
-            }
         }
     }
 };
-global.TreeBlockBuf = new STreeBuffer(10 * 1000, CompareItemHashSimple, "string");
+global.TreeBlockBuf = new STreeBuffer(50 * 1000, CompareItemHashSimple, "string");
 global.GetCurrentBlockNumByTime = function GetCurrentBlockNumByTime()
 {
     var CurTimeNum = GetCurrentTime() - FIRST_TIME_BLOCK;

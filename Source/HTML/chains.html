@@ -189,6 +189,7 @@
     }
 
     var WasStartLoadBlockTime;
+    var MapHotNodes={};
     function SetResult(Data,CurBlockNum,MaxBlockNum,NodeNum)
     {
         if(!Data)
@@ -215,6 +216,7 @@
         {
             SetNewSession(Data.sessionid);
 
+            MapHotNodes={};
             NodeParam.MapBlockLoaded={};
             NodeParam.ChainList=[];
             NodeParam.MapBlockChain={};
@@ -275,7 +277,6 @@
     }
 
     var ArrHotNodes=[];
-    var MapHotNodes={};
     function SetNodesResult(SetArr)
     {
         ArrHotNodes=[];
@@ -352,43 +353,60 @@
 
 
         //ноды
-        for(var i=0;i<ArrHotNodes.length;i++)
+        if(ArrHotNodes.length)
         {
-            var Node=ArrHotNodes[i];
-            //Node.BlockNum=ArrHotNodes.length-i;
-            Node.BlockNum=i;
-
-            if(CalcDrawBlock(obj,ctx,ArrHotNodes.length-1,"N",0,0,Node,50,Node.Color.color2))
+            var SumTransferSize=0;
+            for(var i=0;i<ArrHotNodes.length;i++)
             {
-                arrBlocks.push(Node);
+                var Node=ArrHotNodes[i];
+                if(!Node.TransferSize)
+                    Node.TransferSize=0;
+                SumTransferSize+=Node.TransferSize;
+            }
+            var AvgTransferSize=SumTransferSize/ArrHotNodes.length;
+            if(!AvgTransferSize)
+                AvgTransferSize=1;
 
-                var x1,x2,y1,y2;
+            for(var i=0;i<ArrHotNodes.length;i++)
+            {
+                var Node=ArrHotNodes[i];
+                //Node.BlockNum=ArrHotNodes.length-i;
+                Node.BlockNum=i;
 
-                var TransferBlockNum=Node.TransferBlockNum;
-                if(Node.TransferBlockNumFix!==CurBlockNum)
-                    continue;
+                if(CalcDrawBlock(obj,ctx,ArrHotNodes.length-1,"N",0,0,Node,50,Node.Color.color2))
+                {
+                    arrBlocks.push(Node);
+
+                    var x1,x2,y1,y2;
+
+                    var TransferBlockNum=Node.TransferBlockNum;
+                    if(Node.TransferBlockNumFix!==CurBlockNum)
+                        continue;
 
 
-                var Block=NodeParam.MapBlockChain[Node.TransferBlockNum];
-                if(!Block)
-                    continue;
+                    var Block=NodeParam.MapBlockChain[Node.TransferBlockNum];
+                    if(!Block)
+                        continue;
 
-                x1=Node.x+Node.width/2;
-                y1=Node.y+Node.height;
-                x2=Block.x+Block.width/2;
-                y2=Block.y;
+                    x1=Node.x+Node.width/2;
+                    y1=Node.y+Node.height;
+                    x2=Block.x+Block.width/2;
+                    y2=Block.y;
 
-                //линии
-                ctx.strokeStyle = Node.Color.color1;//color;
-                ctx.lineWidth=Math.log(1+Node.TransferSize/10000);
-                if(ctx.lineWidth<2)
-                    ctx.lineWidth=1;
+                    //линии
+                    ctx.strokeStyle = Node.Color.color1;//color;
+                    ctx.lineWidth=Math.log2(1+Node.TransferSize/AvgTransferSize/2);
+                    if(ctx.lineWidth<0.2)
+                        ctx.lineWidth=0.2;
+                    if(ctx.lineWidth>6)
+                        ctx.lineWidth=6;
 
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2,y2);
-                ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2,y2);
+                    ctx.stroke();
 
+                }
             }
         }
 
