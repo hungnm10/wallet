@@ -27,6 +27,7 @@ ContenTypeMap["jpg"] = "image/jpeg";
 ContenTypeMap["html"] = "text/html";
 ContenTypeMap["txt"] = "text/plain";
 ContenTypeMap["csv"] = "text/csv";
+ContenTypeMap["svg"]="image/svg+xml";
 ContenTypeMap[""] = "application/octet-stream";
 ContenTypeMap["zip"] = "application/zip";
 ContenTypeMap["pdf"] = "application/pdf";

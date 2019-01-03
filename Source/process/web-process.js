@@ -272,11 +272,18 @@ function DoCommandNew(response,Type,Path,Params)
                     case "mp3":
                         Name = PrefixPath + "/SOUND/" + Name;
                         break;
+                    case "svg":
                     case "png":
                     case "gif":
                     case "jpg":
                     case "ico":
                         Name = PrefixPath + "/PIC/" + Name;
+                        break;
+                    case "eot":
+                    case "woff":
+                    case "woff2":
+                    case "ttf":
+                        Name = PrefixPath + "/FONTS/" + Name;
                         break;
                     default:
                         Name = PrefixPath + "/" + Name;
